@@ -180,14 +180,23 @@ const defaultData = {
 // Role-specific navigation data
 const getRoleBasedNav = (role: UserRole, showMemo: boolean, showMentees: boolean) => {
   switch (role) {
+    case 'default':
     case 'scholar':
       return [
+
         {
           title: "Home",
           url: "/dashboard",
           icon: GraduationCap,
           isActive: true,
         },
+                {
+          title: "Roster",
+          url: "/dashboard/roster",
+          icon: UserCheck,
+          isActive: true,
+        },
+
         {
           title: "Directory",
           url: "/dashboard/directory",
@@ -204,6 +213,11 @@ const getRoleBasedNav = (role: UserRole, showMemo: boolean, showMentees: boolean
           url: "/dashboard",
           icon: Home,
           isActive: true,
+        },
+        {
+          title: "Roster",
+          url: "/dashboard/roster",
+          icon: UserCheck,
         },
         {
           title: "Personal",
