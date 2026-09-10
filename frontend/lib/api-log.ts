@@ -8,6 +8,7 @@
  * console log entries for all backend fetch calls.
  *
  * ## Responsibilities
+ * - resolveBackendBaseUrl(value, fallback): treat blank env as missing
  * - buildBackendRequestUrl(baseUrl, path): construct full request URL
  * - logApiRequest(scope, method, url): log outgoing request
  * - logApiResponse(scope, method, url, status, durationMs): log successful response
@@ -22,15 +23,36 @@
  */
 type ApiLogScope = "server" | "client";
 
+export const DEFAULT_LOCAL_BACKEND_URL = "http://localhost:3001";
+
 function scopeLabel(scope: ApiLogScope): string {
   return scope === "server" ? "API server→backend" : "API client→backend";
 }
 
+/**
+ * Treat unset / blank env values as missing so Docker ARG="" does not become
+ * an invalid `new URL()` base (Railway frontend image).
+ */
+export function resolveBackendBaseUrl(
+  value: string | undefined | null,
+  fallback: string = DEFAULT_LOCAL_BACKEND_URL
+): string {
+  const trimmed = value?.trim() ?? "";
+  return trimmed.length > 0 ? trimmed : fallback;
+}
+
 /** Join backend base URL and API path into a full request URL. */
 export function buildBackendRequestUrl(baseUrl: string, path: string): string {
-  const base = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+  const resolved = resolveBackendBaseUrl(baseUrl);
+  const base = resolved.endsWith("/") ? resolved : `${resolved}/`;
   const normalizedPath = path.startsWith("/") ? path.slice(1) : path;
-  return new URL(normalizedPath, base).href;
+  try {
+    return new URL(normalizedPath, base).href;
+  } catch {
+    throw new TypeError(
+      `Invalid backend base URL ${JSON.stringify(baseUrl)}. Expected an absolute http(s) URL (BACKEND_URL / NEXT_PUBLIC_BACKEND_URL).`
+    );
+  }
 }
 
 /** Log an outgoing backend API request. */

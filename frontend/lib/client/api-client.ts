@@ -30,10 +30,10 @@ import {
   logApiError,
   logApiRequest,
   logApiResponse,
+  resolveBackendBaseUrl,
 } from "@/lib/api-log";
 
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+const BACKEND_URL = resolveBackendBaseUrl(process.env.NEXT_PUBLIC_BACKEND_URL);
 
 async function getAccessToken(): Promise<string | null> {
   try {

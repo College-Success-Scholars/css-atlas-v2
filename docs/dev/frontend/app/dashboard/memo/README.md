@@ -24,8 +24,8 @@ The header blurb (`WEEKLY_MEMO_HEADER_BLURB` in `_lib/memo-section-guide.ts`) is
 | Section | Job | Who appears |
 |---------|-----|-------------|
 | KPI cards | Week totals: visits, mean FD/SS completion, tutoring sessions | Campus week |
-| Team leader performance | **WPL · MCF · WAHF** compliance for TLs. Missing MCF is a TL issue, not scholar follow-up. TLs with `mentee_count` ≤ 0 (including `-1`, no `mentor_mentee` row) show MCF on-time plus small “no mentee” text. | Roster `program_role` ≠ scholar / Coordinator; `status` ≠ graduated. Program Coordinator still appears. |
-| Scholar follow-up | **Action list** — who needs a conversation this week | Scholars with **What's missing** (Front desk, Study session, WAHF, assignment title) and **How it's missing** (hours/grade meters, WAHF submitted-at or no-submission time). **TL** is the assigned mentor from `mentor_mentee` (`Unassigned` when there is no row). |
+| Team leader performance | **WPL · MCF · WAHF** compliance for TLs. Missing MCF is a TL issue, not scholar follow-up. Some-but-not-all mentee MCFs is **incomplete**, not late. TLs with `mentee_count` ≤ 0 (including `-1`, no `mentor_mentee` row) show MCF on-time plus small “no mentee” text. | Roster `program_role` ≠ scholar / Coordinator; `status` ≠ graduated. Program Coordinator still appears. |
+| Scholar follow-up | **Action list** — who needs a conversation this week | Scholars with **What's missing** (Front desk, Study session, WAHF, assignment title) and **How it's missing** (hours/grade meters, WAHF submitted-at or no-submission time) |
 | Tutoring log | Sessions held vs empty sessions | Tutor report rows |
 | Recognition board | **Census** — every assignment grade parsed from this week's **WAHF** (90–100% / 70–89% / below 70%) | Scholars with parsed grades; empty band = None |
 | Full attendance detail | **Census** — hours math for freshman and sophomore scholars with required minutes, plus **overall WAHF** on-time / late / missing counts | Enrolled freshman/sophomore scholars with required hours (cohort years from `FALL_SEMESTER_FIRST_DAY`) |

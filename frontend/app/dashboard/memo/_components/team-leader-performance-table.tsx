@@ -14,6 +14,7 @@ const statusClassName: Record<FormStatus, string> = {
   "on-time": "bg-success-muted text-success-muted-foreground border-success/30",
   missing: "bg-destructive/10 text-destructive border-destructive/30",
   late: "bg-warning-muted text-warning-muted-foreground border-warning/30",
+  incomplete: "bg-warning-muted text-warning-muted-foreground border-warning/30",
   "check-mentees": "bg-warning-muted text-warning-muted-foreground border-warning/30",
 }
 
@@ -21,8 +22,9 @@ const STATUS_SORT_ORDER: Record<FormStatus, number> = {
   "on-time": 0,
   submitted: 1,
   late: 2,
-  "check-mentees": 3,
-  missing: 4,
+  incomplete: 3,
+  "check-mentees": 4,
+  missing: 5,
 }
 
 function renderStatus(status: FormStatus) {
@@ -99,7 +101,7 @@ const filterBar: DataTableFilter<TeamLeaderPerformanceRow>[] = [
     ],
     multi: false,
     matchFn: (row, selected) => {
-      const hasIssue = (s: FormStatus) => s === "missing" || s === "late"
+      const hasIssue = (s: FormStatus) => s === "missing" || s === "late" || s === "incomplete"
       if (selected.includes("any")) {
         return hasIssue(row.mcf) || hasIssue(row.wpl) || hasIssue(row.wahf)
       }

@@ -93,7 +93,7 @@ export function isMemoYearNotStarted(
   return "yearNotStarted" in data && data.yearNotStarted === true
 }
 
-export type FormStatus = "submitted" | "on-time" | "missing" | "late" | "check-mentees"
+export type FormStatus = "submitted" | "on-time" | "missing" | "late" | "incomplete" | "check-mentees"
 
 export type WeeklyKpiCard = {
   title: string

@@ -297,7 +297,34 @@ describe("getFormStatusForWeek MCF", () => {
       2,
       2,
     )
-    expect(status.status).toBe("missed")
+    expect(status.status).toBe("incomplete")
+    expect(status.completedCount).toBe(1)
+    expect(status.requiredCount).toBe(2)
+  })
+
+  it("is incomplete after the deadline when only some mentees have a log", () => {
+    const week2Fri = toCampusDay(
+      addEasternCalendarDays(parseEasternDate(mondayOfCampusWeek(2)), 4),
+    )
+    vi.useFakeTimers({
+      now: new Date(parseEasternDate(week2Fri).getTime() + 18 * 60 * 60 * 1000),
+    })
+    const status = getFormStatusForWeek(
+      "MCF",
+      [],
+      [
+        mockMcf({
+          id: "one",
+          created_at: noonOnDay(week2Fri).toISOString(),
+          mentee_uid: "s-1",
+        }),
+      ],
+      [],
+      2,
+      2,
+      2,
+    )
+    expect(status.status).toBe("incomplete")
     expect(status.completedCount).toBe(1)
     expect(status.requiredCount).toBe(2)
   })

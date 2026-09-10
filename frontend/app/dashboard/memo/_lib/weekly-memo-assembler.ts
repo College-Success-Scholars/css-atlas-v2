@@ -16,6 +16,14 @@ const getFormStatus = (completed: number, required: number, late: boolean): Form
   return completed > 0 ? "late" : "missing"
 }
 
+/** MCF is one form per mentee. Some-but-not-all is incomplete, not late. */
+function getMcfStatus(completed: number, required: number, late: boolean): FormStatus {
+  if (required <= 0) return "on-time"
+  if (completed <= 0) return "missing"
+  if (completed < required) return "incomplete"
+  return late ? "late" : "on-time"
+}
+
 const hasNoMenteeAssignment = (mcfRequired: number): boolean => mcfRequired <= 0
 
 const formatWeekDateRange = (weekLabel: string) => {
@@ -31,7 +39,7 @@ const buildTeamLeaderRows = (data: MemoLivePageData): TeamLeaderPerformanceRow[]
     const hasNoMentee = hasNoMenteeAssignment(row.mcfRequired)
     return {
       leaderName: row.name,
-      mcf: hasNoMentee ? "on-time" : getFormStatus(row.mcfCompleted, row.mcfRequired, row.mcfLate),
+      mcf: hasNoMentee ? "on-time" : getMcfStatus(row.mcfCompleted, row.mcfRequired, row.mcfLate),
       wpl: getFormStatus(row.wplCompleted, row.wplRequired, row.wplLate),
       wahf: getFormStatus(row.wahfCompleted, row.wahfRequired, row.wahfLate),
       menteesOk: row.wahfPct >= 90 && row.wplPct >= 90 && row.mcfPct >= 90 ? ("yes" as const) : ("check" as const),

@@ -9,6 +9,7 @@
  * ## Responsibilities
  * - Handle profile update mutations (basic info, etc.)
  * - Public `/traffic` kiosk check-in (`recordTrafficEntry`) — no auth, Zod-validated write
+ * - Teams board excuse upsert (`upsertAttendanceExcuseAction`) via backend `BACKEND_URL`
  * - Validate inputs with Zod before writing to Supabase or calling the backend
  * - Revalidate Next.js cache paths after mutations
  *
@@ -25,6 +26,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { backendPost } from "@/lib/server/api-client"
+import { upsertAttendanceExcuse } from "@/lib/server/data"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
@@ -113,4 +115,35 @@ export async function recordTrafficEntry(input: unknown) {
   }
 
   return { success: true as const }
+}
+
+const attendanceExcuseSchema = z.object({
+  uid: z.string().min(1).max(50),
+  weekNum: z.number().int().positive(),
+  kind: z.enum(["front_desk", "study_session"]),
+  excuse_min: z.number().int().min(0).nullable(),
+  description: z.string().max(2000).nullable(),
+})
+
+/**
+ * Upsert a campus-week FD/SS excuse from the teams board.
+ * Uses the server backend client (`BACKEND_URL`) so Railway does not need
+ * `NEXT_PUBLIC_BACKEND_URL` inlined at image build time.
+ */
+export async function upsertAttendanceExcuseAction(input: unknown) {
+  const parsed = attendanceExcuseSchema.safeParse(input)
+  if (!parsed.success) {
+    return { error: "Invalid input" }
+  }
+
+  try {
+    await upsertAttendanceExcuse(parsed.data)
+    revalidatePath("/dashboard/teams/front-desk")
+    revalidatePath("/dashboard/teams/study")
+    return { success: true as const }
+  } catch (e) {
+    return {
+      error: e instanceof Error ? e.message : "Failed to save excuse",
+    }
+  }
 }

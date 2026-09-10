@@ -26,18 +26,23 @@ import "server-only";
 import { cookies } from "next/headers";
 import {
   buildBackendRequestUrl,
+  DEFAULT_LOCAL_BACKEND_URL,
   logApiError,
   logApiRequest,
   logApiResponse,
+  resolveBackendBaseUrl,
 } from "@/lib/api-log";
 import {
   DEV_ACTIVE_PROFILE_COOKIE,
   DEV_ACTIVE_PROFILE_HEADER,
 } from "../../../shared/dist/auth.js";
 
-const BACKEND_URL =
-  process.env.BACKEND_URL ??
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}/_/backend` : "http://localhost:3001");
+const BACKEND_URL = resolveBackendBaseUrl(
+  process.env.BACKEND_URL,
+  process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}/_/backend`
+    : DEFAULT_LOCAL_BACKEND_URL
+);
 const BASE64_PREFIX = "base64-";
 
 function getSupabaseProjectRef(): string | null {
