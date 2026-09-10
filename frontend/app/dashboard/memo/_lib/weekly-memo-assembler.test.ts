@@ -272,4 +272,69 @@ describe("weekly-memo-assembler", () => {
       hasNoMentee: true,
     })
   })
+
+  it("marks MCF incomplete when some but not all mentee forms are in", () => {
+    const result = assembleWeeklyMemo({
+      ...buildMemoData(),
+      teamLeaderFormStats: [
+        {
+          scholarId: "tl-partial",
+          name: "TL Partial",
+          programRole: "Team Leader",
+          mcfCompleted: 1,
+          mcfRequired: 3,
+          mcfLate: false,
+          mcfPct: 33,
+          mcfLatestAt: "2026-04-03T12:00:00.000Z",
+          wplCompleted: 1,
+          wplRequired: 1,
+          wplLate: false,
+          wplPct: 100,
+          wplLatestAt: "",
+          wahfCompleted: 1,
+          wahfRequired: 1,
+          wahfLate: false,
+          wahfPct: 100,
+          wahfLatestAt: "",
+        },
+      ],
+    })
+
+    expect(result.teamLeaderRows[0]).toMatchObject({
+      leaderName: "TL Partial",
+      mcf: "incomplete",
+      wpl: "on-time",
+      wahf: "on-time",
+    })
+  })
+
+  it("keeps partial MCF incomplete even when a submitted check-in was late", () => {
+    const result = assembleWeeklyMemo({
+      ...buildMemoData(),
+      teamLeaderFormStats: [
+        {
+          scholarId: "tl-partial-late",
+          name: "TL Partial Late",
+          programRole: "Team Leader",
+          mcfCompleted: 1,
+          mcfRequired: 2,
+          mcfLate: true,
+          mcfPct: 50,
+          mcfLatestAt: "2026-04-04T22:00:00.000Z",
+          wplCompleted: 1,
+          wplRequired: 1,
+          wplLate: false,
+          wplPct: 100,
+          wplLatestAt: "",
+          wahfCompleted: 1,
+          wahfRequired: 1,
+          wahfLate: false,
+          wahfPct: 100,
+          wahfLatestAt: "",
+        },
+      ],
+    })
+
+    expect(result.teamLeaderRows[0]?.mcf).toBe("incomplete")
+  })
 })

@@ -12,6 +12,7 @@ const STATUS_SCORE: Record<FormStatus, number> = {
   "on-time": 0,
   missing: 3,
   late: 1,
+  incomplete: 2,
   "check-mentees": 0.5,
 }
 
