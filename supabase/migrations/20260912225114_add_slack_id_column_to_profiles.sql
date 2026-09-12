@@ -1,0 +1,1 @@
+alter table profiles add column slack_user_id text;
