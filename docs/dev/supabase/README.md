@@ -40,9 +40,11 @@ Developer roster edits from `/dev/profiles` need `developer_update_user_roster` 
 
 ### Inventory — tables in dump
 
-`am_pm_form_logs`, `daily_scholar_activity`, `dev_test_profiles`, `front_desk_logs`, `front_desk_records_legacy`, `mcf_form_logs`, `mentor_mentee`, `profiles`, `scholar_week_excuses`, `scholar_weekly_stats`, `semester_breaks`, `semesters`, `study_session_logs`, `study_session_records_legacy`, `traffic`, `traffic_weekly_summary`, `tutor_report_logs`, `user_roster`, `whaf_form_logs`, `wpl_form_logs`
+`am_pm_form_logs`, `daily_scholar_activity`, `dev_test_profiles`, `front_desk_logs`, `front_desk_records_legacy`, `mcf_form_logs`, `mentor_mentee`, `profiles`, `scholar_shift_assignments`, `scholar_week_excuses`, `scholar_weekly_stats`, `semester_breaks`, `semesters`, `study_session_logs`, `study_session_records_legacy`, `traffic`, `traffic_weekly_summary`, `tutor_report_logs`, `user_roster`, `whaf_form_logs`, `wpl_form_logs`
 
 Column-level catalog (types + one-liners): [`public-schema.md`](public-schema.md).
+
+`scholar_shift_assignments` is not in the baseline dump - it arrives in [`20260904120000_add_scholar_shift_assignments.sql`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/supabase/migrations/20260904120000_add_scholar_shift_assignments.sql).
 
 ### Form / log intake (Google Forms)
 
@@ -63,6 +65,32 @@ Likely intake targets from the baseline migration (`*_form_logs`, log tables wit
 **Not** Google Form intake (app- or DB-derived): `front_desk_records_legacy` / `study_session_records_legacy` (frozen snapshots — do not use), `scholar_week_excuses` (TL-entered excuses, keyed by campus-week `week_start`), `daily_scholar_activity` / `scholar_weekly_stats` (aggregates), `traffic` / `traffic_weekly_summary` (kiosk + analytics), `profiles` / `user_roster` / `mentor_mentee` / `dev_test_profiles` / semester tables.
 
 When debugging empty dashboards, check whether the linked project has recent rows in the form/log tables above before assuming a missing “populate data” feature. If week 1 of a new academic year is empty, also check [Yearly rollover](#yearly-rollover) — expired Google consent is a common cause. If the Forms already have responses that never landed in Postgres, export the Sheet and load it with [`scripts/backfill-form-logs.sh`](../scripts/README.md#backfill-form-logssh) (WPL / MCF).
+
+### Front-desk and study-session shift assignments (planned occupancy)
+
+`scholar_shift_assignments` holds **standing weekly shift assignments** - who is *supposed*
+to be working when, one row per scholar per shift per semester, covering both kinds via the
+`session_kind` enum.
+
+This is **not** Google Form intake and not an app-owned mutation. It is loaded by the operator
+script [`scripts/ingest-signups.sh`](../scripts/README.md#ingest-signupssh) from an `.xlsx`
+export of the sign-up sheet, following the same outside-the-app pattern as the roster ingest.
+Nothing in the backend writes it.
+
+**Planned occupancy is not attendance.** Actual minutes come from `front_desk_logs` /
+`study_session_logs`. The comparison between scheduled and actual happens **live in app code**
+(`backend/src/services/session-log.service.ts`, which reads this table filtered on
+`is_active = true`) whenever the weekly memo or a mentee page loads. There is deliberately no
+trigger, view, or cron precomputing it, so the compliance rules - grace periods, what counts as
+a miss - stay somewhere readable and testable.
+
+Two details worth knowing before querying it:
+
+- `scholar_id` references `profiles.id`, but the log tables key on `scholar_uid`, which matches
+  `profiles.student_id`. Joining a schedule against logs goes **through `profiles`**. A scholar
+  who has not yet accepted their invite has no `profiles` row and therefore cannot be assigned.
+- `day_of_week` follows the Postgres DOW convention (0=Sunday), matching `getEasternDayOfWeek()`
+  in `shared/eastern-time.ts`. The sign-up sheets only populate Monday-Friday.
 
 ### Yearly rollover
 

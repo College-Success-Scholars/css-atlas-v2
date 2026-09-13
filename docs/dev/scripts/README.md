@@ -33,6 +33,7 @@ Shell scripts for deployment validation and operational tasks. These run outside
 | `sync-mentee-count-from-mentor-mentee.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/sync-mentee-count-from-mentor-mentee.sh) | Ops: set TL `mentee_count` from `mentor_mentee` (`-1` if no relationship yet) |
 | `backfill-form-logs.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/backfill-form-logs.sh) | Ops: insert Google Form CSV dumps into `public.wpl_form_logs` / `public.mcf_form_logs` |
 | `supabase-env.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/supabase-env.sh) | Sourced helper: resolves `SUPABASE_URL` and prompts for the service role key. Not executable on its own |
+| `ingest-signups.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/ingest-signups.sh) | Ops: load a sign-up sheet workbook into `public.scholar_shift_assignments` (service role prompted interactively; no PII dumps to disk) |
 
 ---
 
@@ -140,6 +141,18 @@ SUPABASE_ACCESS_TOKEN=... SUPABASE_PROJECT_REF=... ./scripts/configure-supabase-
 
 # Form CSV dumps → form log tables (prompts for service role key)
 ./scripts/backfill-form-logs.sh
+
+# Sign-up workbook → scholar_shift_assignments (parse + reports only; no network, no prompt)
+./scripts/ingest-signups.sh --session-kind front_desk --dry-run /path/to/workbook.xlsx
+
+# Match names against profiles and report; reads only, writes nothing
+./scripts/ingest-signups.sh --session-kind front_desk --check /path/to/workbook.xlsx
+
+# Replace the loaded scope and insert the sheet's current state
+./scripts/ingest-signups.sh --session-kind front_desk /path/to/workbook.xlsx
+
+# Parser assertions only (no workbook, no network, no credentials)
+./scripts/ingest-signups.sh --self-test
 ```
 
 ### `ingest-user-roster.sh`
@@ -161,7 +174,96 @@ Ops script for bulk-loading a sheet export into `public.user_roster`. Companion 
 
 `--dry-run` skips the prompt and does not POST. Stdout includes TSV reports for bad university emails (with contact fields) and null UIDs.
 
-Credential resolution is shared with `backfill-user-roster-defaults.sh`, `sync-mentee-count-from-mentor-mentee.sh`, and `backfill-form-logs.sh` via [`scripts/supabase-env.sh`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/supabase-env.sh) (`require_supabase_url`, `require_supabase_service_role`). Source that helper in any new Supabase ops script instead of re-implementing the `.env` walk or the hidden prompt.
+Credential resolution is shared with `backfill-user-roster-defaults.sh`, `sync-mentee-count-from-mentor-mentee.sh`, `backfill-form-logs.sh`, and `ingest-signups.sh` via [`scripts/supabase-env.sh`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/supabase-env.sh) (`require_supabase_url`, `require_supabase_service_role`). Source that helper in any new Supabase ops script instead of re-implementing the `.env` walk or the hidden prompt.
+
+### `ingest-signups.sh`
+
+Ops script for loading standing weekly shifts into `public.scholar_shift_assignments` from a sign-up sheet. Companion parser: [`scripts/ingest-signups.py`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/ingest-signups.py).
+
+One script serves both sign-up sheets. Everything that differs between them lives in a `SheetProfile` (tab patterns, how the semester is resolved, the "closed" marker text, the required-slots figure), selected by `--session-kind`. Front desk is `front_desk`; study session arrives with issue #69.
+
+**Source sheets**
+
+| `--session-kind` | Sheet | Link |
+|---|---|---|
+| `front_desk` | CSS Front Desk Sign-Up | <https://docs.google.com/spreadsheets/d/1n7cXk0DtCe5OHxK5QMfMcnU6f7slOYG8KXTE3VMXPC8/edit> |
+
+These are the canonical sheets — do not point the loader at a copy or a re-typed version.
+
+**Getting the workbook**
+
+Export the Google Sheet as `.xlsx` (File -> Download -> Microsoft Excel) and pass the path. `.xlsx` rather than per-tab CSV because the sign-up tabs are frequently hidden, and one workbook download brings them all. No Google credentials or API access are involved - the operator exports, the script reads a local file.
+
+**What gets parsed**
+
+The **Sign-Up grid** tabs, which is what staff actually edit: column A is the slot start as an Excel day fraction, columns B-F are Mondays-Fridays, and each cell holds a comma-separated list of names for that 30-minute slot. A name in a cell means that scholar occupies `[start, start + 30min)`; consecutive slots are then merged into one standing shift, because the schema wants one row per standing assignment.
+
+Names are free text, so the splitter tolerates what the sheet actually contains: any number of names per cell, missing spaces after commas, lists that wrap onto another line, and leading / trailing / doubled commas. **A comma with nothing after it contributes no name** - a cell of nothing but separators yields nothing at all.
+
+The front desk workbook also contains hidden **"Schedule Data"** tabs with explicit start/end columns. Those are **not** read: they are separately hand-maintained and already disagree with the grid (they carry a 22:00 end time, past the 20:00 close). The grid is the source of truth.
+
+**Confirm the header block on every run.** The first report lists the tabs chosen, their visibility, and the resolved weekday columns. Tabs are chosen by how many names they hold, not by visibility, so a hidden tab can win - the script warns when that happens. Use `--tabs "Name A,Name B"` to choose explicitly. Weekday columns resolve by position anchored on whichever headers are present, so a tab missing its `Tuesdays` header still loads Tuesday correctly.
+
+**Column map**
+
+| Sheet source | Schema column | Transform |
+|---|---|---|
+| weekday column position (header-anchored) | `day_of_week` | Mon=1 ... Fri=5 (Postgres DOW, 0=Sun - matches `getEasternDayOfWeek`) |
+| name fragment in the cell | `source_name` -> `scholar_id` | split, normalize -> match `profiles.full_name` |
+| 9-digit fragment, when present | `scholar_id` (preferred) | -> `profiles.student_id` |
+| column A time fraction at that row | `start_time` | `value x 24h` -> `HH:MM:00` ET |
+| that row + 30 min, then coalesced | `end_time` | contiguous slots merged into one shift |
+| `--semester-id`, else the active semester | `semester_id` | -> `semesters.id` |
+| `--session-kind` | `session_kind` | `'front_desk'` |
+| - | `is_active` | `true` on load; compliance reads filter on it |
+| - | `source`, `source_tab`, `match_method`, `load_batch_id` | `'google_sheet'` + diagnostics |
+
+**Identity matching**
+
+Only deterministic matches are accepted, in order: 9-digit `student_id` -> alias map -> exact name -> reversed name -> unique first name. Anything ambiguous or merely similar is **reported and skipped**, never guessed - a wrong guess attaches real hours to the wrong person. Close spellings get suggestions in the report so you can fill in an alias map.
+
+Two things routinely appear in the unmatched report and are not data-entry errors:
+
+- **Scholars without a `profiles` row.** `scholar_id` is a FK to `profiles.id`, and profiles only exist once a scholar accepts their Supabase Auth invite (`user_roster` is the pre-invite staging table). Anyone who has not signed up yet cannot be loaded until they do.
+- **Names run together with no comma** (e.g. `"First Last Other Person"`). Detected and reported with a suggested split, never split automatically.
+
+`--alias-map FILE` takes a two-column `sheet_name,profile_uuid` CSV. **Keep that file outside the repo** - it links names to identities.
+
+**Stale-row policy**
+
+The sheet is the source of truth. Each load deletes the rows in the `(semester_id, session_kind, source_tab)` scope it is about to load, then inserts the sheet's current state. Shifts someone dropped disappear; a second identical run produces an identical table. Rows outside that scope - other tabs, the other session kind, or anything entered by hand under a different `source` - are never touched.
+
+This is delete-then-insert rather than an upsert, deliberately. The table's overlap rule is a GiST exclusion constraint (`no_overlapping_shift_assignments`), which `INSERT ... ON CONFLICT` cannot target, and there is no unique constraint to conflict on. Deleting first also avoids an edited shift overlapping its own surviving row.
+
+A load that parses **zero** shifts while the scope still holds rows stops with an error rather than clearing it - that pattern almost always means the wrong tab was selected or parsing broke, not that everyone dropped their shifts. Pass `--allow-empty` when the sheet genuinely is empty.
+
+**Modes**
+
+| Mode | Credentials | Network | Writes |
+|------|-------------|---------|--------|
+| `--dry-run` | none | none | none |
+| `--check` | service role | reads `profiles` | none |
+| (neither) | service role | reads + writes | replaces the loaded scope |
+| `--self-test` | none | none | none |
+
+Run `--dry-run` first to confirm structure, then `--check` to review the unmatched list and circulate it for sign-off, then the real load.
+
+**Sensitivity**
+
+- Treat the workbook as PII. The script reads it from the path you pass and POSTs mapped rows to Supabase; it does **not** write transformed files or reports to disk.
+- Secure or delete the source workbook yourself after the run.
+
+**Credentials** - same sources as `ingest-user-roster.sh` above (URL from the shell or `backend/.env`; service role via hidden prompt only), resolved through `supabase-env.sh`.
+
+```bash
+# Confirm structure, then review matches, then load
+./scripts/ingest-signups.sh --session-kind front_desk --dry-run ~/fd-signups.xlsx
+./scripts/ingest-signups.sh --session-kind front_desk --check   ~/fd-signups.xlsx
+./scripts/ingest-signups.sh --session-kind front_desk          ~/fd-signups.xlsx
+
+# Pin the semester and pick tabs explicitly
+./scripts/ingest-signups.sh --session-kind front_desk --semester-id 3 --tabs "Freshman Sign-Up,Sophomore Sign-Up" ~/fd-signups.xlsx
+```
 
 ### `backfill-user-roster-defaults.sh`
 

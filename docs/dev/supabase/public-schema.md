@@ -14,6 +14,7 @@ There are no views in `public`. Operational form and session-log tables are fill
 | [`mcf_form_logs`](#mcf_form_logs) | Mentee Check-in Form (MCF) |
 | [`mentor_mentee`](#mentor_mentee) | Mentor → mentee assignments |
 | [`profiles`](#profiles) | Canonical signed-in user profile |
+| [`scholar_shift_assignments`](#scholar_shift_assignments) | Standing weekly FD/SS shift assignments (planned occupancy) |
 | [`scholar_week_excuses`](#scholar_week_excuses) | TL-entered weekly FD/SS excuses |
 | [`scholar_weekly_stats`](#scholar_weekly_stats) | Per-scholar weekly memo stats |
 | [`semester_breaks`](#semester_breaks) | Named break windows inside a semester |
@@ -179,6 +180,39 @@ Canonical signed-in user row (created after invite accept or complete-profile). 
 | `majors` | `text[]` | Declared majors. |
 | `minors` | `text[]` | Declared minors. |
 | `teams` | `text[]` | Team names this person belongs to. |
+
+---
+
+## `scholar_shift_assignments`
+
+Standing weekly shift assignments - who is *supposed* to be working front desk or a
+study session. Planned occupancy only; actual attendance lives in the log tables and
+is compared against this on read (`backend/src/services/session-log.service.ts`).
+Loaded from the sign-up sheets by [`scripts/ingest-signups.sh`](../scripts/README.md#ingest-signupssh).
+PK `id`.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | `uuid` | Row primary key, defaulted from `gen_random_uuid()`. |
+| `scholar_id` | `uuid` | FK -> `profiles.id`. The log tables key on `scholar_uid` = `profiles.student_id`, so joining schedule to logs goes through `profiles`. |
+| `semester_id` | `integer` | FK -> `semesters.id`. The assignment holds for this semester. |
+| `session_kind` | `session_kind` | `front_desk` or `study_session`. |
+| `day_of_week` | `smallint` | Postgres DOW: 0=Sunday .. 6=Saturday, matching `getEasternDayOfWeek()`. Sheets fill 1-5. |
+| `start_time` | `time` | Shift start, Eastern wall-clock. |
+| `end_time` | `time` | Shift end, Eastern wall-clock. Must be later than `start_time`. |
+| `is_active` | `boolean` | Whether the assignment is in force. Compliance reads filter `is_active = true`; the overlap constraint applies only to active rows. |
+| `source` | `text` | How the row arrived. `google_sheet` for sheet loads. |
+| `source_tab` | `text` | Diagnostics: workbook tab the row came from. Also scopes what a reload replaces. |
+| `source_name` | `text` | Diagnostics: raw name fragment from the sheet cell. |
+| `match_method` | `text` | Diagnostics: how the name resolved (`student_id`, `name_exact`, `alias`, ...). |
+| `load_batch_id` | `uuid` | Diagnostics: which ingest run inserted the row. |
+| `created_at` | `timestamptz` | Row insert time. |
+| `updated_at` | `timestamptz` | Last write time. |
+
+Constraints: `no_overlapping_shift_assignments` is a GiST exclusion constraint (partial
+on `is_active`) preventing one scholar holding two overlapping shifts of the same kind
+on the same weekday - the one piece of business logic kept in the schema. The front-desk
+cap of three people per slot is deliberately *not* enforced here.
 
 ---
 
