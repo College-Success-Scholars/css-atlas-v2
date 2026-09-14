@@ -202,7 +202,11 @@ Names are free text, so the splitter tolerates what the sheet actually contains:
 
 The front desk workbook also contains hidden **"Schedule Data"** tabs with explicit start/end columns. Those are **not** read: they are separately hand-maintained and already disagree with the grid (they carry a 22:00 end time, past the 20:00 close). The grid is the source of truth.
 
-**Confirm the header block on every run.** The first report lists the tabs chosen, their visibility, and the resolved weekday columns. Tabs are chosen by how many names they hold, not by visibility, so a hidden tab can win - the script warns when that happens. Use `--tabs "Name A,Name B"` to choose explicitly. Weekday columns resolve by position anchored on whichever headers are present, so a tab missing its `Tuesdays` header still loads Tuesday correctly.
+**Confirm the header block on every run.** The first report lists the tabs chosen, their visibility, the term read off the tab name, and the resolved weekday columns. Weekday columns resolve by position anchored on whichever headers are present, so a tab missing its `Tuesdays` header still loads Tuesday correctly.
+
+**Same-named tabs are different academic years, not copies.** Both workbooks contain tabs whose names differ only by surrounding spaces — `' Sophomore Sign-Up'` and `'Sophomore Sign-Up'`. These hold *different cohorts*: staff edit the visible tab for the current year, and the previous year stays hidden as an archive. In the front desk workbook the archive is currently the larger of the two, so "whichever has more names" is the wrong rule — **visible-and-populated wins**, and a hidden tab is only used when no visible twin holds names.
+
+Because picking wrong would attach a whole cohort to the wrong semester, a real load **stops** when more than one same-named tab holds names. Read the tab report, then re-run with `--confirm-tabs` to accept the choice, or `--tabs` to override it. `--dry-run` and `--check` never stop, so you can inspect freely. `--tabs` matches exact tab names first, so it can target one specific twin (copy the name from the report — the quotes show any leading space).
 
 **Column map**
 
@@ -256,10 +260,15 @@ Run `--dry-run` first to confirm structure, then `--check` to review the unmatch
 **Credentials** - same sources as `ingest-user-roster.sh` above (URL from the shell or `backend/.env`; service role via hidden prompt only), resolved through `supabase-env.sh`.
 
 ```bash
-# Confirm structure, then review matches, then load
+# Confirm structure, then review matches, then load.
+# The front desk workbook has same-named tabs for two academic years, so the
+# real load needs --confirm-tabs once you have checked the tab report.
 ./scripts/ingest-signups.sh --session-kind front_desk --dry-run ~/fd-signups.xlsx
 ./scripts/ingest-signups.sh --session-kind front_desk --check   ~/fd-signups.xlsx
-./scripts/ingest-signups.sh --session-kind front_desk          ~/fd-signups.xlsx
+./scripts/ingest-signups.sh --session-kind front_desk --confirm-tabs ~/fd-signups.xlsx
+
+# Or name the year explicitly instead of confirming the default
+./scripts/ingest-signups.sh --session-kind front_desk --tabs "Freshman Sign-Up" ~/fd-signups.xlsx
 
 # Pin the semester and pick tabs explicitly
 ./scripts/ingest-signups.sh --session-kind front_desk --semester-id 3 --tabs "Freshman Sign-Up,Sophomore Sign-Up" ~/fd-signups.xlsx

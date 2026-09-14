@@ -224,17 +224,19 @@ def read_xlsx(path: str) -> tuple[dict[str, Grid], dict[str, str]]:
     return grids, states
 
 
-def count_name_cells(grid: Grid, profile: SheetProfile, from_row: int = 0) -> int:
+def count_name_cells(grid: Grid, profile: SheetProfile) -> int:
     """
-    How many cells look like sign-ups rather than scaffolding.
+    How many cells below the weekday header look like sign-ups.
 
-    A blank sign-up tab still carries the full time ladder in column A and the
-    "closed"/seminar markers, so a plain non-empty check would call it populated.
-    Times parse as floats and markers are known strings; whatever is left is a
-    name.
+    A blank sign-up tab still carries the title banner, the weekday header, the
+    full time ladder in column A and the "closed"/seminar markers, so a plain
+    non-empty check would call it populated. Counting starts below the header
+    row; times parse as floats and markers are known strings, so whatever is
+    left is a name.
     """
+    header_row = find_header_row(grid)
     count = 0
-    for row in grid[from_row:]:
+    for row in grid[header_row + 1 if header_row >= 0 else 0 :]:
         for cell in row:
             text = cell.strip()
             if not text or parse_float(text) is not None:
@@ -251,20 +253,32 @@ def select_tabs(
     profile: SheetProfile,
     requested: list[str] | None,
     states: dict[str, str] | None = None,
-) -> tuple[dict[str, Grid], list[dict[str, str]]]:
+) -> tuple[dict[str, Grid], list[dict[str, str]], list[str]]:
     """
     Pick the sign-up grid tabs to load.
 
-    Workbook copies can contain near-duplicate tab names differing only by
-    surrounding whitespace, where one twin is empty. Normalizing collapses them,
-    so when several tabs share a normalized name the populated one wins and the
-    choice is reported rather than silently made.
+    Tab names that differ only by surrounding whitespace collapse to the same
+    normalized name. In the real workbooks these are not copies of one another -
+    they are different academic years, with the current year visible and the
+    previous one hidden as an archive. Visible-and-populated therefore wins, and
+    the comparison is always reported rather than silently resolved.
+
+    Returns (chosen, notes, contested) where contested lists the normalized names
+    for which more than one tab held data - the cases a human should confirm with
+    --tabs before writing.
     """
     notes: list[dict[str, str]] = []
     states = states or {}
     if requested:
-        wanted = {norm_text(t) for t in requested}
-        candidates = {n: g for n, g in grids.items() if norm_text(n) in wanted}
+        # Exact names first, so --tabs can point at one specific twin. Tab names
+        # here really do differ only by surrounding spaces, so fall back to the
+        # normalized form when nothing matches exactly.
+        exact = {n: g for n, g in grids.items() if n in set(requested)}
+        if exact:
+            candidates = exact
+        else:
+            wanted = {norm_text(t) for t in requested}
+            candidates = {n: g for n, g in grids.items() if norm_text(n) in wanted}
     else:
         candidates = {
             n: g
@@ -277,31 +291,48 @@ def select_tabs(
         by_norm.setdefault(norm_text(name), []).append(name)
 
     chosen: dict[str, Grid] = {}
+    contested: list[str] = []
     for normalized, names in sorted(by_norm.items()):
         if len(names) == 1:
-            pick = names[0]
+            chosen[names[0]] = candidates[names[0]]
+            continue
+
+        scored = []
+        for name in names:
+            count = count_name_cells(candidates[name], profile)
+            visible = states.get(name, "visible") == "visible"
+            # Visible-and-populated wins outright. These "twins" are usually
+            # different academic years, not copies: staff edit the visible tab and
+            # the previous year is hidden as an archive. Preferring whichever holds
+            # more names would load last year's cohort whenever the archive is
+            # fuller than a partly-filled current sheet.
+            tier = 2 if (visible and count) else (1 if count else 0)
+            scored.append((tier, count, name, visible))
+        scored.sort(key=lambda s: (-s[0], -s[1], s[2]))
+
+        top_tier, top_count, pick, top_visible = scored[0]
+        if sum(1 for tier, count, _, _ in scored if count) > 1:
+            contested.append(normalized)
+
+        if top_tier == 2:
+            reason = "visible and populated"
+        elif top_tier == 1:
+            reason = "no visible twin holds names; most populated hidden tab used"
         else:
-            scored = sorted(
-                ((count_name_cells(candidates[n], profile), n) for n in names),
-                key=lambda pair: (-pair[0], pair[1]),
-            )
-            best_count, pick = scored[0]
-            notes.append(
-                {
-                    "normalized": normalized,
-                    "candidates": " | ".join(
-                        f"{n!r} ({c} names, {states.get(n, '?')})" for c, n in scored
-                    ),
-                    "chosen": f"{pick!r} ({states.get(pick, '?')})",
-                    "reason": (
-                        "most populated twin preferred"
-                        if best_count
-                        else "all twins empty; first kept"
-                    ),
-                }
-            )
+            reason = "all twins empty; first kept"
+
+        notes.append(
+            {
+                "normalized": normalized,
+                "candidates": " | ".join(
+                    f"{n!r} ({c} names, {states.get(n, '?')})" for _, c, n, _ in scored
+                ),
+                "chosen": f"{pick!r} ({states.get(pick, '?')})",
+                "reason": reason,
+            }
+        )
         chosen[pick] = candidates[pick]
-    return chosen, notes
+    return chosen, notes, contested
 
 
 # ---------------------------------------------------------------------------
@@ -960,19 +991,63 @@ def self_test() -> int:
         ["0.375", "Alpha One", "", "", "", ""],
         ["0.75", "Beta Two", "", "Freshman Seminar", "", "Front Desk Closed"],
     ]
-    assert count_name_cells(empty_grid, fp, from_row=5) == 0
-    assert count_name_cells(full_grid, fp, from_row=5) == 2
-    chosen, tab_notes = select_tabs(
-        {" Freshman Sign-Up ": empty_grid, "Freshman Sign-Up": full_grid}, fp, None
+    assert count_name_cells(empty_grid, fp) == 0
+    assert count_name_cells(full_grid, fp) == 2
+
+    # When only one twin holds names, it wins regardless of visibility, and the
+    # blank twin's time ladder and markers must not read as data.
+    states_blank_visible = {" Freshman Sign-Up ": "visible", "Freshman Sign-Up": "hidden"}
+    chosen, tab_notes, contested = select_tabs(
+        {" Freshman Sign-Up ": empty_grid, "Freshman Sign-Up": full_grid},
+        fp,
+        None,
+        states_blank_visible,
     )
     assert list(chosen) == ["Freshman Sign-Up"], list(chosen)
-    assert tab_notes and "populated" in tab_notes[0]["reason"]
+    assert contested == [], contested
+    assert tab_notes and "hidden" in tab_notes[0]["reason"]
 
-    # Order must not decide it: the populated twin wins from either side.
-    chosen_rev, _ = select_tabs(
-        {"Freshman Sign-Up": full_grid, " Freshman Sign-Up ": empty_grid}, fp, None
+    # Order must not decide it.
+    chosen_rev, _, _ = select_tabs(
+        {"Freshman Sign-Up": full_grid, " Freshman Sign-Up ": empty_grid},
+        fp,
+        None,
+        states_blank_visible,
     )
     assert list(chosen_rev) == ["Freshman Sign-Up"], list(chosen_rev)
+
+    # The year-rollover case from the real workbook: the hidden archive holds MORE
+    # names than the partly-filled visible sheet for the current year. Visible must
+    # still win, and the clash must be flagged for the operator.
+    big_archive = [
+        [], [], [], [], header,
+        ["0.375", "Old One, Old Two, Old Three", "", "", "", ""],
+        ["0.3958333333333333", "Old Four, Old Five", "", "", "", ""],
+    ]
+    small_current = [
+        [], [], [], [], header,
+        ["0.375", "New One", "", "", "", ""],
+    ]
+    assert count_name_cells(big_archive, fp) > count_name_cells(small_current, fp)
+    chosen_year, year_notes, year_contested = select_tabs(
+        {" Sophomore Sign-Up": small_current, "Sophomore Sign-Up": big_archive},
+        fp,
+        None,
+        {" Sophomore Sign-Up": "visible", "Sophomore Sign-Up": "hidden"},
+    )
+    assert list(chosen_year) == [" Sophomore Sign-Up"], list(chosen_year)
+    assert year_notes[0]["reason"] == "visible and populated", year_notes[0]
+    assert year_contested == ["sophomore sign-up"], year_contested
+
+    # An explicit --tabs choice overrides everything and is never contested.
+    forced, _, forced_contested = select_tabs(
+        {" Sophomore Sign-Up": small_current, "Sophomore Sign-Up": big_archive},
+        fp,
+        ["Sophomore Sign-Up"],
+        {" Sophomore Sign-Up": "visible", "Sophomore Sign-Up": "hidden"},
+    )
+    assert list(forced) == ["Sophomore Sign-Up"], list(forced)
+    assert forced_contested == [], forced_contested
 
     # Leadership and the derived Schedule Data tabs are never selected.
     others = {"Leadership schedules": full_grid, "Freshman Schedule Data": full_grid}
@@ -1052,6 +1127,11 @@ def main() -> int:
         help=f"Insert batch size (default {BATCH_SIZE_DEFAULT})",
     )
     parser.add_argument(
+        "--confirm-tabs",
+        action="store_true",
+        help="Acknowledge the chosen tabs when several same-named tabs hold names",
+    )
+    parser.add_argument(
         "--allow-empty",
         action="store_true",
         help="Permit clearing the scope when the sheet parses to zero shifts",
@@ -1078,7 +1158,7 @@ def main() -> int:
     requested = [t.strip() for t in args.tabs.split(",") if t.strip()] or None
 
     grids, states = read_xlsx(args.workbook)
-    tabs, tab_notes = select_tabs(grids, profile, requested, states)
+    tabs, tab_notes, contested = select_tabs(grids, profile, requested, states)
     if not tabs:
         print(
             f"error: no matching tabs. Workbook contains: {', '.join(repr(n) for n in grids)}",
@@ -1113,16 +1193,19 @@ def main() -> int:
         structure,
         ["tab", "visibility", "weekday_columns", "slots_found"],
     )
-    if any(s["visibility"] != "visible" for s in structure):
+    hidden_selected = [s["tab"] for s in structure if s["visibility"] != "visible"]
+    if hidden_selected:
         print(
-            "note: at least one selected tab is hidden in the workbook. Tabs are chosen "
-            "by how many names they hold, not by visibility — confirm this is the tab "
-            "staff actually edit, or pass --tabs to choose explicitly.",
+            "note: selected hidden tab(s): "
+            + ", ".join(repr(t) for t in hidden_selected)
+            + ". A hidden tab is often a previous academic year kept as an archive. "
+            "That is expected when it carries its own term in the name; otherwise "
+            "confirm it is the sheet staff actually edit, or pass --tabs.",
             file=sys.stderr,
         )
     if tab_notes:
         print_tsv(
-            "Near-duplicate tab names resolved",
+            "Same-named tabs resolved - these are usually different academic years",
             tab_notes,
             ["normalized", "candidates", "chosen", "reason"],
         )
@@ -1257,6 +1340,21 @@ def main() -> int:
     if args.check:
         print("Check run - profiles read, nothing written.")
         return 0
+
+    # Same-named tabs that BOTH hold names are almost always two academic years.
+    # Guessing between them would attach a whole cohort to the wrong semester, so
+    # a real write requires the operator to name the tabs explicitly.
+    if contested and not requested and not args.confirm_tabs:
+        print(
+            "error: more than one tab holds names for: "
+            + ", ".join(repr(c) for c in contested)
+            + ". These are usually different academic years - the current year visible, "
+            "last year hidden as an archive. The tab report above shows which tab was "
+            "chosen and why. Confirm it is the right one, then re-run with "
+            "--confirm-tabs, or pass --tabs to choose different ones.",
+            file=sys.stderr,
+        )
+        return 1
 
     if not shifts:
         if not stale:

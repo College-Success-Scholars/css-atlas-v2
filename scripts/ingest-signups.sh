@@ -46,6 +46,7 @@ Options:
   --tabs "A,B"           Load these tabs instead of the profile defaults
   --alias-map FILE       CSV of sheet_name,profile_uuid for names that cannot match
                          automatically. Keep this file outside the repo.
+  --confirm-tabs         Acknowledge the chosen tabs when same-named tabs both hold names
   --allow-empty          Permit clearing the scope when the sheet parses to zero shifts
   --batch-size N         Rows per POST request (default 50)
   -h, --help             Show this help
