@@ -180,13 +180,14 @@ Credential resolution is shared with `backfill-user-roster-defaults.sh`, `sync-m
 
 Ops script for loading standing weekly shifts into `public.scholar_shift_assignments` from a sign-up sheet. Companion parser: [`scripts/ingest-signups.py`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/ingest-signups.py).
 
-One script serves both sign-up sheets. Everything that differs between them lives in a `SheetProfile` (tab patterns, how the semester is resolved, the "closed" marker text, the required-slots figure), selected by `--session-kind`. Front desk is `front_desk`; study session arrives with issue #69.
+One script serves both sign-up sheets. Everything that differs between them lives in a `SheetProfile` (tab patterns, how the semester is resolved, the "closed" marker text, the required-slots figure), selected by `--session-kind` — `front_desk` or `study_session`. The parsing, matching, coalescing and load logic is shared; adding a third sheet would mean adding a profile, not a code path.
 
 **Source sheets**
 
 | `--session-kind` | Sheet | Link |
 |---|---|---|
 | `front_desk` | CSS Front Desk Sign-Up | <https://docs.google.com/spreadsheets/d/1n7cXk0DtCe5OHxK5QMfMcnU6f7slOYG8KXTE3VMXPC8/edit> |
+| `study_session` | CSS Study Session Sign Up | <https://docs.google.com/spreadsheets/d/1Q3mEbkK8L--v6ROP5sFS5Buu9xMqzXVvlb1CkRuEznw/edit> |
 
 These are the canonical sheets — do not point the loader at a copy or a re-typed version.
 
@@ -217,8 +218,8 @@ Because picking wrong would attach a whole cohort to the wrong semester, a real 
 | 9-digit fragment, when present | `scholar_id` (preferred) | -> `profiles.student_id` |
 | column A time fraction at that row | `start_time` | `value x 24h` -> `HH:MM:00` ET |
 | that row + 30 min, then coalesced | `end_time` | contiguous slots merged into one shift |
-| `--semester-id`, else the active semester | `semester_id` | -> `semesters.id` |
-| `--session-kind` | `session_kind` | `'front_desk'` |
+| `--semester-id`; else the tab's `(Season YY)` suffix (study session) or the active semester (front desk) | `semester_id` | -> `semesters.id` |
+| `--session-kind` | `session_kind` | `'front_desk'` / `'study_session'` |
 | - | `is_active` | `true` on load; compliance reads filter on it |
 | - | `source`, `source_tab`, `match_method`, `load_batch_id` | `'google_sheet'` + diagnostics |
 
@@ -233,13 +234,24 @@ Two things routinely appear in the unmatched report and are not data-entry error
 
 `--alias-map FILE` takes a two-column `sheet_name,profile_uuid` CSV. **Keep that file outside the repo** - it links names to identities.
 
+**How the two sheets differ**
+
+| | Front desk | Study session |
+|---|---|---|
+| Tabs | `Freshman Sign-Up`, `Sophomore Sign-Up` | same, suffixed with the term: `Freshman Sign-Up (Fall 26)` |
+| Semester | `--semester-id`, else the single active semester | read from the tab's `(Season YY)` suffix |
+| Closed marker | `Front Desk Closed` | `Study Session Closed` |
+| Required slots (reporting only) | 6 (3h) | 10 (5h); scholars at 3.5+ GPA owe 6, which the sheet does not record |
+
+The study session workbook keeps **past terms alongside the current one** — the Fall tabs are visible and empty early in the term while the Spring tabs are hidden and full. Because each tab carries its own semester, a default run loads every term it finds, each into its own scope, and that stays idempotent. A tab whose term this project has never had is reported and skipped rather than aborting the run. Narrow a run with `--tabs` or `--semester-id` when you only want the current term.
+
 **Stale-row policy**
 
 The sheet is the source of truth. Each load deletes the rows in the `(semester_id, session_kind, source_tab)` scope it is about to load, then inserts the sheet's current state. Shifts someone dropped disappear; a second identical run produces an identical table. Rows outside that scope - other tabs, the other session kind, or anything entered by hand under a different `source` - are never touched.
 
 This is delete-then-insert rather than an upsert, deliberately. The table's overlap rule is a GiST exclusion constraint (`no_overlapping_shift_assignments`), which `INSERT ... ON CONFLICT` cannot target, and there is no unique constraint to conflict on. Deleting first also avoids an edited shift overlapping its own surviving row.
 
-A load that parses **zero** shifts while the scope still holds rows stops with an error rather than clearing it - that pattern almost always means the wrong tab was selected or parsing broke, not that everyone dropped their shifts. Pass `--allow-empty` when the sheet genuinely is empty.
+A scope that parses **zero** shifts while still holding rows stops the run with an error rather than clearing it - that pattern almost always means the wrong tab was selected or parsing broke, not that everyone dropped their shifts. This is checked **per semester**, so an empty Fall tab cannot quietly wipe Fall rows just because the Spring tab in the same run had data. Pass `--allow-empty` when the sheet genuinely is empty.
 
 **Modes**
 
@@ -269,6 +281,14 @@ Run `--dry-run` first to confirm structure, then `--check` to review the unmatch
 
 # Or name the year explicitly instead of confirming the default
 ./scripts/ingest-signups.sh --session-kind front_desk --tabs "Freshman Sign-Up" ~/fd-signups.xlsx
+
+# Same three steps for study session
+./scripts/ingest-signups.sh --session-kind study_session --dry-run ~/ss-signups.xlsx
+./scripts/ingest-signups.sh --session-kind study_session --check   ~/ss-signups.xlsx
+./scripts/ingest-signups.sh --session-kind study_session          ~/ss-signups.xlsx
+
+# Load only the current term out of a workbook holding several
+./scripts/ingest-signups.sh --session-kind study_session --tabs "Freshman Sign-Up (Fall 26),Sophomore Sign-Up (Fall 26)" ~/ss-signups.xlsx
 
 # Pin the semester and pick tabs explicitly
 ./scripts/ingest-signups.sh --session-kind front_desk --semester-id 3 --tabs "Freshman Sign-Up,Sophomore Sign-Up" ~/fd-signups.xlsx

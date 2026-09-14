@@ -101,9 +101,22 @@ FRONT_DESK_PROFILE = SheetProfile(
     required_slots=6,
 )
 
+# The study session workbook names its tabs "Freshman Sign-Up (Fall 26)" and keeps
+# past semesters alongside the current one, so the semester comes from the tab
+# rather than from the active-semester lookup. required_slots is the 5-hour
+# baseline; scholars at a 3.5+ GPA owe 6 slots instead, which the sheet does not
+# record — the figure is only ever used for reporting, never for the load.
+STUDY_SESSION_PROFILE = SheetProfile(
+    session_kind="study_session",
+    tab_patterns=("freshman sign-up", "sophomore sign-up"),
+    semester_from_tab=True,
+    closed_markers=frozenset({"study session closed"}),
+    required_slots=10,
+)
 
 PROFILES: dict[str, SheetProfile] = {
     FRONT_DESK_PROFILE.session_kind: FRONT_DESK_PROFILE,
+    STUDY_SESSION_PROFILE.session_kind: STUDY_SESSION_PROFILE,
 }
 
 
@@ -867,7 +880,7 @@ def self_test() -> int:
     credentials, so it can run anywhere. Fixtures are synthetic - they mirror the
     shape of the real sheets without copying anyone's name into the repo.
     """
-    fd = FRONT_DESK_PROFILE
+    fd, ss = FRONT_DESK_PROFILE, STUDY_SESSION_PROFILE
     header = ["Time", "Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays"]
 
     # Excel day fractions are value * 24 hours; text times are read directly.
@@ -910,9 +923,13 @@ def self_test() -> int:
     ]:
         assert split_names(cell, fd)[0] == expected, cell
 
-    # The sheet's own closed marker is a marker, not a name.
+    # Each sheet's own closed marker is a marker; the other sheet's is a name.
     assert split_names("Front Desk Closed", fd) == ([], True)
+    assert split_names("Front Desk Closed", ss)[0] == ["Front Desk Closed"]
+    assert split_names("Study Session Closed", ss) == ([], True)
+    assert split_names("Study Session Closed", fd)[0] == ["Study Session Closed"]
     assert split_names("Freshman Seminar", fd) == ([], True)
+    assert split_names("Freshman Seminar", ss) == ([], True)
 
     assert norm_name("  Dany  romero, ") == "dany romero"
     assert norm_name("LUSENIE TURAY") == "lusenie turay"
@@ -1001,6 +1018,9 @@ def self_test() -> int:
 
     # Leadership and the derived Schedule Data tabs are never selected.
     assert select_tabs({"Leadership schedules": filled, "Freshman Schedule Data": filled}, fd, None)[0] == {}
+    # Study session tabs carry the term in the name and must still be found.
+    ss_tabs = select_tabs({"Freshman Sign-Up (Fall 26)": filled, "Leadership schedules": filled}, ss, None)[0]
+    assert list(ss_tabs) == ["Freshman Sign-Up (Fall 26)"], list(ss_tabs)
 
     # Matching accepts only deterministic resolutions.
     idx = build_profile_index(
@@ -1030,8 +1050,8 @@ def self_test() -> int:
     assert find_missing_separator("Alpha One Beta Two", idx) == "Alpha One | Beta Two"
     assert find_missing_separator("Leigh Bodden II", idx) == ""
 
-    # Front desk reads the active semester; a tab-name term and an explicit id
-    # are both supported for sheets that carry one.
+    # Semester comes off the tab name for study session, from the active row for
+    # front desk, and an explicit id always wins.
     for tab, expected in [
         ("Freshman Sign-Up (Fall 26)", ("fall", "2026")),
         ("Sophomore Sign-Up (Spring 26)", ("spring", "2026")),
@@ -1044,8 +1064,13 @@ def self_test() -> int:
         {"id": 7, "name": "Fall 2026", "is_active": True},
         {"id": 6, "name": "Spring 2026", "is_active": False},
     ]
+    assert resolve_semester("Freshman Sign-Up (Fall 26)", ss, None, sems) == (7, "")
+    assert resolve_semester("Freshman Sign-Up (Spring 26)", ss, None, sems) == (6, "")
+    assert resolve_semester("Freshman Sign-Up (Winter 26)", ss, 9, sems) == (9, "")
     assert resolve_semester("Freshman Sign-Up", fd, None, sems) == (7, "")
     # A term this project never had is reported, not raised.
+    missing, why = resolve_semester("Freshman Sign-Up (Winter 26)", ss, None, sems)
+    assert missing is None and "matched 0 semesters" in why, why
     missing, why = resolve_semester("Freshman Sign-Up", fd, None, sems[1:])
     assert missing is None and "exactly one active semester" in why, why
 
@@ -1053,6 +1078,7 @@ def self_test() -> int:
     flt = scope_filter(3, "front_desk", ["Freshman Sign-Up"])
     for fragment in ["semester_id=eq.3", "session_kind=eq.front_desk", "source=eq.google_sheet", "source_tab=in."]:
         assert fragment in flt, fragment
+    assert "session_kind=eq.study_session" in scope_filter(3, "study_session", ["T"])
 
     print("self-test: all assertions passed")
     return 0
