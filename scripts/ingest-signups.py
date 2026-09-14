@@ -82,11 +82,6 @@ SEMESTER_TAB_RE = re.compile(r"\(([^)]*)\)\s*$")
 SEASONS = ("spring", "summer", "fall", "winter")
 
 
-# ---------------------------------------------------------------------------
-# Per-sheet configuration
-# ---------------------------------------------------------------------------
-
-
 @dataclass(frozen=True)
 class SheetProfile:
     """Everything that differs between the two sign-up workbooks."""
@@ -106,14 +101,10 @@ FRONT_DESK_PROFILE = SheetProfile(
     required_slots=6,
 )
 
+
 PROFILES: dict[str, SheetProfile] = {
     FRONT_DESK_PROFILE.session_kind: FRONT_DESK_PROFILE,
 }
-
-
-# ---------------------------------------------------------------------------
-# Normalization helpers
-# ---------------------------------------------------------------------------
 
 
 def norm_text(raw: str) -> str:
@@ -141,17 +132,13 @@ def minutes_to_hhmmss(minutes: int) -> str:
     return f"{minutes // 60:02d}:{minutes % 60:02d}:00"
 
 
-# ---------------------------------------------------------------------------
-# Workbook reading (xlsx is a zip of XML; stdlib only, no openpyxl)
-# ---------------------------------------------------------------------------
-
 NS_MAIN = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 NS_REL = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
 
 Grid = list[list[str]]
 
 
-def _col_index(cell_ref: str) -> int:
+def col_index(cell_ref: str) -> int:
     """'C5' -> 2 (zero-based column index)."""
     idx = 0
     for ch in cell_ref:
@@ -161,7 +148,7 @@ def _col_index(cell_ref: str) -> int:
     return idx - 1
 
 
-def _shared_strings(zf: zipfile.ZipFile) -> list[str]:
+def shared_strings(zf: zipfile.ZipFile) -> list[str]:
     try:
         blob = zf.read("xl/sharedStrings.xml")
     except KeyError:
@@ -172,7 +159,7 @@ def _shared_strings(zf: zipfile.ZipFile) -> list[str]:
     return out
 
 
-def _sheet_index(zf: zipfile.ZipFile) -> list[tuple[str, str, str]]:
+def sheet_index(zf: zipfile.ZipFile) -> list[tuple[str, str, str]]:
     """[(sheet name, zip part path, visibility)] in workbook order."""
     rels: dict[str, str] = {}
     for rel in ET.fromstring(zf.read("xl/_rels/workbook.xml.rels")):
@@ -187,14 +174,14 @@ def _sheet_index(zf: zipfile.ZipFile) -> list[tuple[str, str, str]]:
     return out
 
 
-def _read_sheet(zf: zipfile.ZipFile, part: str, shared: list[str]) -> Grid:
+def read_sheet(zf: zipfile.ZipFile, part: str, shared: list[str]) -> Grid:
     """Raw cell text as a dense grid. No type coercion - that happens later."""
     grid: Grid = []
     root = ET.fromstring(zf.read(part))
     for row in root.iter(f"{NS_MAIN}row"):
         cells: list[str] = []
         for c in row.findall(f"{NS_MAIN}c"):
-            col = _col_index(c.get("r", "") or "")
+            col = col_index(c.get("r", "") or "")
             if col < 0:
                 continue
             ctype = c.get("t", "")
@@ -217,9 +204,9 @@ def _read_sheet(zf: zipfile.ZipFile, part: str, shared: list[str]) -> Grid:
 def read_xlsx(path: str) -> tuple[dict[str, Grid], dict[str, str]]:
     """Returns (grids by tab name, visibility by tab name)."""
     with zipfile.ZipFile(path) as zf:
-        shared = _shared_strings(zf)
-        index = _sheet_index(zf)
-        grids = {name: _read_sheet(zf, part, shared) for name, part, _ in index}
+        shared = shared_strings(zf)
+        index = sheet_index(zf)
+        grids = {name: read_sheet(zf, part, shared) for name, part, _ in index}
         states = {name: state for name, _, state in index}
     return grids, states
 
@@ -248,6 +235,33 @@ def count_name_cells(grid: Grid, profile: SheetProfile) -> int:
     return count
 
 
+TAB_PICK_REASON = {
+    2: "visible and populated",
+    1: "no visible twin holds names; most populated hidden tab used",
+    0: "all twins empty; first kept",
+}
+
+
+def find_candidate_tabs(
+    grids: dict[str, Grid], profile: SheetProfile, requested: list[str] | None
+) -> dict[str, Grid]:
+    """Tabs the run could load, before same-named twins are resolved."""
+    if not requested:
+        return {
+            n: g
+            for n, g in grids.items()
+            if any(norm_text(n).startswith(p) for p in profile.tab_patterns)
+        }
+    # Exact names first, so --tabs can point at one specific twin. Tab names here
+    # really do differ only by surrounding spaces, so fall back to the normalized
+    # form when nothing matches exactly.
+    exact = {n: g for n, g in grids.items() if n in set(requested)}
+    if exact:
+        return exact
+    wanted = {norm_text(t) for t in requested}
+    return {n: g for n, g in grids.items() if norm_text(n) in wanted}
+
+
 def select_tabs(
     grids: dict[str, Grid],
     profile: SheetProfile,
@@ -269,22 +283,7 @@ def select_tabs(
     """
     notes: list[dict[str, str]] = []
     states = states or {}
-    if requested:
-        # Exact names first, so --tabs can point at one specific twin. Tab names
-        # here really do differ only by surrounding spaces, so fall back to the
-        # normalized form when nothing matches exactly.
-        exact = {n: g for n, g in grids.items() if n in set(requested)}
-        if exact:
-            candidates = exact
-        else:
-            wanted = {norm_text(t) for t in requested}
-            candidates = {n: g for n, g in grids.items() if norm_text(n) in wanted}
-    else:
-        candidates = {
-            n: g
-            for n, g in grids.items()
-            if any(norm_text(n).startswith(p) for p in profile.tab_patterns)
-        }
+    candidates = find_candidate_tabs(grids, profile, requested)
 
     by_norm: dict[str, list[str]] = {}
     for name in candidates:
@@ -297,47 +296,35 @@ def select_tabs(
             chosen[names[0]] = candidates[names[0]]
             continue
 
+        # Visible-and-populated wins outright. These "twins" are usually different
+        # academic years, not copies: staff edit the visible tab and the previous
+        # year is hidden as an archive. Preferring whichever holds more names would
+        # load last year's cohort whenever the archive is fuller than a partly
+        # filled current sheet.
         scored = []
         for name in names:
             count = count_name_cells(candidates[name], profile)
             visible = states.get(name, "visible") == "visible"
-            # Visible-and-populated wins outright. These "twins" are usually
-            # different academic years, not copies: staff edit the visible tab and
-            # the previous year is hidden as an archive. Preferring whichever holds
-            # more names would load last year's cohort whenever the archive is
-            # fuller than a partly-filled current sheet.
             tier = 2 if (visible and count) else (1 if count else 0)
-            scored.append((tier, count, name, visible))
+            scored.append((tier, count, name))
         scored.sort(key=lambda s: (-s[0], -s[1], s[2]))
 
-        top_tier, top_count, pick, top_visible = scored[0]
-        if sum(1 for tier, count, _, _ in scored if count) > 1:
+        top_tier, _, pick = scored[0]
+        if sum(1 for _, count, _ in scored if count) > 1:
             contested.append(normalized)
-
-        if top_tier == 2:
-            reason = "visible and populated"
-        elif top_tier == 1:
-            reason = "no visible twin holds names; most populated hidden tab used"
-        else:
-            reason = "all twins empty; first kept"
 
         notes.append(
             {
                 "normalized": normalized,
                 "candidates": " | ".join(
-                    f"{n!r} ({c} names, {states.get(n, '?')})" for _, c, n, _ in scored
+                    f"{n!r} ({c} names, {states.get(n, '?')})" for _, c, n in scored
                 ),
                 "chosen": f"{pick!r} ({states.get(pick, '?')})",
-                "reason": reason,
+                "reason": TAB_PICK_REASON[top_tier],
             }
         )
         chosen[pick] = candidates[pick]
     return chosen, notes, contested
-
-
-# ---------------------------------------------------------------------------
-# Grid parsing
-# ---------------------------------------------------------------------------
 
 
 @dataclass
@@ -515,11 +502,6 @@ def parse_grid(
     return slots, weekday_cols, rejects, markers
 
 
-# ---------------------------------------------------------------------------
-# Identity matching against public.profiles
-# ---------------------------------------------------------------------------
-
-
 @dataclass
 class ProfileIndex:
     by_student_id: dict[str, dict[str, Any]]
@@ -638,11 +620,6 @@ def suggest(raw_name: str, idx: ProfileIndex) -> str:
     return ", ".join(close)
 
 
-# ---------------------------------------------------------------------------
-# Coalescing
-# ---------------------------------------------------------------------------
-
-
 def coalesce(
     rows: list[dict[str, Any]],
 ) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
@@ -673,15 +650,15 @@ def coalesce(
                 continue
             merged.append(current)
             if parts > 1:
-                notes.append(_merge_note(current, parts))
+                notes.append(merge_note(current, parts))
             current, parts = dict(nxt), 1
         merged.append(current)
         if parts > 1:
-            notes.append(_merge_note(current, parts))
+            notes.append(merge_note(current, parts))
     return merged, notes
 
 
-def _merge_note(row: dict[str, Any], parts: int) -> dict[str, str]:
+def merge_note(row: dict[str, Any], parts: int) -> dict[str, str]:
     return {
         "scholar": row.get("source_name", ""),
         "day": DOW_NAME.get(row["day_of_week"], str(row["day_of_week"])),
@@ -710,12 +687,7 @@ def slot_warnings(rows: list[dict[str, Any]]) -> list[dict[str, str]]:
     return out
 
 
-# ---------------------------------------------------------------------------
-# PostgREST
-# ---------------------------------------------------------------------------
-
-
-def _request(
+def request(
     url: str,
     service_role: str,
     method: str,
@@ -756,7 +728,7 @@ def fetch_profiles(url: str, service_role: str) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     offset = 0
     while True:
-        page = _request(
+        page = request(
             url,
             service_role,
             "GET",
@@ -773,7 +745,26 @@ def fetch_profiles(url: str, service_role: str) -> list[dict[str, Any]]:
 
 
 def fetch_semesters(url: str, service_role: str) -> list[dict[str, Any]]:
-    return _request(url, service_role, "GET", "/rest/v1/semesters?select=id,name,is_active") or []
+    return request(url, service_role, "GET", "/rest/v1/semesters?select=id,name,is_active") or []
+
+
+def parse_semester_label(tab: str) -> tuple[str, str]:
+    """
+    Read a '(Season YY)' suffix off a tab name -> ('fall', '2026').
+
+    Returns ('', '') when the tab carries no semester suffix, which is the normal
+    case for the front desk workbook.
+    """
+    m = SEMESTER_TAB_RE.search(tab)
+    if not m:
+        return "", ""
+    label = norm_text(m.group(1))
+    season = next((s for s in SEASONS if s in label), "")
+    year_m = re.search(r"(\d{2,4})", label)
+    if not season or not year_m:
+        return "", ""
+    year = year_m.group(1)
+    return season, (year if len(year) == 4 else f"20{year}")
 
 
 def resolve_semester(
@@ -781,45 +772,44 @@ def resolve_semester(
     profile: SheetProfile,
     explicit: int | None,
     semesters: list[dict[str, Any]],
-) -> int:
+) -> tuple[int | None, str]:
+    """
+    Which semester a tab's shifts belong to.
+
+    Returns (semester_id, problem). A problem is reported per tab rather than
+    raised, because the study session workbook keeps past semesters alongside the
+    current one: a tab for a semester this project has never had should be
+    skipped and listed, not abort the whole load.
+    """
     if explicit is not None:
-        return explicit
+        return explicit, ""
 
     if profile.semester_from_tab:
-        m = SEMESTER_TAB_RE.search(tab)
-        if not m:
-            raise SystemExit(
-                f"error: tab {tab!r} carries no '(Season YY)' suffix and no --semester-id was given"
-            )
-        label = norm_text(m.group(1))
-        season = next((s for s in SEASONS if s in label), "")
-        year_m = re.search(r"(\d{2,4})", label)
-        if not season or not year_m:
-            raise SystemExit(f"error: could not read a semester from tab {tab!r} (got {label!r})")
-        year = year_m.group(1)
-        year4 = year if len(year) == 4 else f"20{year}"
+        season, year4 = parse_semester_label(tab)
+        if not season:
+            return None, "no '(Season YY)' suffix in the tab name, and no --semester-id given"
         hits = [
             s
             for s in semesters
             if season in norm_text(s.get("name", "")) and year4[-2:] in norm_text(s.get("name", ""))
         ]
         if len(hits) != 1:
-            names = ", ".join(repr(s.get("name", "")) for s in semesters)
-            raise SystemExit(
-                f"error: tab {tab!r} resolved to {len(hits)} semesters for {season} {year4}. "
-                f"Known semesters: {names}. Pass --semester-id to disambiguate."
+            names = ", ".join(repr(s.get("name", "")) for s in semesters) or "(none)"
+            return None, (
+                f"{season} {year4} matched {len(hits)} semesters. Known: {names}. "
+                "Pass --semester-id to force one."
             )
-        return int(hits[0]["id"])
+        return int(hits[0]["id"]), ""
 
     active = [s for s in semesters if s.get("is_active")]
     if len(active) != 1:
-        raise SystemExit(
-            f"error: expected exactly one active semester, found {len(active)}. Pass --semester-id."
+        return None, (
+            f"expected exactly one active semester, found {len(active)}. Pass --semester-id."
         )
-    return int(active[0]["id"])
+    return int(active[0]["id"]), ""
 
 
-def _in_list(values: list[str]) -> str:
+def in_list(values: list[str]) -> str:
     quoted = ",".join('"' + v.replace('"', '\\"') + '"' for v in values)
     return urllib.parse.quote(f"({quoted})", safe='(),"\\')
 
@@ -836,13 +826,13 @@ def scope_filter(semester_id: int, session_kind: str, tabs: list[str]) -> str:
         f"semester_id=eq.{semester_id}"
         f"&session_kind=eq.{session_kind}"
         f"&source=eq.google_sheet"
-        f"&source_tab=in.{_in_list(tabs)}"
+        f"&source_tab=in.{in_list(tabs)}"
     )
 
 
 def preview_scope(url: str, key: str, flt: str) -> list[dict[str, Any]]:
     return (
-        _request(
+        request(
             url,
             key,
             "GET",
@@ -853,16 +843,11 @@ def preview_scope(url: str, key: str, flt: str) -> list[dict[str, Any]]:
 
 
 def delete_scope(url: str, key: str, flt: str) -> None:
-    _request(url, key, "DELETE", f"/rest/v1/{TABLE}?{flt}", prefer="return=minimal")
+    request(url, key, "DELETE", f"/rest/v1/{TABLE}?{flt}", prefer="return=minimal")
 
 
 def insert_batch(url: str, key: str, batch: list[dict[str, Any]]) -> None:
-    _request(url, key, "POST", f"/rest/v1/{TABLE}", body=batch, prefer="return=minimal")
-
-
-# ---------------------------------------------------------------------------
-# Reporting
-# ---------------------------------------------------------------------------
+    request(url, key, "POST", f"/rest/v1/{TABLE}", body=batch, prefer="return=minimal")
 
 
 def print_tsv(title: str, rows: list[dict[str, str]], columns: list[str]) -> None:
@@ -876,182 +861,146 @@ def print_tsv(title: str, rows: list[dict[str, str]], columns: list[str]) -> Non
         print("\t".join(str(r.get(c, "")) for c in columns))
 
 
-# ---------------------------------------------------------------------------
-# Self-test (pure functions only; no file, no network, no credentials)
-# ---------------------------------------------------------------------------
-
-
 def self_test() -> int:
-    fp = FRONT_DESK_PROFILE
+    """
+    Assertions over the pure parsing/matching helpers. No file, no network, no
+    credentials, so it can run anywhere. Fixtures are synthetic - they mirror the
+    shape of the real sheets without copying anyone's name into the repo.
+    """
+    fd = FRONT_DESK_PROFILE
+    header = ["Time", "Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays"]
 
-    # Excel day fractions are value * 24 hours.
-    assert parse_time_cell("0.3333333333333333")[0] == 8 * 60
-    assert parse_time_cell("0.375")[0] == 9 * 60
-    assert parse_time_cell("0.5")[0] == 12 * 60
-    assert parse_time_cell("0.75")[0] == 18 * 60
-    assert parse_time_cell("0.8125")[0] == 19 * 60 + 30
-    assert parse_time_cell("8:00 AM")[0] == 8 * 60
-    assert parse_time_cell("14:30:00")[0] == 14 * 60 + 30
+    # Excel day fractions are value * 24 hours; text times are read directly.
+    for raw, minutes in [
+        ("0.3333333333333333", 8 * 60),
+        ("0.375", 9 * 60),
+        ("0.5", 12 * 60),
+        ("0.75", 18 * 60),
+        ("0.8125", 19 * 60 + 30),
+        ("8:00 AM", 8 * 60),
+        ("14:30:00", 14 * 60 + 30),
+        ("1.5", 12 * 60),  # a serial past midnight folds back into the day
+    ]:
+        assert parse_time_cell(raw)[0] == minutes, raw
 
     # One rejection case per class the sheets actually contain.
-    assert parse_time_cell("")[0] is None
-    assert parse_time_cell("2:30:00 PM and 3:30 PM")[0] is None
-    assert parse_time_cell("remote")[0] is None
-    # A serial past midnight folds back into the day rather than exploding.
-    assert parse_time_cell("1.5")[0] == 12 * 60
+    for raw in ["", "2:30:00 PM and 3:30 PM", "remote"]:
+        assert parse_time_cell(raw)[0] is None, raw
 
-    # One cell holds any number of comma-separated names.
-    assert split_names("Alpha One", fp)[0] == ["Alpha One"]
-    assert split_names("Alpha One, Beta Two", fp)[0] == ["Alpha One", "Beta Two"]
-    assert split_names("Alpha One, Beta Two, Gamma Three, Delta Four", fp)[0] == [
-        "Alpha One",
-        "Beta Two",
-        "Gamma Three",
-        "Delta Four",
-    ]
-    # A comma with nothing after it contributes nothing - no blank name is added.
-    assert split_names("Alpha One,", fp)[0] == ["Alpha One"]
-    assert split_names("Alpha One, ", fp)[0] == ["Alpha One"]
-    assert split_names("Alpha One,,,", fp)[0] == ["Alpha One"]
-    assert split_names(", Alpha One", fp)[0] == ["Alpha One"]
-    assert split_names(" , Alpha One,", fp)[0] == ["Alpha One"]
-    assert split_names("Alpha One,,Beta Two", fp)[0] == ["Alpha One", "Beta Two"]
-    # A cell of nothing but separators yields no names at all.
-    assert split_names(",", fp)[0] == []
-    assert split_names(", ,", fp)[0] == []
-    assert split_names("   ", fp) == ([], False)
-    assert split_names("", fp) == ([], False)
-    # Missing space after the comma, and lists that wrap onto another line.
-    assert split_names("Alpha One,Beta Two", fp)[0] == ["Alpha One", "Beta Two"]
-    assert split_names("Alpha One,\nBeta Two", fp)[0] == ["Alpha One", "Beta Two"]
-    assert split_names("Alpha One\nBeta Two", fp)[0] == ["Alpha One", "Beta Two"]
-    assert split_names("Alpha   One", fp)[0] == ["Alpha One"]
-    # Markers are not names.
-    assert split_names("Front Desk Closed", fp) == ([], True)
-    assert split_names("Freshman Seminar", fp) == ([], True)
+    # A cell holds any number of comma-separated names. A comma with nothing
+    # after it contributes nothing, and separators alone yield no names at all.
+    for cell, expected in [
+        ("Alpha One", ["Alpha One"]),
+        ("Alpha One, Beta Two", ["Alpha One", "Beta Two"]),
+        ("A One, B Two, C Three, D Four", ["A One", "B Two", "C Three", "D Four"]),
+        ("Alpha One,", ["Alpha One"]),
+        ("Alpha One, ", ["Alpha One"]),
+        ("Alpha One,,,", ["Alpha One"]),
+        (", Alpha One", ["Alpha One"]),
+        (" , Alpha One,", ["Alpha One"]),
+        ("Alpha One,,Beta Two", ["Alpha One", "Beta Two"]),
+        (",", []),
+        (", ,", []),
+        ("   ", []),
+        ("", []),
+        ("Alpha One,Beta Two", ["Alpha One", "Beta Two"]),  # missing space
+        ("Alpha One,\nBeta Two", ["Alpha One", "Beta Two"]),  # wrapped list
+        ("Alpha One\nBeta Two", ["Alpha One", "Beta Two"]),
+        ("Alpha   One", ["Alpha One"]),
+    ]:
+        assert split_names(cell, fd)[0] == expected, cell
+
+    # The sheet's own closed marker is a marker, not a name.
+    assert split_names("Front Desk Closed", fd) == ([], True)
+    assert split_names("Freshman Seminar", fd) == ([], True)
 
     assert norm_name("  Dany  romero, ") == "dany romero"
     assert norm_name("LUSENIE TURAY") == "lusenie turay"
+    assert minutes_to_hhmmss(8 * 60) == "08:00:00"
+    assert minutes_to_hhmmss(19 * 60 + 30) == "19:30:00"
 
-    # A blank weekday header still resolves by position.
+    # A blank weekday header still resolves by position, and the grid parses
+    # end to end.
     grid = [
         ["Time", "Mondays", "", "Wednesdays", "Thursdays", "Fridays"],
         ["0.3333333333333333", "Alpha One", "Beta Two", "", "", ""],
         ["0.3541666666666667", "Alpha One", "", "", "", ""],
         ["0.375", "Alpha One", "", "", "", ""],
     ]
+    assert find_header_row(grid) == 0
     cols, problem = resolve_weekday_columns(grid, 0)
     assert not problem, problem
-    assert cols[1] == 1 and cols[2] == 2 and cols[5] == 5, cols
-    assert find_header_row(grid) == 0
+    assert (cols[1], cols[2], cols[5]) == (1, 2, 5), cols
     assert find_time_column(grid, 0) == 0
-
-    # End to end over that grid: three contiguous slots become one shift.
-    slots, _, rejects, markers = parse_grid("T", grid, fp)
-    assert len(rejects) == 0 and len(markers) == 0
-    assert len(slots) == 4, slots
+    slots, _, rejects, markers = parse_grid("T", grid, fd)
+    assert (len(slots), len(rejects), len(markers)) == (4, 0, 0)
     assert {s.day_of_week for s in slots} == {1, 2}
 
-    # Contiguous slots become one shift; a gap stays two.
-    rows = [
-        {"scholar_id": "s1", "day_of_week": 1, "start_min": 600, "end_min": 630, "source_name": "A"},
-        {"scholar_id": "s1", "day_of_week": 1, "start_min": 630, "end_min": 660, "source_name": "A"},
-        {"scholar_id": "s1", "day_of_week": 1, "start_min": 660, "end_min": 690, "source_name": "A"},
-        {"scholar_id": "s1", "day_of_week": 1, "start_min": 780, "end_min": 810, "source_name": "A"},
-    ]
-    merged, notes = coalesce(rows)
-    assert len(merged) == 2, merged
-    assert merged[0]["start_min"] == 600 and merged[0]["end_min"] == 690, merged[0]
-    assert merged[1]["start_min"] == 780 and merged[1]["end_min"] == 810, merged[1]
-    assert len(notes) == 1 and notes[0]["slots_merged"] == "3", notes
+    # Contiguous slots become one standing shift; a gap stays two; overlapping
+    # duplicates collapse rather than colliding inside one batch.
+    def slot(scholar, dow, start, end):
+        return {
+            "scholar_id": scholar,
+            "day_of_week": dow,
+            "start_min": start,
+            "end_min": end,
+            "source_name": scholar,
+        }
 
-    # Overlapping duplicates collapse rather than colliding inside one batch.
-    dupes = [
-        {"scholar_id": "s2", "day_of_week": 2, "start_min": 600, "end_min": 660, "source_name": "B"},
-        {"scholar_id": "s2", "day_of_week": 2, "start_min": 630, "end_min": 690, "source_name": "B"},
-    ]
-    merged2, _ = coalesce(dupes)
-    assert len(merged2) == 1 and merged2[0]["end_min"] == 690, merged2
+    merged, notes = coalesce(
+        [slot("s1", 1, 600, 630), slot("s1", 1, 630, 660), slot("s1", 1, 660, 690), slot("s1", 1, 780, 810)]
+    )
+    assert [(m["start_min"], m["end_min"]) for m in merged] == [(600, 690), (780, 810)], merged
+    assert len(notes) == 1 and notes[0]["slots_merged"] == "3", notes
+    overlapped, _ = coalesce([slot("s2", 2, 600, 660), slot("s2", 2, 630, 690)])
+    assert [(m["start_min"], m["end_min"]) for m in overlapped] == [(600, 690)], overlapped
 
     # A sub-hour shift is loaded but warned about.
-    warns = slot_warnings([{"day_of_week": 1, "start_min": 600, "end_min": 630, "source_name": "A"}])
-    assert len(warns) == 1 and "1-hour" in warns[0]["note"], warns
+    warnings = slot_warnings([slot("s1", 1, 600, 630)])
+    assert len(warnings) == 1 and "1-hour" in warnings[0]["note"], warnings
 
-    # The populated twin wins when tab names collide after normalization. The
-    # blank twin still carries the time ladder and the closed/seminar markers,
-    # so neither may count as data.
-    header = ["Time", "Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays"]
-    empty_grid = [
-        [], [], [], [], header,
-        ["0.375", "", "", "", "", ""],
-        ["0.75", "", "", "Freshman Seminar", "", "Front Desk Closed"],
-    ]
-    full_grid = [
-        [], [], [], [], header,
-        ["0.375", "Alpha One", "", "", "", ""],
-        ["0.75", "Beta Two", "", "Freshman Seminar", "", "Front Desk Closed"],
-    ]
-    assert count_name_cells(empty_grid, fp) == 0
-    assert count_name_cells(full_grid, fp) == 2
+    # A blank tab still carries the banner, header, time ladder and markers, so
+    # none of those may read as data.
+    blank = [[], [], [], [], header, ["0.375", "", "", "", "", ""],
+             ["0.75", "", "", "Freshman Seminar", "", "Front Desk Closed"]]
+    filled = [[], [], [], [], header, ["0.375", "Alpha One", "", "", "", ""],
+              ["0.75", "Beta Two", "", "Freshman Seminar", "", "Front Desk Closed"]]
+    assert count_name_cells(blank, fd) == 0
+    assert count_name_cells(filled, fd) == 2
 
-    # When only one twin holds names, it wins regardless of visibility, and the
-    # blank twin's time ladder and markers must not read as data.
-    states_blank_visible = {" Freshman Sign-Up ": "visible", "Freshman Sign-Up": "hidden"}
-    chosen, tab_notes, contested = select_tabs(
-        {" Freshman Sign-Up ": empty_grid, "Freshman Sign-Up": full_grid},
-        fp,
-        None,
-        states_blank_visible,
-    )
-    assert list(chosen) == ["Freshman Sign-Up"], list(chosen)
-    assert contested == [], contested
-    assert tab_notes and "hidden" in tab_notes[0]["reason"]
-
-    # Order must not decide it.
-    chosen_rev, _, _ = select_tabs(
-        {"Freshman Sign-Up": full_grid, " Freshman Sign-Up ": empty_grid},
-        fp,
-        None,
-        states_blank_visible,
-    )
-    assert list(chosen_rev) == ["Freshman Sign-Up"], list(chosen_rev)
+    # Only one twin holds names: it wins whichever way round they appear.
+    states = {" Freshman Sign-Up ": "visible", "Freshman Sign-Up": "hidden"}
+    for grids in (
+        {" Freshman Sign-Up ": blank, "Freshman Sign-Up": filled},
+        {"Freshman Sign-Up": filled, " Freshman Sign-Up ": blank},
+    ):
+        chosen, notes, contested = select_tabs(grids, fd, None, states)
+        assert list(chosen) == ["Freshman Sign-Up"], list(chosen)
+        assert contested == [] and "hidden" in notes[0]["reason"], notes
 
     # The year-rollover case from the real workbook: the hidden archive holds MORE
-    # names than the partly-filled visible sheet for the current year. Visible must
-    # still win, and the clash must be flagged for the operator.
-    big_archive = [
+    # names than the partly filled visible sheet. Visible must still win, and the
+    # clash must be flagged so a human confirms before writing.
+    archive = [
         [], [], [], [], header,
-        ["0.375", "Old One, Old Two, Old Three", "", "", "", ""],
-        ["0.3958333333333333", "Old Four, Old Five", "", "", "", ""],
+        ["0.375", "Old One, Old Two", "", "", "", ""],
+        ["0.3958333333333333", "Old Three, Old Four", "", "", "", ""],
     ]
-    small_current = [
-        [], [], [], [], header,
-        ["0.375", "New One", "", "", "", ""],
-    ]
-    assert count_name_cells(big_archive, fp) > count_name_cells(small_current, fp)
-    chosen_year, year_notes, year_contested = select_tabs(
-        {" Sophomore Sign-Up": small_current, "Sophomore Sign-Up": big_archive},
-        fp,
-        None,
-        {" Sophomore Sign-Up": "visible", "Sophomore Sign-Up": "hidden"},
-    )
-    assert list(chosen_year) == [" Sophomore Sign-Up"], list(chosen_year)
-    assert year_notes[0]["reason"] == "visible and populated", year_notes[0]
-    assert year_contested == ["sophomore sign-up"], year_contested
+    current = [[], [], [], [], header, ["0.375", "New One", "", "", "", ""]]
+    assert count_name_cells(archive, fd) > count_name_cells(current, fd)
+    year_states = {" Sophomore Sign-Up": "visible", "Sophomore Sign-Up": "hidden"}
+    year_grids = {" Sophomore Sign-Up": current, "Sophomore Sign-Up": archive}
+    chosen, notes, contested = select_tabs(year_grids, fd, None, year_states)
+    assert list(chosen) == [" Sophomore Sign-Up"], list(chosen)
+    assert notes[0]["reason"] == "visible and populated", notes[0]
+    assert contested == ["sophomore sign-up"], contested
 
-    # An explicit --tabs choice overrides everything and is never contested.
-    forced, _, forced_contested = select_tabs(
-        {" Sophomore Sign-Up": small_current, "Sophomore Sign-Up": big_archive},
-        fp,
-        ["Sophomore Sign-Up"],
-        {" Sophomore Sign-Up": "visible", "Sophomore Sign-Up": "hidden"},
-    )
-    assert list(forced) == ["Sophomore Sign-Up"], list(forced)
-    assert forced_contested == [], forced_contested
+    # An explicit --tabs choice targets one twin exactly and is never contested.
+    forced, _, forced_contested = select_tabs(year_grids, fd, ["Sophomore Sign-Up"], year_states)
+    assert list(forced) == ["Sophomore Sign-Up"] and forced_contested == [], list(forced)
 
     # Leadership and the derived Schedule Data tabs are never selected.
-    others = {"Leadership schedules": full_grid, "Freshman Schedule Data": full_grid}
-    assert select_tabs(others, fp, None)[0] == {}
+    assert select_tabs({"Leadership schedules": filled, "Freshman Schedule Data": filled}, fd, None)[0] == {}
 
     # Matching accepts only deterministic resolutions.
     idx = build_profile_index(
@@ -1064,40 +1013,52 @@ def self_test() -> int:
              "full_name": "Beta Three", "student_id": None},
         ]
     )
-    assert match_scholar("Alpha One", idx, {})[:2] == ("u1", "name_exact")
-    assert match_scholar("  alpha   one , ", idx, {})[:2] == ("u1", "name_exact")
-    assert match_scholar("One Alpha", idx, {})[:2] == ("u1", "name_reversed")
-    assert match_scholar("123456789", idx, {})[:2] == ("u1", "student_id")
-    assert match_scholar("Nobody Here", idx, {})[0] is None
+    for raw, expected in [
+        ("Alpha One", ("u1", "name_exact")),
+        ("  alpha   one , ", ("u1", "name_exact")),
+        ("One Alpha", ("u1", "name_reversed")),
+        ("123456789", ("u1", "student_id")),
+    ]:
+        assert match_scholar(raw, idx, {})[:2] == expected, raw
     assert match_scholar("Gamma Three", idx, {norm_name("Gamma Three"): "u9"})[:2] == ("u9", "alias")
+    assert match_scholar("Nobody Here", idx, {})[0] is None
     # Two profiles share a first name, so a first-name-only entry stays unresolved.
-    ambiguous_id, _, note = match_scholar("Beta", idx, {})
-    assert ambiguous_id is None and note.startswith("ambiguous"), note
+    unresolved, _, note = match_scholar("Beta", idx, {})
+    assert unresolved is None and note.startswith("ambiguous"), note
 
     # Run-together names are detected but never split automatically.
     assert find_missing_separator("Alpha One Beta Two", idx) == "Alpha One | Beta Two"
     assert find_missing_separator("Leigh Bodden II", idx) == ""
 
+    # Front desk reads the active semester; a tab-name term and an explicit id
+    # are both supported for sheets that carry one.
+    for tab, expected in [
+        ("Freshman Sign-Up (Fall 26)", ("fall", "2026")),
+        ("Sophomore Sign-Up (Spring 26)", ("spring", "2026")),
+        ("Freshman Sign-Up (Fall 2026)", ("fall", "2026")),
+        ("Freshman Sign-Up", ("", "")),
+    ]:
+        assert parse_semester_label(tab) == expected, tab
+
+    sems = [
+        {"id": 7, "name": "Fall 2026", "is_active": True},
+        {"id": 6, "name": "Spring 2026", "is_active": False},
+    ]
+    assert resolve_semester("Freshman Sign-Up", fd, None, sems) == (7, "")
+    # A term this project never had is reported, not raised.
+    missing, why = resolve_semester("Freshman Sign-Up", fd, None, sems[1:])
+    assert missing is None and "exactly one active semester" in why, why
+
     # Scope filters pin every dimension that keeps loads from colliding.
     flt = scope_filter(3, "front_desk", ["Freshman Sign-Up"])
-    assert "semester_id=eq.3" in flt
-    assert "session_kind=eq.front_desk" in flt
-    assert "source=eq.google_sheet" in flt
-    assert "source_tab=in." in flt
-
-    assert minutes_to_hhmmss(8 * 60) == "08:00:00"
-    assert minutes_to_hhmmss(19 * 60 + 30) == "19:30:00"
+    for fragment in ["semester_id=eq.3", "session_kind=eq.front_desk", "source=eq.google_sheet", "source_tab=in."]:
+        assert fragment in flt, fragment
 
     print("self-test: all assertions passed")
     return 0
 
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
-
-
-def main() -> int:
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Load a sign-up sheet workbook into scholar_shift_assignments"
     )
@@ -1107,7 +1068,9 @@ def main() -> int:
     parser.add_argument(
         "--session-kind", choices=sorted(PROFILES), help="Which sheet profile to use"
     )
-    parser.add_argument("--semester-id", type=int, default=None, help="Override semester resolution")
+    parser.add_argument(
+        "--semester-id", type=int, default=None, help="Override semester resolution"
+    )
     parser.add_argument(
         "--tabs", default="", help="Comma-separated tab names to load instead of the defaults"
     )
@@ -1118,13 +1081,9 @@ def main() -> int:
         "--dry-run", action="store_true", help="Parse and report only; no network, no credentials"
     )
     parser.add_argument(
-        "--check", action="store_true", help="Parse and match against profiles; report only, no writes"
-    )
-    parser.add_argument(
-        "--batch-size",
-        type=int,
-        default=BATCH_SIZE_DEFAULT,
-        help=f"Insert batch size (default {BATCH_SIZE_DEFAULT})",
+        "--check",
+        action="store_true",
+        help="Parse and match against profiles; report only, no writes",
     )
     parser.add_argument(
         "--confirm-tabs",
@@ -1137,10 +1096,293 @@ def main() -> int:
         help="Permit clearing the scope when the sheet parses to zero shifts",
     )
     parser.add_argument(
-        "--self-test", action="store_true", help="Run internal assertions and exit"
+        "--batch-size",
+        type=int,
+        default=BATCH_SIZE_DEFAULT,
+        help=f"Insert batch size (default {BATCH_SIZE_DEFAULT})",
     )
-    args = parser.parse_args()
+    parser.add_argument("--self-test", action="store_true", help="Run internal assertions and exit")
+    return parser.parse_args()
 
+
+def parse_tabs(
+    tabs: dict[str, Grid], states: dict[str, str], profile: SheetProfile
+) -> tuple[list[RawSlot], list[dict[str, str]], list[dict[str, str]], list[dict[str, str]]]:
+    """Parse every selected tab. Returns (slots, rejects, markers, structure)."""
+    slots: list[RawSlot] = []
+    rejects: list[dict[str, str]] = []
+    markers: list[dict[str, str]] = []
+    structure: list[dict[str, str]] = []
+
+    for tab, grid in tabs.items():
+        tab_slots, weekday_cols, tab_rejects, tab_markers = parse_grid(tab, grid, profile)
+        slots.extend(tab_slots)
+        rejects.extend(tab_rejects)
+        markers.extend(tab_markers)
+        season, year = parse_semester_label(tab)
+        structure.append(
+            {
+                "tab": tab,
+                "visibility": states.get(tab, "?"),
+                "semester_in_tab": f"{season.title()} {year}" if season else "-",
+                "weekday_columns": ", ".join(
+                    f"{chr(ord('A') + c)}={DOW_NAME.get(d, d)}"
+                    for c, d in sorted(weekday_cols.items())
+                ),
+                "slots_found": str(len(tab_slots)),
+            }
+        )
+    return slots, rejects, markers, structure
+
+
+def report_parse(
+    structure: list[dict[str, str]],
+    tab_notes: list[dict[str, str]],
+    rejects: list[dict[str, str]],
+    markers: list[dict[str, str]],
+) -> None:
+    print_tsv(
+        "Tabs selected and weekday columns resolved - confirm before loading",
+        structure,
+        ["tab", "visibility", "semester_in_tab", "weekday_columns", "slots_found"],
+    )
+    hidden = [s["tab"] for s in structure if s["visibility"] != "visible"]
+    if hidden:
+        print(
+            "note: selected hidden tab(s): "
+            + ", ".join(repr(t) for t in hidden)
+            + ". A hidden tab is often a previous academic year kept as an archive. "
+            "That is expected when it carries its own term in the name; otherwise "
+            "confirm it is the sheet staff actually edit, or pass --tabs.",
+            file=sys.stderr,
+        )
+    if tab_notes:
+        print_tsv(
+            "Same-named tabs resolved - these are usually different academic years",
+            tab_notes,
+            ["normalized", "candidates", "chosen", "reason"],
+        )
+    print_tsv("Time cells rejected", rejects, ["tab", "row", "column", "reason"])
+    print_tsv("Marker cells ignored (not sign-ups)", markers, ["tab", "row", "day", "text"])
+
+
+def require_credentials() -> tuple[str, str]:
+    url = (os.environ.get("SUPABASE_URL") or "").strip()
+    key = (os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or "").strip()
+    if not url:
+        raise SystemExit("error: SUPABASE_URL is required")
+    if not key:
+        raise SystemExit(
+            "error: SUPABASE_SERVICE_ROLE_KEY is required "
+            "(prompted by the shell wrapper; never loaded from repo .env files)"
+        )
+    return url, key
+
+
+def resolve_semesters(
+    tabs: dict[str, Grid],
+    profile: SheetProfile,
+    explicit: int | None,
+    semesters: list[dict[str, Any]],
+) -> dict[str, int]:
+    """
+    Semester for every selected tab, not just tabs that produced slots: a tab
+    everyone dropped out of still owns rows this load is responsible for clearing.
+    """
+    resolved: dict[str, int] = {}
+    problems: list[dict[str, str]] = []
+    for tab in tabs:
+        semester_id, problem = resolve_semester(tab, profile, explicit, semesters)
+        if semester_id is None:
+            problems.append({"tab": tab, "reason": problem})
+        else:
+            resolved[tab] = semester_id
+
+    print_tsv("Tabs skipped - semester could not be resolved", problems, ["tab", "reason"])
+    if not resolved:
+        raise SystemExit("error: no selected tab resolved to a semester; nothing can be loaded")
+    return resolved
+
+
+def classify_slots(
+    slots: list[RawSlot],
+    idx: ProfileIndex,
+    aliases: dict[str, str],
+    semester_by_tab: dict[str, int],
+) -> tuple[list[dict[str, Any]], list[dict[str, str]], list[dict[str, str]]]:
+    """Split parsed slots into (matched, unmatched, ambiguous)."""
+    matched: list[dict[str, Any]] = []
+    unmatched: list[dict[str, str]] = []
+    ambiguous: list[dict[str, str]] = []
+
+    for slot in slots:
+        scholar_id, method, note = match_scholar(slot.raw_name, idx, aliases)
+        if scholar_id is not None:
+            matched.append(
+                {
+                    "scholar_id": scholar_id,
+                    "semester_id": semester_by_tab[slot.tab],
+                    "day_of_week": slot.day_of_week,
+                    "start_min": slot.start_min,
+                    "end_min": slot.end_min,
+                    "source_tab": slot.tab,
+                    "source_name": slot.raw_name,
+                    "match_method": method,
+                }
+            )
+            continue
+
+        record = {
+            "tab": slot.tab,
+            "row": str(slot.row),
+            "day": DOW_NAME.get(slot.day_of_week, str(slot.day_of_week)),
+            "raw_name": slot.raw_name,
+            "slot": f"{minutes_to_hhmmss(slot.start_min)}-{minutes_to_hhmmss(slot.end_min)}",
+            "reason": note,
+        }
+        separator = "" if note.startswith("ambiguous") else find_missing_separator(slot.raw_name, idx)
+        if note.startswith("ambiguous"):
+            ambiguous.append(record)
+        elif separator:
+            record["reason"] = "possible missing separator"
+            record["suggestions"] = separator
+            ambiguous.append(record)
+        else:
+            record["suggestions"] = suggest(slot.raw_name, idx)
+            unmatched.append(record)
+    return matched, unmatched, ambiguous
+
+
+def report_matches(
+    unmatched: list[dict[str, str]],
+    ambiguous: list[dict[str, str]],
+    merge_notes: list[dict[str, str]],
+    shifts: list[dict[str, Any]],
+    stale: list[dict[str, str]],
+) -> None:
+    name_columns = ["tab", "row", "day", "raw_name", "slot", "reason", "suggestions"]
+    print_tsv(
+        "Unmatched names - NOT loaded (no profile yet, or name not found)", unmatched, name_columns
+    )
+    print_tsv("Ambiguous or run-together names - NOT loaded", ambiguous, name_columns)
+    print_tsv(
+        "Slots coalesced into standing shifts",
+        merge_notes,
+        ["scholar", "day", "shift", "slots_merged"],
+    )
+    print_tsv(
+        "Shift warnings - still loaded", slot_warnings(shifts), ["scholar", "day", "shift", "note"]
+    )
+    print_tsv(
+        "Existing rows in scope - replaced by this load",
+        stale,
+        ["semester_id", "scholar_id", "day", "shift", "source_tab"],
+    )
+
+
+def collect_stale(
+    url: str,
+    key: str,
+    session_kind: str,
+    tabs_by_semester: dict[int, list[str]],
+) -> tuple[list[dict[str, str]], dict[int, int]]:
+    """Rows already in the scope this load is about to replace, and a count per semester."""
+    rows: list[dict[str, str]] = []
+    counts: dict[int, int] = {}
+    for semester_id in sorted(tabs_by_semester):
+        flt = scope_filter(semester_id, session_kind, sorted(tabs_by_semester[semester_id]))
+        for row in preview_scope(url, key, flt):
+            counts[semester_id] = counts.get(semester_id, 0) + 1
+            rows.append(
+                {
+                    "semester_id": str(semester_id),
+                    "scholar_id": str(row.get("scholar_id", "")),
+                    "day": DOW_NAME.get(row.get("day_of_week"), str(row.get("day_of_week"))),
+                    "shift": f"{row.get('start_time', '')}-{row.get('end_time', '')}",
+                    "source_tab": str(row.get("source_tab", "")),
+                }
+            )
+    return rows, counts
+
+
+def build_payload(
+    shifts: list[dict[str, Any]], profile: SheetProfile, batch_id: str, stamp: str
+) -> list[dict[str, Any]]:
+    payload: list[dict[str, Any]] = []
+    for shift in shifts:
+        row = {
+            "scholar_id": shift["scholar_id"],
+            "semester_id": shift["semester_id"],
+            "session_kind": profile.session_kind,
+            "day_of_week": shift["day_of_week"],
+            "start_time": minutes_to_hhmmss(shift["start_min"]),
+            "end_time": minutes_to_hhmmss(shift["end_min"]),
+            "is_active": True,
+            "source": "google_sheet",
+            "source_tab": shift["source_tab"],
+            "source_name": shift["source_name"],
+            "match_method": shift["match_method"],
+            "load_batch_id": batch_id,
+            "updated_at": stamp,
+        }
+        # Every object must carry an identical key set, explicit nulls included,
+        # or PostgREST rejects the batch.
+        for field in PAYLOAD_FIELDS:
+            row.setdefault(field, None)
+        payload.append(row)
+    return payload
+
+
+def refuse_write(
+    args: argparse.Namespace,
+    contested: list[str],
+    requested: list[str] | None,
+    tabs_by_semester: dict[int, list[str]],
+    shifts: list[dict[str, Any]],
+    stale_counts: dict[int, int],
+) -> str:
+    """
+    Why this load must not write, or "" if it may.
+
+    Both cases are silent-corruption risks rather than crashes, so they are
+    refused up front and need an explicit flag to override.
+    """
+    # Same-named tabs that BOTH hold names are almost always two academic years.
+    # Guessing between them would attach a whole cohort to the wrong semester.
+    if contested and not requested and not args.confirm_tabs:
+        return (
+            "error: more than one tab holds names for: "
+            + ", ".join(repr(c) for c in contested)
+            + ". These are usually different academic years - the current year visible, "
+            "last year hidden as an archive. The tab report above shows which tab was "
+            "chosen and why. Confirm it is the right one, then re-run with "
+            "--confirm-tabs, or pass --tabs to choose different ones."
+        )
+
+    # Checked per semester, not across the run: a workbook can hold several terms
+    # at once, and an empty tab for one term must not be wiped just because
+    # another term in the same run had data.
+    loaded: dict[int, int] = {}
+    for shift in shifts:
+        loaded[shift["semester_id"]] = loaded.get(shift["semester_id"], 0) + 1
+    wipes = [
+        (semester_id, stale_counts[semester_id])
+        for semester_id in sorted(tabs_by_semester)
+        if not loaded.get(semester_id) and stale_counts.get(semester_id)
+    ]
+    if wipes and not args.allow_empty:
+        detail = "; ".join(f"semester {sid}: {count} row(s)" for sid, count in wipes)
+        return (
+            f"error: these scopes parsed zero loadable shifts but still hold rows -> {detail}. "
+            "Refusing to clear them; that is usually a tab-selection or parsing problem rather "
+            "than an empty sheet. Check the tab report above, narrow the run with --tabs or "
+            "--semester-id, or re-run with --allow-empty if the sheet really is empty."
+        )
+    return ""
+
+
+def main() -> int:
+    args = parse_args()
     if args.self_test:
         return self_test()
 
@@ -1166,172 +1408,37 @@ def main() -> int:
         )
         return 1
 
-    all_slots: list[RawSlot] = []
-    rejects: list[dict[str, str]] = []
-    markers: list[dict[str, str]] = []
-    structure: list[dict[str, str]] = []
-
-    for tab, grid in tabs.items():
-        slots, weekday_cols, tab_rejects, tab_markers = parse_grid(tab, grid, profile)
-        all_slots.extend(slots)
-        rejects.extend(tab_rejects)
-        markers.extend(tab_markers)
-        structure.append(
-            {
-                "tab": tab,
-                "visibility": states.get(tab, "?"),
-                "weekday_columns": ", ".join(
-                    f"{chr(ord('A') + c)}={DOW_NAME.get(d, d)}"
-                    for c, d in sorted(weekday_cols.items())
-                ),
-                "slots_found": str(len(slots)),
-            }
-        )
-
-    print_tsv(
-        "Tabs selected and weekday columns resolved - confirm before loading",
-        structure,
-        ["tab", "visibility", "weekday_columns", "slots_found"],
-    )
-    hidden_selected = [s["tab"] for s in structure if s["visibility"] != "visible"]
-    if hidden_selected:
-        print(
-            "note: selected hidden tab(s): "
-            + ", ".join(repr(t) for t in hidden_selected)
-            + ". A hidden tab is often a previous academic year kept as an archive. "
-            "That is expected when it carries its own term in the name; otherwise "
-            "confirm it is the sheet staff actually edit, or pass --tabs.",
-            file=sys.stderr,
-        )
-    if tab_notes:
-        print_tsv(
-            "Same-named tabs resolved - these are usually different academic years",
-            tab_notes,
-            ["normalized", "candidates", "chosen", "reason"],
-        )
-    print_tsv("Time cells rejected", rejects, ["tab", "row", "column", "reason"])
-    print_tsv("Marker cells ignored (not sign-ups)", markers, ["tab", "row", "day", "text"])
+    slots, rejects, markers, structure = parse_tabs(tabs, states, profile)
+    report_parse(structure, tab_notes, rejects, markers)
 
     if args.dry_run:
         print()
-        print(f"Name fragments parsed: {len(all_slots)}")
+        print(f"Name fragments parsed: {len(slots)}")
         print("Dry run - no credentials used, nothing sent to Supabase.")
         print("Identity matching needs profiles from the database; use --check for that.")
         return 0
 
-    url = (os.environ.get("SUPABASE_URL") or "").strip()
-    key = (os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or "").strip()
-    if not url:
-        print("error: SUPABASE_URL is required", file=sys.stderr)
-        return 1
-    if not key:
-        print(
-            "error: SUPABASE_SERVICE_ROLE_KEY is required "
-            "(prompted by the shell wrapper; never loaded from repo .env files)",
-            file=sys.stderr,
-        )
-        return 1
-
+    url, key = require_credentials()
     aliases = load_alias_map(args.alias_map)
-    profiles_rows = fetch_profiles(url, key)
-    if not profiles_rows:
+    profile_rows = fetch_profiles(url, key)
+    if not profile_rows:
         print("error: no rows returned from public.profiles", file=sys.stderr)
         return 1
-    idx = build_profile_index(profiles_rows)
-    semesters = fetch_semesters(url, key)
+    idx = build_profile_index(profile_rows)
 
-    batch_id = str(uuid.uuid4())
-    stamp = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
-
-    matched: list[dict[str, Any]] = []
-    unmatched: list[dict[str, str]] = []
-    ambiguous: list[dict[str, str]] = []
-
-    # Resolved for every selected tab, not just tabs that produced slots: a tab
-    # everyone dropped out of still owns rows in the database that this load is
-    # responsible for clearing.
-    semester_by_tab: dict[str, int] = {
-        tab: resolve_semester(tab, profile, args.semester_id, semesters) for tab in tabs
-    }
+    semester_by_tab = resolve_semesters(tabs, profile, args.semester_id, fetch_semesters(url, key))
     tabs_by_semester: dict[int, list[str]] = {}
     for tab, semester_id in semester_by_tab.items():
         tabs_by_semester.setdefault(semester_id, []).append(tab)
 
-    for slot in all_slots:
-        scholar_id, method, note = match_scholar(slot.raw_name, idx, aliases)
-        if scholar_id is None:
-            record = {
-                "tab": slot.tab,
-                "row": str(slot.row),
-                "day": DOW_NAME.get(slot.day_of_week, str(slot.day_of_week)),
-                "raw_name": slot.raw_name,
-                "slot": f"{minutes_to_hhmmss(slot.start_min)}-{minutes_to_hhmmss(slot.end_min)}",
-                "reason": note,
-            }
-            if note.startswith("ambiguous"):
-                ambiguous.append(record)
-            else:
-                separator = find_missing_separator(slot.raw_name, idx)
-                if separator:
-                    record["reason"] = "possible missing separator"
-                    record["suggestions"] = separator
-                    ambiguous.append(record)
-                else:
-                    record["suggestions"] = suggest(slot.raw_name, idx)
-                    unmatched.append(record)
-            continue
+    # Slots from an unresolved tab are dropped with the tab.
+    slots = [s for s in slots if s.tab in semester_by_tab]
 
-        matched.append(
-            {
-                "scholar_id": scholar_id,
-                "semester_id": semester_by_tab[slot.tab],
-                "day_of_week": slot.day_of_week,
-                "start_min": slot.start_min,
-                "end_min": slot.end_min,
-                "source_tab": slot.tab,
-                "source_name": slot.raw_name,
-                "match_method": method,
-            }
-        )
-
+    matched, unmatched, ambiguous = classify_slots(slots, idx, aliases, semester_by_tab)
     shifts, merge_notes = coalesce(matched)
-    warnings = slot_warnings(shifts)
 
-    print_tsv(
-        "Unmatched names - NOT loaded (no profile yet, or name not found)",
-        unmatched,
-        ["tab", "row", "day", "raw_name", "slot", "reason", "suggestions"],
-    )
-    print_tsv(
-        "Ambiguous or run-together names - NOT loaded",
-        ambiguous,
-        ["tab", "row", "day", "raw_name", "slot", "reason", "suggestions"],
-    )
-    print_tsv(
-        "Slots coalesced into standing shifts",
-        merge_notes,
-        ["scholar", "day", "shift", "slots_merged"],
-    )
-    print_tsv("Shift warnings - still loaded", warnings, ["scholar", "day", "shift", "note"])
-
-    stale: list[dict[str, str]] = []
-    for semester_id in sorted(tabs_by_semester):
-        flt = scope_filter(semester_id, profile.session_kind, sorted(tabs_by_semester[semester_id]))
-        for row in preview_scope(url, key, flt):
-            stale.append(
-                {
-                    "semester_id": str(semester_id),
-                    "scholar_id": str(row.get("scholar_id", "")),
-                    "day": DOW_NAME.get(row.get("day_of_week"), str(row.get("day_of_week"))),
-                    "shift": f"{row.get('start_time', '')}-{row.get('end_time', '')}",
-                    "source_tab": str(row.get("source_tab", "")),
-                }
-            )
-    print_tsv(
-        "Existing rows in scope - replaced by this load",
-        stale,
-        ["semester_id", "scholar_id", "day", "shift", "source_tab"],
-    )
+    stale, stale_counts = collect_stale(url, key, profile.session_kind, tabs_by_semester)
+    report_matches(unmatched, ambiguous, merge_notes, shifts, stale)
 
     print()
     print(f"Shifts ready to insert: {len(shifts)}")
@@ -1341,59 +1448,20 @@ def main() -> int:
         print("Check run - profiles read, nothing written.")
         return 0
 
-    # Same-named tabs that BOTH hold names are almost always two academic years.
-    # Guessing between them would attach a whole cohort to the wrong semester, so
-    # a real write requires the operator to name the tabs explicitly.
-    if contested and not requested and not args.confirm_tabs:
-        print(
-            "error: more than one tab holds names for: "
-            + ", ".join(repr(c) for c in contested)
-            + ". These are usually different academic years - the current year visible, "
-            "last year hidden as an archive. The tab report above shows which tab was "
-            "chosen and why. Confirm it is the right one, then re-run with "
-            "--confirm-tabs, or pass --tabs to choose different ones.",
-            file=sys.stderr,
-        )
+    refusal = refuse_write(args, contested, requested, tabs_by_semester, shifts, stale_counts)
+    if refusal:
+        print(refusal, file=sys.stderr)
         return 1
 
     if not shifts:
         if not stale:
             print("Nothing to insert and nothing to clear.")
             return 0
-        if not args.allow_empty:
-            print(
-                f"error: parsed zero loadable shifts, but the load scope holds {len(stale)} "
-                "existing row(s). Refusing to clear the scope on an empty parse — that is "
-                "usually a tab-selection or parsing problem rather than an empty sheet. "
-                "Check the tab report above, then re-run with --allow-empty if the sheet "
-                "really is empty.",
-                file=sys.stderr,
-            )
-            return 1
         print(f"Parsed zero shifts; clearing {len(stale)} row(s) in scope as requested.")
 
-    payload: list[dict[str, Any]] = []
-    for s in shifts:
-        row = {
-            "scholar_id": s["scholar_id"],
-            "semester_id": s["semester_id"],
-            "session_kind": profile.session_kind,
-            "day_of_week": s["day_of_week"],
-            "start_time": minutes_to_hhmmss(s["start_min"]),
-            "end_time": minutes_to_hhmmss(s["end_min"]),
-            "is_active": True,
-            "source": "google_sheet",
-            "source_tab": s["source_tab"],
-            "source_name": s["source_name"],
-            "match_method": s["match_method"],
-            "load_batch_id": batch_id,
-            "updated_at": stamp,
-        }
-        # Every object must carry an identical key set, explicit nulls included,
-        # or PostgREST rejects the batch.
-        for field in PAYLOAD_FIELDS:
-            row.setdefault(field, None)
-        payload.append(row)
+    batch_id = str(uuid.uuid4())
+    stamp = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    payload = build_payload(shifts, profile, batch_id, stamp)
 
     # Delete before insert: an edited shift would otherwise overlap its own
     # surviving row and trip the exclusion constraint.
