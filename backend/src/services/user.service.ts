@@ -11,7 +11,7 @@
  * - Fetch scholar display names by UID array
  * - Fetch required front-desk and study-session hours per scholar
  * - Filter UIDs to eligible scholars (enrolled freshman/sophomore with hours)
- * - Fetch all user UIDs, memo users, team leaders, scholar UIDs
+ * - Fetch all user UIDs, memo users, team leaders, enrolled scholar UIDs
  * - Get a single user's data by UID
  * - Developer roster get/update (dual-write profiles + mentee assignments)
  *
@@ -49,13 +49,23 @@ export function isGraduated(status: string | null | undefined): boolean {
   return (status ?? "").toLowerCase() === GRADUATED_STATUS;
 }
 
+export function isScholarProgramRole(programRole: string | null | undefined): boolean {
+  return (programRole ?? "").toLowerCase() === "scholar";
+}
+
+/** Scholar roster row whose `user_roster.status` is enrolled. */
+export function isEnrolledScholar(
+  u: Pick<MemoUserRow, "program_role" | "status">,
+): boolean {
+  return isScholarProgramRole(u.program_role) && isEnrolled(u.status);
+}
+
 export function isEligibleScholar(
   u: Pick<MemoUserRow, "program_role" | "cohort" | "status" | "fd_required" | "ss_required">,
 ): boolean {
-  const role = (u.program_role ?? "").toLowerCase();
   const fd = u.fd_required != null ? Number(u.fd_required) : 0;
   const ss = u.ss_required != null ? Number(u.ss_required) : 0;
-  return role === "scholar" && isEnrolled(u.status) && isHourEligibleCohort(u.cohort) && (fd > 0 || ss > 0);
+  return isEnrolledScholar(u) && isHourEligibleCohort(u.cohort) && (fd > 0 || ss > 0);
 }
 
 /** Roster program_role Coordinator only — does not match Program Coordinator. */
@@ -63,12 +73,11 @@ export function isCoordinator(programRole: string | null | undefined): boolean {
   return (programRole ?? "").toLowerCase().trim() === "coordinator";
 }
 
-/** Memo / form-stats TLs: not scholar, not Coordinator, and status is not graduated. */
+/** Memo / form-stats TLs: not scholar, not Coordinator, and `user_roster.status` is enrolled. */
 export function isTeamLeaderForPerformance(
   u: Pick<MemoUserRow, "program_role" | "status">,
 ): boolean {
-  const role = (u.program_role ?? "").toLowerCase();
-  return role !== "scholar" && !isCoordinator(role) && !isGraduated(u.status);
+  return !isScholarProgramRole(u.program_role) && !isCoordinator(u.program_role) && isEnrolled(u.status);
 }
 
 /** Roster app_role is often unset; access control reads profiles.app_role. */
@@ -232,7 +241,7 @@ export async function getUserByUid(uid: string): Promise<MemoUserRow | null> {
   return mapMemoUserRow(data);
 }
 
-/** Non-scholar, non-Coordinator roster rows excluding graduates — feeds Memo team leader performance. */
+/** Non-scholar, non-Coordinator roster rows with enrolled status — feeds Memo team leader compliance. */
 export async function fetchTeamLeaders(): Promise<TeamLeaderRow[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
@@ -257,14 +266,17 @@ export async function fetchTeamLeaders(): Promise<TeamLeaderRow[]> {
   return rows.filter(isTeamLeaderForPerformance);
 }
 
+/** Enrolled scholar UIDs from `user_roster` (`program_role` scholar, `status` enrolled). */
 export async function fetchScholarUids(): Promise<string[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("user_roster")
-    .select("uid")
+    .select("uid, program_role, status")
     .ilike("program_role", "scholar");
   if (error) throw error;
-  return (data ?? []).map((r) => String(r.uid)).filter(Boolean);
+  return (data ?? [])
+    .filter((r) => r.uid != null && isEnrolledScholar({ program_role: r.program_role, status: r.status }))
+    .map((r) => String(r.uid));
 }
 
 export async function getRosterByUid(uid: string): Promise<RosterRow | null> {

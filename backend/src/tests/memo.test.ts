@@ -215,6 +215,15 @@ describe("buildMemoScholarAttendanceRows", () => {
     expect(scholars).toHaveLength(0);
   });
 
+  it("excludes graduated scholars", () => {
+    const { scholars } = buildMemoScholarAttendanceRows(
+      [{ ...scholar, status: "graduated" }],
+      new Map(),
+      new Map(),
+    );
+    expect(scholars).toHaveLength(0);
+  });
+
   it("excludes juniors even when hours are set", () => {
     const { scholars } = buildMemoScholarAttendanceRows(
       [{ ...scholar, cohort: freshmanCohortYear() - 2 }],
@@ -412,5 +421,36 @@ describe("buildGradeBreakdown", () => {
     expect(breakdown.low).toEqual([
       expect.objectContaining({ scholarName: "Alan Turing", course: "PHYS161", percent: 65 }),
     ]);
+  });
+
+  it("keeps grades only for enrolled scholar UIDs when a roster set is provided", () => {
+    const breakdown = buildGradeBreakdown(
+      [
+        wahfRow({
+          scholar_uid: "1001",
+          scholar_name: "Ada Lovelace",
+          assignment_grades: { CMSC131: { Quiz: "91%" } },
+        }),
+        wahfRow({
+          id: "2",
+          scholar_uid: "inactive-1",
+          scholar_name: "Inactive Scholar",
+          assignment_grades: { PHYS161: { Lab: "65%" } },
+        }),
+        wahfRow({
+          id: "3",
+          scholar_uid: "tl-1",
+          scholar_name: "Team Leader",
+          assignment_grades: { ENGL101: { Essay: "94%" } },
+        }),
+      ],
+      new Set(["1001"]),
+    );
+
+    expect(breakdown.high).toEqual([
+      expect.objectContaining({ scholarName: "Ada Lovelace", course: "CMSC131", percent: 91 }),
+    ]);
+    expect(breakdown.mid).toHaveLength(0);
+    expect(breakdown.low).toHaveLength(0);
   });
 });

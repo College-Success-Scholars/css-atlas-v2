@@ -107,13 +107,14 @@ function parseGradeEntriesFromWahf(row: FormLogRowWithLate<WahfFormLogRow>): Mem
 
 /** Parse assignment grades from the latest WAHF per scholar so resubmits do not duplicate. */
 export function buildGradeBreakdown(
-  wahfRows: FormLogRowWithLate<WahfFormLogRow>[]
+  wahfRows: FormLogRowWithLate<WahfFormLogRow>[],
+  scholarIds?: Set<string>,
 ): MemoGradeBreakdown {
   const breakdown: MemoGradeBreakdown = { high: [], mid: [], low: [] };
-  const scholarIds = new Set(
+  const ids = scholarIds ?? new Set(
     wahfRows.map((row) => row.scholar_uid).filter((uid): uid is string => Boolean(uid))
   );
-  for (const scholarId of scholarIds) {
+  for (const scholarId of ids) {
     const latest = latestScholarWahf(scholarId, wahfRows);
     if (!latest) continue;
     for (const entry of parseGradeEntriesFromWahf(latest)) {
@@ -276,7 +277,7 @@ export function buildMemoScholarAttendanceRows(
  *      tutorReportLogs.
  * 3. Parse assignment grades from the latest WHAF per scholar into a grade
  *    breakdown (high ≥90%, mid 70-89%, low <70%) so resubmits do not duplicate.
- * 4. Compute WHAF submission donut stats (total users, submitted, late).
+ * 4. Compute WHAF submission donut stats for enrolled eligible scholars (submitted, late).
  * 5. Build team leader form stats (MCF/WHAF/WPL completion per TL).
  * 6. Aggregate form completion totals across all team leaders.
  * 7. Build scholar rows: merge FD/SS compute-on-read minutes + excuses with
@@ -321,26 +322,30 @@ export async function getMemoPageData(weekNum: number) {
   ]);
 
   const allUsers = attendance.users;
+  const enrolledScholars = allUsers.filter(isEligibleScholar);
+  const enrolledScholarIds = new Set(enrolledScholars.map((user) => user.uid));
   const completedStudy = attendance.ssSessions;
   const completedFd = attendance.fdSessions;
   const complianceByScholarId = range
     ? await getShiftComplianceForScholars(
-      allUsers.filter(isEligibleScholar).map((user) => user.uid),
+      enrolledScholars.map((user) => user.uid),
       range
     )
     : new Map<string, ScholarShiftCompliance>();
 
-  const gradeBreakdown = buildGradeBreakdown(whafRowsWithLate);
+  const gradeBreakdown = buildGradeBreakdown(whafRowsWithLate, enrolledScholarIds);
 
-  // WHAF submission donut stats — all users, not just scholars with required hours
+  // WAHF census — enrolled eligible scholars only (`user_roster.status` = enrolled)
   const whafSubmitterUids = new Set(
     whafRowsWithLate
       .map((r) => r.scholar_uid)
       .filter((uid): uid is string => Boolean(uid))
   );
-  const totalUsers = allUsers.length;
-  const whafSubmittedCount = allUsers.filter((u) => whafSubmitterUids.has(u.uid)).length;
-  const whafLateCount = whafRowsWithLate.filter((r) => r.isLate).length;
+  const totalUsers = enrolledScholars.length;
+  const whafSubmittedCount = enrolledScholars.filter((u) => whafSubmitterUids.has(u.uid)).length;
+  const whafLateCount = enrolledScholars.filter(
+    (u) => scholarWahfStatus(u.uid, whafRowsWithLate) === "late"
+  ).length;
   const whafPct = totalUsers > 0 ? Math.round((whafSubmittedCount / totalUsers) * 100) : 0;
   const wahfDonut = {
     total: totalUsers,

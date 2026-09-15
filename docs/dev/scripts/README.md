@@ -201,7 +201,7 @@ Blank `cohort` is `NULL` or `0`. Blank hours are `NULL` (add `--include-zero` to
 
 ### `sync-mentee-count-from-mentor-mentee.sh`
 
-Ops script that copies `public.mentor_mentee` onto `user_roster.mentee_count` / `mentee_uids` for team leaders (same roster rule as weekly memo: `program_role` ≠ scholar, `status` ≠ graduated). Companion helper: [`scripts/sync-mentee-count-from-mentor-mentee.py`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/sync-mentee-count-from-mentor-mentee.py).
+Ops script that copies `public.mentor_mentee` onto `user_roster.mentee_count` / `mentee_uids` for team leaders (same roster rule as weekly memo: `program_role` ≠ scholar, `status` = enrolled). Companion helper: [`scripts/sync-mentee-count-from-mentor-mentee.py`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/sync-mentee-count-from-mentor-mentee.py).
 
 Join path: `mentor_mentee.mentor_id` → `profiles.id` → `profiles.student_id` = `user_roster.uid`. Linked `profiles.mentee_count` is patched to the same number.
 

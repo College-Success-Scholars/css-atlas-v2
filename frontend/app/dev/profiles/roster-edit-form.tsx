@@ -129,7 +129,7 @@ export function RosterEditForm({ roster }: RosterEditFormProps) {
     <form onSubmit={onSubmit} className="space-y-6">
       <p className="text-muted-foreground text-sm">
         Writes <code>user_roster</code> and the matching <code>profiles</code> row. Inactive
-        and graduated scholars drop off Memo/attendance immediately. Hours only count for freshman (
+        and graduated scholars and team leaders drop off Memo immediately. Hours only count for freshman (
         {freshmanYear}) and sophomore ({sophomoreYear}) cohorts. <code>app_role</code> is read-only
         in the app.
       </p>
