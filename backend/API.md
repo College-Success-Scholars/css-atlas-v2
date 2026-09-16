@@ -976,7 +976,7 @@ Routes under `/api/memo` require **requireTeamLeaderOrAbove** unless noted other
 ### `GET /api/memo/pdf`
 
 **Auth:** requireTeamLeaderOrAbove
-**Description:** Renders the weekly memo printout as a PDF. The masthead and footer include an Eastern `Printed` timestamp. `Content-Disposition` uses `weekly-memo-week-{weekNumber}-{YYYY-MM-DD-HHmm}.pdf` in America/New_York. Response has `Cache-Control: no-store`. Returns `503` if Chromium/PDF rendering fails.
+**Description:** Renders the weekly memo printout as a PDF. FD/SS roster and Needs Attention completion match the memo page: logged minutes plus `scholar_week_excuses`, integer percent capped at 100. Program Snapshot FD/SS bars count a scholar complete at 80% or more (same hours math), not the page pie’s 100% threshold. Snapshot FD/SS rows and appendix roster group headings use class-year labels (Sophomore, Freshman), not entering cohort numbers. Study-session and front-desk appendix rosters are grouped by class year and sorted by completed minutes descending. The masthead and footer include an Eastern `Printed` timestamp. `Content-Disposition` uses `weekly-memo-week-{weekNumber}-{YYYY-MM-DD-HHmm}.pdf` in America/New_York. Response has `Cache-Control: no-store`. Returns `503` if Chromium/PDF rendering fails.
 **Query Params:**
 - `weekNumber` (integer >= 1; legacy `weekNum` accepted; defaults to current campus week if omitted)
 

@@ -13,6 +13,7 @@
  * - backendGet<T>(path): GET shorthand
  * - backendPost<T>(path, body): POST shorthand
  * - backendPatch<T>(path, body): PATCH shorthand
+ * - backendDownload(path): authenticated binary GET (no JSON unwrap)
  *
  * ## What belongs here
  * - The low-level server-side authenticated fetch infrastructure
@@ -172,4 +173,34 @@ export async function backendPost<T>(path: string, body: unknown): Promise<T> {
 
 export async function backendPatch<T>(path: string, body: unknown): Promise<T> {
   return backendFetch<T>(path, { method: "PATCH", body });
+}
+
+/** Authenticated binary GET. Forwards non-OK responses so callers can proxy status. */
+export async function backendDownload(path: string): Promise<Response> {
+  const requestUrl = buildBackendRequestUrl(BACKEND_URL, path);
+  const start = Date.now();
+  logApiRequest("server", "GET", requestUrl);
+
+  const token = await getAccessToken();
+  const cookieStore = await cookies();
+  const devActiveProfile = cookieStore.get(DEV_ACTIVE_PROFILE_COOKIE)?.value ?? null;
+  const res = await fetch(requestUrl, {
+    method: "GET",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(devActiveProfile ? { [DEV_ACTIVE_PROFILE_HEADER]: devActiveProfile } : {}),
+    },
+    cache: "no-store",
+  });
+  const durationMs = Date.now() - start;
+
+  if (!res.ok) {
+    const err = await res.clone().json().catch(() => ({ error: res.statusText }));
+    const message = (err as { error?: string }).error ?? `Backend error: ${res.status}`;
+    logApiError("server", "GET", requestUrl, res.status, message, durationMs);
+    return res;
+  }
+
+  logApiResponse("server", "GET", requestUrl, res.status, durationMs);
+  return res;
 }

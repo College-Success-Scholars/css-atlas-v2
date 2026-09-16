@@ -19,7 +19,7 @@ Server-only modules for the frontend. All files here include `import "server-onl
 
 | File | Source Link | Description |
 |------|-------------|-------------|
-| `api-client.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/lib/server/api-client.ts) | Backend HTTP client — reads JWT from auth cookies, calls backend `/api/*` endpoints, unwraps `{ data }` responses. Exports: `backendFetch`, `backendGet`, `backendPost`, `backendPatch` |
+| `api-client.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/lib/server/api-client.ts) | Backend HTTP client — reads JWT from auth cookies, calls backend `/api/*` endpoints, unwraps `{ data }` responses. Exports: `backendFetch`, `backendGet`, `backendPost`, `backendPatch`, `backendDownload` (binary GET, no JSON unwrap) |
 | `data.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/lib/server/data.ts) | Typed wrapper functions for every backend endpoint — the preferred way for pages to fetch data |
 | `actions.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/lib/server/actions.ts) | Next.js Server Actions for form submissions and mutations |
 | `queries.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/lib/server/queries.ts) | Query parameter builders / URL helpers for backend endpoints |
@@ -34,7 +34,7 @@ Server-only modules for the frontend. All files here include `import "server-onl
 3. Attaches the token as `Authorization: Bearer <token>` on the fetch request.
 4. Forwards the dev test-profile cookie as `x-dev-active-profile` when set (developer acting as a test persona).
 5. Calls the backend URL (from `BACKEND_URL` env var or auto-detected from `VERCEL_URL`).
-6. Unwraps `{ data: ... }` from the response automatically.
+6. Unwraps `{ data: ... }` from the response automatically (`backendDownload` returns the raw `Response` so PDF bytes can be proxied).
 
 ---
 

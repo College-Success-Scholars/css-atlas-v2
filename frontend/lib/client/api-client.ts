@@ -98,14 +98,3 @@ export async function backendPost<T>(path: string, body: unknown) {
 export async function backendPatch<T>(path: string, body: unknown) {
   return backendFetch<T>(path, { method: "PATCH", body });
 }
-
-/** Authenticated binary GET for downloads that do not use the JSON API envelope. */
-export async function backendDownload(path: string): Promise<Response> {
-  const requestUrl = buildBackendRequestUrl(BACKEND_URL, path);
-  const token = await getAccessToken();
-  const res = await fetch(requestUrl, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
-  if (!res.ok) throw new Error(`Backend error: ${res.status}`);
-  return res;
-}

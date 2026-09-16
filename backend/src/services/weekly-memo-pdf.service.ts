@@ -30,14 +30,17 @@ function table(headers: string[], rows: string, empty: string, className = ""): 
   return `<table class="${className}">${heading}<tbody>${rows}</tbody></table>`;
 }
 
-function rosterRows(rows: WeeklyMemoRosterRow[]): string {
-  return rows.map((row) => `<tr><td>${escapeHtml(row.scholarName)}</td><td>${escapeHtml(row.cohort ?? "-")}</td><td class="number">${row.completedMinutes}</td><td class="number ${statusClass(row.completionPercent)}">${percentage(row.completionPercent)}</td></tr>`).join("");
+function rosterPercentage(value: number): string {
+  return `${Math.round(value)}%`;
 }
 
-function cohortRosterHeading(cohort: number | null): string {
+function rosterRows(rows: WeeklyMemoRosterRow[]): string {
+  return rows.map((row) => `<tr><td>${escapeHtml(row.scholarName)}</td><td>${escapeHtml(row.cohort ?? "-")}</td><td class="number">${row.completedMinutes}</td><td class="number ${statusClass(row.completionPercent)}">${rosterPercentage(row.completionPercent)}</td></tr>`).join("");
+}
+
+function cohortClassYearLabel(cohort: number | null): string {
   if (cohort == null) return "Cohort unknown";
-  const year = scholarYearLabel(cohort);
-  return year ? `Cohort ${cohort} · ${year}` : `Cohort ${cohort}`;
+  return scholarYearLabel(cohort) ?? `Cohort ${cohort}`;
 }
 
 function twoColumnRoster(rows: WeeklyMemoRosterRow[], empty: string): string {
@@ -50,7 +53,7 @@ function twoColumnRoster(rows: WeeklyMemoRosterRow[], empty: string): string {
 function rosterTables(rows: WeeklyMemoRosterRow[], empty: string): string {
   if (rows.length === 0) return `<p class="empty">${escapeHtml(empty)}</p>`;
   return groupRosterByCohort(rows).map((group) =>
-    `<div class="roster-cohort"><h4>${escapeHtml(cohortRosterHeading(group.cohort))}</h4>${twoColumnRoster(group.rows, empty)}</div>`
+    `<div class="roster-cohort"><h4>${escapeHtml(cohortClassYearLabel(group.cohort))}</h4>${twoColumnRoster(group.rows, empty)}</div>`
   ).join("");
 }
 
@@ -65,13 +68,13 @@ export function renderWeeklyMemoHtml(report: WeeklyMemoReport): string {
   const attention = report.attention;
   const overviewRows = (items: typeof report.overview.frontDesk, chartId: string) => items.map((item) => {
     const completion = item.total === 0 ? 0 : (item.completed / item.total) * 100;
-    return `<div class="cohort-figure"><div class="overview-row"><span>Cohort ${item.cohort}</span><b>${item.completed}&nbsp;/&nbsp;${item.total} <em class="${statusClass(completion)}">(${Math.round(completion)}%)</em></b></div>${cohortBarSvg(item, `${chartId}-${item.cohort}`)}</div>`;
+    return `<div class="cohort-figure"><div class="overview-row"><span>${escapeHtml(cohortClassYearLabel(item.cohort))}</span><b>${item.completed}&nbsp;/&nbsp;${item.total} <em class="${statusClass(completion)}">(${Math.round(completion)}%)</em></b></div>${cohortBarSvg(item, `${chartId}-${item.cohort}`)}</div>`;
   }).join("");
   const submissionTile = (label: string, submission: typeof report.overview.submissions.wahf, id: string) => `<article class="stat-tile submission"><span>${label}</span>${submissionStackSvg(submission, id)}<div>On-time <b>${submission.onTime}</b></div><div>Late <b>${submission.late}</b></div><div class="${submission.missing > 0 ? "missing" : ""}">Missing <b>${submission.missing}</b></div></article>`;
   const snapshot = `<div class="snapshot">
     <div class="snapshot-group"><div class="group-kicker">Scholars</div><div class="snapshot-grid cols-4">
-    <article class="stat-tile overview"><span>Front Desk Hours</span>${overviewRows(report.overview.frontDesk, "fd")}</article>
-    <article class="stat-tile overview"><span>Study Session Hours</span>${overviewRows(report.overview.studySession, "ss")}</article>
+    <article class="stat-tile overview"><span>Front Desk Hours</span><small>${report.snapshotCompletePercent}% or more</small>${overviewRows(report.overview.frontDesk, "fd")}</article>
+    <article class="stat-tile overview"><span>Study Session Hours</span><small>${report.snapshotCompletePercent}% or more</small>${overviewRows(report.overview.studySession, "ss")}</article>
     <article class="stat-tile"><span>Tutoring Sessions</span><strong>${report.overview.tutoring.sessionsLogged}</strong><p>sessions logged</p><small class="accent">${report.overview.tutoring.noShowCount} no-show${report.overview.tutoring.noShowCount === 1 ? "" : "s"}</small></article>
     ${submissionTile("Scholar WAHF", report.overview.submissions.wahf, "wahf")}
     </div></div>
@@ -105,8 +108,8 @@ export function renderWeeklyMemoHtml(report: WeeklyMemoReport): string {
     <section><div class="section-heading"><div class="section-kicker">01 &mdash; Snapshot</div><h2>Program Snapshot</h2></div><div class="rule"></div>${snapshot}</section>
     <section><div class="section-heading"><div class="section-kicker">02 &mdash; Room Traffic</div><h2>Room Traffic</h2></div><div class="rule"></div>${trafficBody}</section>
     <section><div class="section-heading"><div class="section-kicker">03 &mdash; Needs Attention</div><h2>Needs Attention</h2></div><div class="rule"></div>${attentionBody}</section>
-    <section class="appendix"><div class="section-heading"><div class="section-kicker">Appendix</div><h2>Study Session Completion &mdash; Full Roster</h2></div><div class="rule"></div><p class="appendix-intro">Sorted by completion, highest first, and grouped by cohort. Every Scholar with a Study Session requirement, ${escapeHtml(report.weekLabel)}.</p>${rosterTables(report.studyRoster, "No study-session requirements apply this week.")}</section>
-    <section class="appendix"><div class="section-heading"><div class="section-kicker">Appendix</div><h2>Front Desk Completion &mdash; Full Roster</h2></div><div class="rule"></div><p class="appendix-intro">Sorted by completion, highest first, and grouped by cohort. Every Scholar with a Front Desk requirement, ${escapeHtml(report.weekLabel)}.</p>${rosterTables(report.frontDeskRoster, "No front-desk requirements apply this week.")}</section>
+    <section class="appendix"><div class="section-heading"><div class="section-kicker">Appendix</div><h2>Study Session Completion &mdash; Full Roster</h2></div><div class="rule"></div><p class="appendix-intro">Sorted by minutes, highest first, and grouped by cohort. Every Scholar with a Study Session requirement, ${escapeHtml(report.weekLabel)}.</p>${rosterTables(report.studyRoster, "No study-session requirements apply this week.")}</section>
+    <section class="appendix"><div class="section-heading"><div class="section-kicker">Appendix</div><h2>Front Desk Completion &mdash; Full Roster</h2></div><div class="rule"></div><p class="appendix-intro">Sorted by minutes, highest first, and grouped by cohort. Every Scholar with a Front Desk requirement, ${escapeHtml(report.weekLabel)}.</p>${rosterTables(report.frontDeskRoster, "No front-desk requirements apply this week.")}</section>
     <section class="appendix"><div class="section-heading"><div class="section-kicker">Appendix</div><h2>Tutoring Session Log</h2></div><div class="rule"></div><div class="tutoring-log">${tutoring}</div></section>
     <section class="appendix"><div class="section-heading"><div class="section-kicker">Appendix</div><h2>Recognition Board, ${escapeHtml(report.weekLabel)}</h2></div><div class="rule"></div><div class="recognition-grid"><div><h4>90% or Higher</h4>${table([], recognitionRows(report.recognition.high), "No grades of 90% or higher were submitted.")}</div><div><h4>80 to 90%</h4>${table([], recognitionRows(report.recognition.mid), "No grades from 80% to 89% were submitted.")}</div></div></section>
   </body></html>`;
@@ -130,6 +133,9 @@ const PDF_BROWSER_ARGS = [
   "--font-render-hinting=none",
   "--no-sandbox",
   "--disable-setuid-sandbox",
+  // Railway/Docker /dev/shm is often 64MB; Chromium crashes without this.
+  "--disable-dev-shm-usage",
+  "--disable-gpu",
 ];
 
 export function weeklyMemoBrowserLaunchOptions(env: NodeJS.ProcessEnv = process.env) {
