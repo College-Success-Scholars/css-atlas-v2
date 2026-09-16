@@ -49,10 +49,10 @@ describe("weekly memo print report", () => {
     const html = renderWeeklyMemoHtml(report);
     expect(html).toContain("1 on-time, 0 late, 1 missing");
     expect(html).toContain(`Printed ${report.printedAtLabel}`);
-    expect(html).toContain('<div class="overview-row"><span>Sophomore</span>');
-    expect(html).toContain('<div class="overview-row"><span>Freshman</span>');
-    expect(html.indexOf('<div class="overview-row"><span>Sophomore</span>')).toBeLessThan(
-      html.indexOf('<div class="overview-row"><span>Freshman</span>'),
+    expect(html).toContain('<div class="overview-row"><span>Sophomores</span>');
+    expect(html).toContain('<div class="overview-row"><span>Freshmen</span>');
+    expect(html.indexOf('<div class="overview-row"><span>Sophomores</span>')).toBeLessThan(
+      html.indexOf('<div class="overview-row"><span>Freshmen</span>'),
     );
     expect(html).not.toContain('<div class="overview-row"><span>Cohort ');
   });
@@ -213,9 +213,9 @@ describe("weekly memo print report", () => {
       ["Bea Scholar", 30],
     ]);
     const html = renderWeeklyMemoHtml(report);
-    expect(html).toContain("<h4>Freshman</h4>");
-    expect(html).toContain("<h4>Sophomore</h4>");
-    expect(html.indexOf("<h4>Freshman</h4>")).toBeLessThan(html.indexOf("<h4>Sophomore</h4>"));
+    expect(html).toContain("<h4>Freshmen</h4>");
+    expect(html).toContain("<h4>Sophomores</h4>");
+    expect(html.indexOf("<h4>Freshmen</h4>")).toBeLessThan(html.indexOf("<h4>Sophomores</h4>"));
     expect(html).toContain("Sorted by minutes, highest first, and grouped by cohort.");
     expect(html).not.toContain("Sorted by completion, highest first");
     expect(html).not.toContain("Sorted by first name");

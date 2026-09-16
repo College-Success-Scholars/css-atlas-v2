@@ -15,7 +15,7 @@
  * - Interactive or dark-mode charts
  * - Needs Attention / appendix tables
  */
-import { scholarYearLabel } from "./time.service.js";
+import { scholarYearGroupLabel } from "./time.service.js";
 
 export type PrintSubmissionCounts = {
   onTime: number;
@@ -126,7 +126,7 @@ export function cohortFillWidth(completed: number, total: number): number {
 }
 
 function cohortHoursName(cohort: number): string {
-  return scholarYearLabel(cohort) ?? `Cohort ${cohort}`;
+  return scholarYearGroupLabel(cohort) ?? `Cohort ${cohort}`;
 }
 
 export function cohortBarSvg(item: PrintCohortHours, id: string): string {
