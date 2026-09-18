@@ -105,13 +105,17 @@ function parseGradeEntriesFromWahf(row: FormLogRowWithLate<WahfFormLogRow>): Mem
   return entries;
 }
 
-/** Parse assignment grades from the latest WAHF per scholar so resubmits do not duplicate. */
+/**
+ * Parse assignment grades from the latest WAHF per submitter so resubmits do not
+ * duplicate. Defaults to every WAHF uid for the week (scholars and team leaders).
+ * Pass `submitterIds` only when a caller needs a narrower roster.
+ */
 export function buildGradeBreakdown(
   wahfRows: FormLogRowWithLate<WahfFormLogRow>[],
-  scholarIds?: Set<string>,
+  submitterIds?: Set<string>,
 ): MemoGradeBreakdown {
   const breakdown: MemoGradeBreakdown = { high: [], mid: [], low: [] };
-  const ids = scholarIds ?? new Set(
+  const ids = submitterIds ?? new Set(
     wahfRows.map((row) => row.scholar_uid).filter((uid): uid is string => Boolean(uid))
   );
   for (const scholarId of ids) {
@@ -275,8 +279,9 @@ export function buildMemoScholarAttendanceRows(
  *      trafficWeeklyData, trafficEntryCount, trafficSessions,
  *      teamLeaders, mentor_mentee → TL names, mcf/whaf/wpl form logs (with late flags),
  *      tutorReportLogs.
- * 3. Parse assignment grades from the latest WHAF per scholar into a grade
- *    breakdown (high ≥90%, mid 70-89%, low <70%) so resubmits do not duplicate.
+ * 3. Parse assignment grades from the latest WHAF per submitter (scholars and
+ *    team leaders) into a grade breakdown (high ≥90%, mid 70-89%, low <70%)
+ *    so resubmits do not duplicate.
  * 4. Compute WHAF submission donut stats for enrolled eligible scholars (submitted, late).
  * 5. Build team leader form stats (MCF/WHAF/WPL completion per TL).
  * 6. Aggregate form completion totals across all team leaders.
@@ -323,7 +328,6 @@ export async function getMemoPageData(weekNum: number) {
 
   const allUsers = attendance.users;
   const enrolledScholars = allUsers.filter(isEligibleScholar);
-  const enrolledScholarIds = new Set(enrolledScholars.map((user) => user.uid));
   const completedStudy = attendance.ssSessions;
   const completedFd = attendance.fdSessions;
   const complianceByScholarId = range
@@ -333,7 +337,7 @@ export async function getMemoPageData(weekNum: number) {
     )
     : new Map<string, ScholarShiftCompliance>();
 
-  const gradeBreakdown = buildGradeBreakdown(whafRowsWithLate, enrolledScholarIds);
+  const gradeBreakdown = buildGradeBreakdown(whafRowsWithLate);
 
   // WAHF census — enrolled eligible scholars only (`user_roster.status` = enrolled)
   const whafSubmitterUids = new Set(

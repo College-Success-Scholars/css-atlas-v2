@@ -423,7 +423,37 @@ describe("buildGradeBreakdown", () => {
     ]);
   });
 
-  it("keeps grades only for enrolled scholar UIDs when a roster set is provided", () => {
+  it("includes team-leader and other WAHF submitters when no roster set is provided", () => {
+    const breakdown = buildGradeBreakdown([
+      wahfRow({
+        scholar_uid: "1001",
+        scholar_name: "Ada Lovelace",
+        assignment_grades: { CMSC131: { Quiz: "91%" } },
+      }),
+      wahfRow({
+        id: "2",
+        scholar_uid: "tl-1",
+        scholar_name: "Team Leader",
+        assignment_grades: { ENGL101: { Essay: "94%" } },
+      }),
+      wahfRow({
+        id: "3",
+        scholar_uid: "junior-1",
+        scholar_name: "Junior Scholar",
+        assignment_grades: { PHYS161: { Lab: "65%" } },
+      }),
+    ]);
+
+    expect(breakdown.high.map((entry) => entry.scholarName).sort()).toEqual([
+      "Ada Lovelace",
+      "Team Leader",
+    ]);
+    expect(breakdown.low).toEqual([
+      expect.objectContaining({ scholarName: "Junior Scholar", course: "PHYS161", percent: 65 }),
+    ]);
+  });
+
+  it("keeps grades only for the provided UIDs when a roster set is passed", () => {
     const breakdown = buildGradeBreakdown(
       [
         wahfRow({
