@@ -24,12 +24,12 @@
 import { getSupabaseClient } from "../supabase/client.js";
 import {
   addEasternCalendarDays,
-  EASTERN_TIMEZONE,
   getEasternDateParts,
   getEasternDayOfWeek,
   getStartOfDayEastern,
 } from "./time.service.js";
 import { fetchScholarNamesByUids } from "./user.service.js";
+import { easternTimestamp } from "./shift-occurrence.service.js";
 import {
   DEFAULT_SESSION_CONFIG,
   SESSION_TYPE_FRONT_DESK,
@@ -451,49 +451,6 @@ const MS_PER_MINUTE = 60 * 1000;
 function easternDateKey(date: Date): string {
   const { year, month, day } = getEasternDateParts(date);
   return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
-
-function easternTimestamp(date: Date, time: string): Date {
-  const match = /^(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(time);
-  if (!match) throw new Error(`Invalid shift time: ${time}`);
-  const hour = Number(match[1]);
-  const minute = Number(match[2]);
-  const second = Number(match[3] ?? 0);
-  if (hour > 23 || minute > 59 || second > 59) throw new Error(`Invalid shift time: ${time}`);
-
-  const { year, month, day } = getEasternDateParts(date);
-  const targetWallTime = Date.UTC(year, month, day, hour, minute, second);
-  let timestamp = targetWallTime;
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: EASTERN_TIMEZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hourCycle: "h23",
-  });
-
-  // Resolve the wall-clock value through the IANA zone so the UTC offset is
-  // correct on both sides of a DST boundary.
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const parts = formatter.formatToParts(new Date(timestamp));
-    const value = (type: Intl.DateTimeFormatPartTypes) =>
-      Number(parts.find((part) => part.type === type)?.value ?? 0);
-    const observedWallTime = Date.UTC(
-      value("year"),
-      value("month") - 1,
-      value("day"),
-      value("hour"),
-      value("minute"),
-      value("second")
-    );
-    const adjustment = targetWallTime - observedWallTime;
-    if (adjustment === 0) break;
-    timestamp += adjustment;
-  }
-  return new Date(timestamp);
 }
 
 function emptyShiftCompliance(): ShiftComplianceByKind {
