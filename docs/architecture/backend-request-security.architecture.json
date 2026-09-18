@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Authenticated Backend Request Flow",
+    "quality_profile": "showcase",
+    "locale": "en",
+    "repository": {
+      "url": "https://github.com/College-Success-Scholars/css-atlas-v2.git",
+      "provider": "github",
+      "link_mode": "local-only",
+      "revision": "81e753f802b38ed18a487ecf19d18ea9e08c9c54"
+    }
+  },
+  "components": [
+    { "id": "frontend", "type": "frontend", "label": "Next.js Web App", "sublabel": "Obtains Supabase session", "pos": [40, 300], "size": [150, 64], "sources": [{ "path": "frontend/lib/server/data.ts", "label": "Backend API calls" }] },
+    { "id": "api", "type": "backend", "label": "Express API", "sublabel": "CORS, JSON, request logger", "pos": [250, 300], "size": [160, 64], "sources": [{ "path": "backend/src/app.ts", "line": 49, "end_line": 69, "label": "Global middleware" }] },
+    { "id": "router", "type": "backend", "label": "Domain Router", "sublabel": "Endpoint and access policy", "pos": [470, 300], "size": [150, 64], "sources": [{ "path": "backend/src/routes/form-log.routes.ts", "line": 28, "end_line": 73, "label": "Route policy example" }] },
+    { "id": "auth", "type": "security", "label": "Auth Middleware", "sublabel": "Bearer token and role checks", "pos": [690, 300], "size": [160, 64], "sources": [{ "path": "backend/src/middleware/auth.middleware.ts", "line": 50, "end_line": 117, "label": "JWT and RBAC" }] },
+    { "id": "authclient", "type": "security", "label": "Supabase Auth Client", "sublabel": "auth.getUser(token)", "pos": [690, 110], "size": [160, 64], "sources": [{ "path": "backend/src/supabase/client.ts", "line": 48, "end_line": 58, "label": "Auth client" }] },
+    { "id": "context", "type": "backend", "label": "AsyncLocalStorage", "sublabel": "Request-scoped JWT", "pos": [690, 490], "size": [160, 64], "sources": [{ "path": "backend/src/supabase/client.ts", "line": 21, "end_line": 27, "label": "Token context" }] },
+    { "id": "controller", "type": "backend", "label": "Controller", "sublabel": "Input parsing and response", "pos": [920, 300], "size": [150, 64], "sources": [{ "path": "backend/src/controllers/form-log.controller.ts", "label": "Controller example" }] },
+    { "id": "service", "type": "backend", "label": "Domain Service", "sublabel": "RLS-scoped query", "pos": [1130, 300], "size": [160, 64], "sources": [{ "path": "backend/src/services/form-log.service.ts", "label": "Service example" }] },
+    { "id": "database", "type": "database", "label": "Supabase Postgres", "sublabel": "Profiles, RLS, domain tables", "pos": [1130, 490], "size": [160, 64], "sources": [{ "path": "backend/src/supabase/client.ts", "line": 29, "end_line": 45, "label": "User-scoped client" }] }
+  ],
+  "boundaries": [
+    { "kind": "security-group", "label": "Authorization boundary", "wraps": ["router", "auth", "context", "controller", "service"] },
+    { "kind": "region", "label": "Backend process", "wraps": ["api", "router", "auth", "context", "controller", "service"] }
+  ],
+  "connections": [
+    { "id": "frontend-api", "from": "frontend", "to": "api", "label": "Authorization: Bearer JWT", "variant": "emphasis", "labelDy": 56 },
+    { "id": "api-router", "from": "api", "to": "router", "label": "route match" },
+    { "id": "router-auth", "from": "router", "to": "auth", "label": "requireAuth or role gate", "variant": "security", "labelDy": 56 },
+    { "id": "auth-authclient", "from": "auth", "to": "authclient", "label": "verify user", "variant": "security" },
+    { "id": "auth-context", "from": "auth", "to": "context", "label": "bind raw JWT", "variant": "security", "labelDy": 24 },
+    { "id": "auth-controller", "from": "auth", "to": "controller", "label": "401 or 403; otherwise continue", "labelAt": [885, 272] },
+    { "id": "controller-service", "from": "controller", "to": "service", "label": "validated request", "labelDy": 56 },
+    { "id": "service-database", "from": "service", "to": "database", "label": "getSupabaseClient() applies RLS", "variant": "emphasis", "labelDy": 24 },
+    { "id": "auth-profile", "from": "auth", "to": "database", "label": "load profile and roster", "variant": "security" }
+  ],
+  "cards": [
+    { "dot": "rose", "title": "Authorization", "items": ["The middleware is the only backend reader of Authorization", "Role gates include authenticated, team leader, developer, and self-or-leader"] },
+    { "dot": "violet", "title": "Request Context", "items": ["AsyncLocalStorage retains the verified JWT through downstream work", "Services cannot create a user-scoped client without that context"] },
+    { "dot": "emerald", "title": "Database Enforcement", "items": ["Profile lookup and service queries use the user token", "Supabase Row Level Security remains the final data boundary"] }
+  ]
+}
