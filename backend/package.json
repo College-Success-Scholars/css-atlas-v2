@@ -8,6 +8,8 @@
     "build": "npm --prefix ../shared run build && tsc",
     "typecheck": "tsc --noEmit",
     "start": "node dist/server.js",
+    "start:signin-detector": "node dist/domains/notifications/detectors/signin-detector.js",
+    "start:reconciliation-detector": "node dist/domains/notifications/detectors/reconciliation-detector.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "install:chrome": "puppeteer browsers install chrome",

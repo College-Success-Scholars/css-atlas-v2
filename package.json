@@ -10,7 +10,13 @@
     "docs:coverage": "node scripts/check-docs-api-coverage.mjs",
     "docs:prepare": "npm run docs:copy-api && npm run docs:rewrite-links && npm run docs:typedoc && npm run docs:append-api",
     "docs:build": "npm run docs:prepare && mkdocs build",
-    "docs:serve": "npm run docs:prepare && mkdocs serve"
+    "docs:serve": "npm run docs:prepare && mkdocs serve",
+    "push:staging": "supabase link --project-ref xhcnncsgxrgxwmgjhbnz && supabase db push",
+    "push:prod": "supabase link --project-ref qclgoapaleomceugftre && supabase db push",
+    "link:staging": "supabase link --project-ref xhcnncsgxrgxwmgjhbnz",
+    "link:prod": "supabase link --project-ref qclgoapaleomceugftre",
+    "audit:staging": "supabase migration list --project-ref xhcnncsgxrgxwmgjhbnz",
+    "audit:prod": "supabase migration list --project-ref qclgoapaleomceugftre"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",

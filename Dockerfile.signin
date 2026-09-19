@@ -1,0 +1,39 @@
+# ── Build stage — compiles `shared`, same as the backend image ──────────────
+FROM node:22-alpine AS builder
+
+WORKDIR /app
+
+COPY shared/package.json ./shared/
+RUN npm install --include=dev --prefix ./shared
+
+COPY shared/ ./shared/
+RUN npm run --prefix ./shared build
+
+# ── Runtime stage — Bun runs the detector's TypeScript directly, no tsc ─────
+FROM oven/bun:1-alpine AS runner
+
+WORKDIR /app
+
+# shared/dist must be present because backend code imports it via a relative
+# path (e.g. ../../../shared/dist/time.js) — same constraint as the backend
+# image, unrelated to which runtime executes the backend's own code.
+COPY --from=builder /app/shared/dist/ ./shared/dist/
+
+# Install backend's PRODUCTION deps only, via npm — matching the backend
+# image's installer exactly. Bun executes against npm-installed node_modules
+# fine; it doesn't need to be the installer to be the runtime. Using npm here
+# (not bun install) keeps dependency resolution identical across every
+# service in this repo — see docs/notifications.md for why this was a
+# deliberate choice, not an oversight.
+COPY backend/package.json backend/package-lock.json ./backend/
+RUN npm ci --omit=dev --prefix ./backend
+
+# Backend source, uncompiled — Bun transpiles TS on the fly for the whole
+# import graph, not just the entry file, so no `npx tsc` step is needed here.
+COPY backend/src/ ./backend/src/
+
+# No secrets are baked into this image via ARG/ENV. SUPABASE_SERVICE_ROLE_KEY
+# and SLACK_BOT_TOKEN are set directly on the Railway service and injected at
+# container start — keeping them out of image layers/history.
+
+CMD ["bun", "run", "backend/src/domains/notifications/detectors/signin-detector.ts"]

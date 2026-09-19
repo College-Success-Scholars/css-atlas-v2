@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Backend Domain Data Flow",
+    "quality_profile": "showcase",
+    "locale": "en",
+    "repository": {
+      "url": "https://github.com/College-Success-Scholars/css-atlas-v2.git",
+      "provider": "github",
+      "link_mode": "local-only",
+      "revision": "81e753f802b38ed18a487ecf19d18ea9e08c9c54"
+    }
+  },
+  "components": [
+    { "id": "forms", "type": "external", "label": "Google Forms Intake", "sublabel": "Forms and session logs", "pos": [40, 240], "size": [160, 64], "sources": [{ "path": "docs/agents/codebase-notes.md", "line": 20, "label": "External intake" }] },
+    { "id": "supabase", "type": "database", "label": "Supabase Postgres", "sublabel": "Operational source rows", "pos": [270, 240], "size": [160, 64], "sources": [{ "path": "backend/src/supabase/database.types.ts", "label": "Generated schema types" }] },
+    { "id": "session", "type": "backend", "label": "Session Log Domain", "sublabel": "Clean and pair check-in/out", "pos": [520, 100], "size": [170, 64], "sources": [{ "path": "backend/src/services/session-log.service.ts", "label": "Session log service" }] },
+    { "id": "attendance", "type": "backend", "label": "Attendance Domain", "sublabel": "Campus weeks and excuses", "pos": [520, 250], "size": [170, 64], "sources": [{ "path": "backend/src/services/attendance-week.service.ts", "label": "Attendance service" }] },
+    { "id": "formsdomain", "type": "backend", "label": "Form Log Domain", "sublabel": "MCF, WAHF, WPL aggregates", "pos": [520, 400], "size": [170, 64], "sources": [{ "path": "backend/src/services/form-log.service.ts", "label": "Form log service" }] },
+    { "id": "memo", "type": "backend", "label": "Memo Domain", "sublabel": "Aggregation, sync, export", "pos": [760, 250], "size": [170, 64], "sources": [{ "path": "backend/src/services/memo-page.service.ts", "label": "Memo page service" }, { "path": "backend/src/services/weekly-memo-pdf.service.ts", "label": "PDF service" }] },
+    { "id": "api", "type": "backend", "label": "Express API", "sublabel": "Normalized JSON endpoints", "pos": [970, 250], "size": [160, 64], "sources": [{ "path": "backend/src/app.ts", "line": 60, "end_line": 69, "label": "Domain mounts" }] },
+    { "id": "consumers", "type": "frontend", "label": "Operational UI", "sublabel": "Dashboards and exports", "pos": [1190, 250], "size": [160, 64], "sources": [{ "path": "frontend/app/dashboard/memo/page.tsx", "label": "Dashboard example" }] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Derived read-model services", "wraps": ["session", "attendance", "formsdomain", "memo"] },
+    { "kind": "security-group", "label": "Authenticated API boundary", "wraps": ["api"] }
+  ],
+  "connections": [
+    { "id": "forms-supabase", "from": "forms", "to": "supabase", "label": "writes intake rows", "variant": "dashed", "labelDy": 56 },
+    { "id": "supabase-session", "from": "supabase", "to": "session" },
+    { "id": "supabase-attendance", "from": "supabase", "to": "attendance" },
+    { "id": "supabase-forms", "from": "supabase", "to": "formsdomain" },
+    { "id": "session-attendance", "from": "session", "to": "attendance", "label": "cleaned pairs", "labelDy": 24 },
+    { "id": "attendance-memo", "from": "attendance", "to": "memo" },
+    { "id": "forms-memo", "from": "formsdomain", "to": "memo" },
+    { "id": "memo-api", "from": "memo", "to": "api", "label": "derived weekly output", "variant": "emphasis", "labelDy": 63 },
+    { "id": "api-consumers", "from": "api", "to": "consumers", "label": "JSON or PDF", "variant": "emphasis", "labelDy": 56 }
+  ],
+  "cards": [
+    { "dot": "amber", "title": "Source of Record", "items": ["Google Forms populates operational form and session-log rows", "Runtime API behavior primarily reads rows and derives aggregates"] },
+    { "dot": "cyan", "title": "Core Transformations", "items": ["Session logs are cleaned and paired before weekly rollups", "Attendance combines cleaned tickets with week-based excuses"] },
+    { "dot": "violet", "title": "Memo Output", "items": ["Memo aggregation joins operational domain results", "The backend can generate weekly PDF exports through Puppeteer"] }
+  ]
+}
