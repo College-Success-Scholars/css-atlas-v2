@@ -9,38 +9,38 @@
 
 ## User Prompt
 
-_Verbatim user input. Multiple messages are separated by `---`._
+_Cleaned for readability; intent preserved. Multiple messages are separated by `---`._
 
 ```
-[plan/implement traffic #84 leave-at clock UI]
+Plan and implement traffic #84 leave-at clock UI.
 
 ---
 
-Can u make them type the time instea dof scroll?
+Make them type the leave time instead of using the scroll picker.
 
 ---
 
-can u have typing me in the format of tiem so : is already typed when they type they can only tpye _:__AM/PM like that
+Use a fixed time format while typing: the colon is already there, and they only fill `_:__` plus AM/PM.
 
 ---
 
-When I change the time like edit to chose the time quick stay gets deselected and the 30 min stay below recultes to the tiem I input andh ow long tha tis from the current time tot eh exti time I put
+When I edit the leave time, deselect Quick stay and recalculate the stay length below from the current time to the exit time I entered.
 
 ---
 
-can u commit changes
+Commit the changes.
 
 ---
 
-dont write co author by cursor
+Create the PR using the repo PR format.
 
 ---
 
-create pr using pr format
-
----
-
-for my PR: can we write docs/agents/logs
+For my PR: can we write docs/agents/logs. The purpose is that
+future agents and reviewers can see how leave-at landed without
+re-reading the whole chat — prompts, decisions, and which files
+changed for #84 / PR #100.
+Keep the log in the usual agents/logs format and link it from the PR.
 ```
 
 ---
