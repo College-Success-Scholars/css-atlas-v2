@@ -9,10 +9,13 @@ import {
 } from "./auth";
 
 describe("canAccessWeeklyMemo", () => {
-  it("allows team_leader, coordinator, and developer app_role", () => {
+  it("allows team_leader and developer app_role", () => {
     expect(canAccessWeeklyMemo({ app_role: "team_leader" })).toBe(true);
-    expect(canAccessWeeklyMemo({ app_role: "coordinator" })).toBe(true);
     expect(canAccessWeeklyMemo({ app_role: "developer" })).toBe(true);
+  });
+
+  it("does not treat coordinator as team_leader until the shared ladder includes it", () => {
+    expect(canAccessWeeklyMemo({ app_role: "coordinator" })).toBe(false);
   });
 
   it("denies null app_role scholars", () => {
@@ -21,9 +24,9 @@ describe("canAccessWeeklyMemo", () => {
 });
 
 describe("canAccessCoordinatorView", () => {
-  it("allows coordinator and developer", () => {
-    expect(canAccessCoordinatorView({ app_role: "coordinator" })).toBe(true);
+  it("allows developer while coordinator is off the shared ladder", () => {
     expect(canAccessCoordinatorView({ app_role: "developer" })).toBe(true);
+    expect(canAccessCoordinatorView({ app_role: "coordinator" })).toBe(false);
   });
 
   it("denies team_leader and scholars", () => {
@@ -43,17 +46,14 @@ describe("resolveUserRole", () => {
     );
   });
 
-  it("returns coordinator when app_role is coordinator", () => {
-    expect(resolveUserRole({ app_role: "coordinator" })).toBe("coordinator");
-  });
-
   it("returns developer when app_role is developer", () => {
     expect(resolveUserRole({ program_role: "developer", app_role: "developer" })).toBe(
       "developer",
     );
   });
 
-  it("does not collapse coordinator into team-leader", () => {
+  it("maps coordinator to default until the shared ladder includes it", () => {
+    expect(resolveUserRole({ app_role: "coordinator" })).toBe("default");
     expect(resolveUserRole({ app_role: "coordinator" })).not.toBe("team-leader");
   });
 
@@ -131,7 +131,6 @@ describe("canAccessMenteeMonitoring", () => {
 describe("formatUserRoleLabel", () => {
   it("maps UI roles to display labels", () => {
     expect(formatUserRoleLabel("team-leader")).toBe("Team Leader");
-    expect(formatUserRoleLabel("coordinator")).toBe("Coordinator");
     expect(formatUserRoleLabel("scholar")).toBe("Scholar");
     expect(formatUserRoleLabel("developer")).toBe("Developer");
     expect(formatUserRoleLabel("default")).toBe("Dashboard");
