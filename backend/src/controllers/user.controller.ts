@@ -17,7 +17,7 @@
  * - Business logic beyond input validation
  */
 import type { Response } from "express";
-import type { AuthenticatedRequest } from "./auth.controller.js";
+import type { AuthenticatedRequest } from "../middleware/auth.middleware.js";
 import {
   fetchScholarNamesByUids,
   fetchRequiredHoursByUids,

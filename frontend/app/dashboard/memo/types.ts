@@ -3,6 +3,7 @@ import type { TrafficSession } from "@/lib/types/traffic"
 import type { FormCompletionOverall } from "@/components/data-display/form-completion-overview-card"
 import type { MemoTutorReportRow } from "@/lib/types/tutor-report-log"
 import type { GradeBreakdown, GradeEntry, TeamLeaderFormStatsRow } from "@/lib/types/form-log"
+import type { ShiftComplianceByKind } from "@/lib/types/supabase"
 
 export type ScholarWahfStatus = "on-time" | "late" | "missing"
 
@@ -10,6 +11,8 @@ export type MemoScholarRow = {
   scholarId: string
   scholarName: string
   cohort: number | null
+  /** Display name from mentor_mentee, or "Unassigned". */
+  teamLeader: string
   fdTotal: number
   ssTotal: number
   fdRequired: number | null
@@ -20,6 +23,8 @@ export type MemoScholarRow = {
   ssPct: number | null
   wahfStatus: ScholarWahfStatus
   wahfSubmittedAt: string | null
+  fdCompliance: ShiftComplianceByKind
+  ssCompliance: ShiftComplianceByKind
 }
 
 export type MemoTLRow = {
@@ -88,7 +93,7 @@ export function isMemoYearNotStarted(
   return "yearNotStarted" in data && data.yearNotStarted === true
 }
 
-export type FormStatus = "submitted" | "on-time" | "missing" | "late" | "check-mentees"
+export type FormStatus = "submitted" | "on-time" | "missing" | "late" | "incomplete" | "check-mentees"
 
 export type WeeklyKpiCard = {
   title: string
@@ -116,6 +121,8 @@ export type ScholarFollowUpHoursIssue = {
   glance: string
   pct: number
   requiredMinutes: number | null
+  insideMinutes: number
+  outsideMinutes: number
 }
 
 /** Grade issue: glance is the assignment title; detail is the percent. */

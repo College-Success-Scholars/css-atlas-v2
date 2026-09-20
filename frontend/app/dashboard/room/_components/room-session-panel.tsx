@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react"
 import { BookOpen, Search, UserCheck } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import {
@@ -14,14 +13,14 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import type { ScholarInRoom } from "@/lib/types/session-log"
+import { filterRoomScholarsByName } from "../_lib/filter-room-scholars"
+import { formatDurationShort, formatEnteredTime } from "../_lib/room-format"
 
 /** Serializable subset of ScholarInRoom for client tables. */
 export type RoomScholarRow = Pick<
   ScholarInRoom,
   "scholarId" | "scholarName" | "entryAt" | "timeInRoomMs"
-> & {
-  sessionType?: string | null
-}
+>
 
 const PANEL_ICONS = {
   study: BookOpen,
@@ -30,48 +29,29 @@ const PANEL_ICONS = {
 
 export type RoomSessionPanelVariant = keyof typeof PANEL_ICONS
 
-function formatEnteredTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("en-US", {
-    timeZone: "America/New_York",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  })
-}
-
-function formatDurationShort(ms: number): string {
-  const totalMinutes = Math.max(0, Math.floor(ms / 60_000))
-  const hours = Math.floor(totalMinutes / 60)
-  const minutes = totalMinutes % 60
-  if (hours > 0) return `${hours}h ${minutes}m`
-  return `${minutes}m`
-}
-
 export function RoomSessionPanel({
   title,
   variant,
   scholars,
   emptyMessage,
-  showSearch = false,
 }: {
   title: string
   variant: RoomSessionPanelVariant
   scholars: RoomScholarRow[]
   emptyMessage: string
-  showSearch?: boolean
 }) {
   const Icon = PANEL_ICONS[variant]
   const [query, setQuery] = useState("")
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return scholars
-    return scholars.filter((s) => {
-      const name = (s.scholarName ?? "").toLowerCase()
-      const id = s.scholarId.toLowerCase()
-      return name.includes(q) || id.includes(q)
-    })
-  }, [scholars, query])
+  const filtered = useMemo(
+    () => filterRoomScholarsByName(scholars, query),
+    [scholars, query],
+  )
+
+  const noRowsMessage =
+    scholars.length === 0
+      ? emptyMessage
+      : `No scholars matching “${query.trim()}”`
 
   return (
     <Card>
@@ -80,23 +60,21 @@ export function RoomSessionPanel({
           <Icon className="h-5 w-5" />
           {title}
         </CardTitle>
-        {showSearch ? (
-          <div className="relative w-full max-w-xs sm:w-56">
-            <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search scholars..."
-              className="pl-8 h-9"
-              aria-label={`Search ${title} scholars`}
-            />
-          </div>
-        ) : null}
+        <div className="relative w-full max-w-xs sm:w-56">
+          <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search scholars..."
+            className="pl-8 h-9"
+            aria-label={`Search ${title} scholars`}
+          />
+        </div>
       </CardHeader>
       <CardContent>
         {filtered.length === 0 ? (
           <p className="text-sm text-muted-foreground py-6 text-center">
-            {emptyMessage}
+            {noRowsMessage}
           </p>
         ) : (
           <Table>
@@ -104,17 +82,7 @@ export function RoomSessionPanel({
               <TableRow>
                 <TableHead>Scholar</TableHead>
                 <TableHead>Entered</TableHead>
-                <TableHead>
-                  <span className="inline-flex items-center gap-1.5">
-                    Duration
-                    <span className="text-muted-foreground font-normal">·</span>
-                    <span className="inline-flex items-center gap-1 font-normal text-success">
-                      <span className="size-1.5 rounded-full bg-success" aria-hidden />
-                      Live
-                    </span>
-                  </span>
-                </TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Duration</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -128,9 +96,6 @@ export function RoomSessionPanel({
                   </TableCell>
                   <TableCell className="tabular-nums">
                     {formatDurationShort(scholar.timeInRoomMs)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="success">Present</Badge>
                   </TableCell>
                 </TableRow>
               ))}

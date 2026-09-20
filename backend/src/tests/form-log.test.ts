@@ -7,7 +7,7 @@ import {
   requireSelfScholarIdOrTeamLeader,
   requireTeamLeaderRole,
   type AuthenticatedRequest,
-} from "../controllers/auth.controller.js";
+} from "../middleware/auth.middleware.js";
 import {
   buildTeamLeaderFormStatsForWeek,
   countableFormRequired,

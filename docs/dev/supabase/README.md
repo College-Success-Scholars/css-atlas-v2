@@ -106,6 +106,14 @@ Apply [`supabase/migrations/20260903033000_form_log_rls_own_or_leaders.sql`](htt
 
 Express `/api/form-logs` enforces the same split (week-wide = team_leader+; uid-scoped = self or team_leader+). RLS is the backstop if someone calls Supabase with a scholar JWT.
 
+### Mentee → team-leader names (weekly memo)
+
+Own-row RLS on `mentor_mentee` and `profiles` cannot join a campus-wide mentee → mentor map. Apply [`supabase/migrations/20260904224500_team_leader_read_mentor_mentee.sql`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/supabase/migrations/20260904224500_team_leader_read_mentor_mentee.sql) (`supabase db push` staging, then prod):
+
+- `team_leader_read_mentor_mentee` — SELECT all assignments when `is_team_leader_or_above()`
+- `team_leader_read_profiles` — SELECT mentor `student_id` / name for that join
+- Express `/api/memo/page-data` queries the tables (no RPC). Scholars with no `mentor_mentee` row stay `Unassigned`
+
 ---
 
 ## Dev test profiles (Dashboard runbooks)

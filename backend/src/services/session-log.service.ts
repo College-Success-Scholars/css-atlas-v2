@@ -22,11 +22,18 @@
  * - HTTP request/response logic
  */
 import { getSupabaseClient } from "../supabase/client.js";
-import { getStartOfDayEastern } from "./time.service.js";
+import {
+  addEasternCalendarDays,
+  getEasternDateParts,
+  getEasternDayOfWeek,
+  getStartOfDayEastern,
+} from "./time.service.js";
 import { fetchScholarNamesByUids } from "./user.service.js";
+import { easternTimestamp } from "./shift-occurrence.service.js";
 import {
   DEFAULT_SESSION_CONFIG,
   SESSION_TYPE_FRONT_DESK,
+  SHIFT_GRACE_MINUTES,
 } from "../models/session-log.model.js";
 import type {
   SessionLogRow,
@@ -40,6 +47,13 @@ import type {
   FrontDeskLogRow,
   StudySessionLogRow,
   DoubleEntry,
+  ScholarShiftAssignment,
+  ScholarShiftCompliance,
+  ShiftComplianceByKind,
+  ShiftComplianceDateRange,
+  ShiftCompliancePerDate,
+  ShiftComplianceSession,
+  ShiftSessionKind,
 } from "../models/session-log.model.js";
 
 // ---------------------------------------------------------------------------
@@ -131,6 +145,32 @@ export async function fetchStudySessionLogs(options?: {
   const { data, error } = await query;
   if (error) throw error;
   return (data ?? []).map((row) => toSessionLogRowStudy(row as StudySessionLogRow));
+}
+
+async function fetchActiveShiftAssignments(
+  scholarIds: string[]
+): Promise<ScholarShiftAssignment[]> {
+  if (scholarIds.length === 0) return [];
+  // The generated database types predate this live table.
+  const supabase = getSupabaseClient() as unknown as {
+    from: (table: string) => {
+      select: (columns: string) => {
+        in: (column: string, values: string[]) => {
+          eq: (column: string, value: boolean) => Promise<{
+            data: unknown;
+            error: unknown;
+          }>;
+        };
+      };
+    };
+  };
+  const { data, error } = await supabase
+    .from("scholar_shift_assignments")
+    .select("scholar_id, semester_id, session_kind, day_of_week, start_time, end_time, is_active")
+    .in("scholar_id", scholarIds)
+    .eq("is_active", true);
+  if (error) throw error;
+  return (data ?? []) as ScholarShiftAssignment[];
 }
 
 // ---------------------------------------------------------------------------
@@ -403,6 +443,187 @@ export function getScholarsWithValidEntryExit(
 }
 
 // ---------------------------------------------------------------------------
+// Shift compliance
+// ---------------------------------------------------------------------------
+
+const MS_PER_MINUTE = 60 * 1000;
+
+function easternDateKey(date: Date): string {
+  const { year, month, day } = getEasternDateParts(date);
+  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function emptyShiftCompliance(): ShiftComplianceByKind {
+  return { insideMinutes: 0, outsideMinutes: 0, noShowCount: 0, dates: [] };
+}
+
+function emptyScholarShiftCompliance(): ScholarShiftCompliance {
+  return {
+    fdCompliance: emptyShiftCompliance(),
+    ssCompliance: emptyShiftCompliance(),
+  };
+}
+
+function complianceForKind(
+  compliance: ScholarShiftCompliance,
+  kind: ShiftSessionKind
+): ShiftComplianceByKind {
+  return kind === "front_desk" ? compliance.fdCompliance : compliance.ssCompliance;
+}
+
+function normalizeComplianceRange(range: ShiftComplianceDateRange): ShiftComplianceDateRange {
+  const startDate = getStartOfDayEastern(range.startDate);
+  const endDate = getStartOfDayEastern(range.endDate);
+  if (endDate.getTime() < startDate.getTime()) {
+    throw new Error("Shift compliance endDate must not precede startDate.");
+  }
+  return { startDate, endDate };
+}
+
+function assignmentKey(scholarId: string, kind: ShiftSessionKind, date: string): string {
+  return `${scholarId}\u0000${kind}\u0000${date}`;
+}
+
+/**
+ * Builds assignment-aware compliance from already-paired sessions. This keeps
+ * all classification in memory after the public service performs its batched reads.
+ */
+export function buildShiftComplianceForScholars(
+  scholarIds: string[],
+  assignments: ScholarShiftAssignment[],
+  frontDeskSessions: ScholarWithCompletedSession[],
+  studySessionSessions: ScholarWithCompletedSession[],
+  range: ShiftComplianceDateRange
+): Map<string, ScholarShiftCompliance> {
+  const normalizedRange = normalizeComplianceRange(range);
+  const requestedIds = new Set(scholarIds);
+  const result = new Map<string, ScholarShiftCompliance>();
+  const schedules = new Map<string, ShiftCompliancePerDate>();
+
+  for (const scholarId of requestedIds) result.set(scholarId, emptyScholarShiftCompliance());
+
+  for (const assignment of assignments) {
+    if (!assignment.is_active || !requestedIds.has(assignment.scholar_id)) continue;
+    for (
+      let date = normalizedRange.startDate;
+      date.getTime() <= normalizedRange.endDate.getTime();
+      date = addEasternCalendarDays(date, 1)
+    ) {
+      if (getEasternDayOfWeek(date) !== assignment.day_of_week) continue;
+      const dateKey = easternDateKey(date);
+      const scheduledStart = easternTimestamp(date, assignment.start_time).toISOString();
+      const scheduledEnd = easternTimestamp(date, assignment.end_time).toISOString();
+      const perDate: ShiftCompliancePerDate = {
+        date: dateKey,
+        scheduledStart,
+        scheduledEnd,
+        insideMinutes: 0,
+        outsideMinutes: 0,
+        noShow: true,
+        unscheduled: false,
+        sessions: [],
+      };
+      schedules.set(assignmentKey(assignment.scholar_id, assignment.session_kind, dateKey), perDate);
+      complianceForKind(result.get(assignment.scholar_id)!, assignment.session_kind).dates.push(perDate);
+    }
+  }
+
+  const classify = (sessions: ScholarWithCompletedSession[], kind: ShiftSessionKind) => {
+    for (const session of sessions) {
+      if (!requestedIds.has(session.scholarId)) continue;
+      const entryAt = new Date(session.entryAt);
+      const exitAt = new Date(session.exitAt);
+      const durationMs = exitAt.getTime() - entryAt.getTime();
+      if (durationMs <= 0) continue;
+
+      const date = easternDateKey(entryAt);
+      const key = assignmentKey(session.scholarId, kind, date);
+      let perDate = schedules.get(key);
+      if (!perDate) {
+        perDate = {
+          date,
+          scheduledStart: null,
+          scheduledEnd: null,
+          insideMinutes: 0,
+          outsideMinutes: 0,
+          noShow: false,
+          unscheduled: true,
+          sessions: [],
+        };
+        complianceForKind(result.get(session.scholarId)!, kind).dates.push(perDate);
+      }
+
+      const totalMinutes = Math.round(durationMs / MS_PER_MINUTE);
+      let insideMinutes = 0;
+      if (perDate.scheduledStart && perDate.scheduledEnd) {
+        const graceStart = new Date(perDate.scheduledStart).getTime() - SHIFT_GRACE_MINUTES * MS_PER_MINUTE;
+        const graceEnd = new Date(perDate.scheduledEnd).getTime() + SHIFT_GRACE_MINUTES * MS_PER_MINUTE;
+        const overlapMs = Math.max(
+          0,
+          Math.min(exitAt.getTime(), graceEnd) - Math.max(entryAt.getTime(), graceStart)
+        );
+        insideMinutes = Math.round(overlapMs / MS_PER_MINUTE);
+        perDate.noShow = false;
+      }
+      const outsideMinutes = totalMinutes - insideMinutes;
+      const sessionResult: ShiftComplianceSession = {
+        entryAt: session.entryAt,
+        exitAt: session.exitAt,
+        insideMinutes,
+        outsideMinutes,
+      };
+      perDate.insideMinutes += insideMinutes;
+      perDate.outsideMinutes += outsideMinutes;
+      perDate.sessions.push(sessionResult);
+    }
+  };
+
+  classify(frontDeskSessions, "front_desk");
+  classify(studySessionSessions, "study_session");
+
+  for (const compliance of result.values()) {
+    for (const kind of [compliance.fdCompliance, compliance.ssCompliance]) {
+      kind.dates.sort((a, b) => a.date.localeCompare(b.date));
+      kind.insideMinutes = kind.dates.reduce((total, date) => total + date.insideMinutes, 0);
+      kind.outsideMinutes = kind.dates.reduce((total, date) => total + date.outsideMinutes, 0);
+      kind.noShowCount = kind.dates.filter((date) => date.noShow).length;
+    }
+  }
+  return result;
+}
+
+export async function getShiftComplianceForScholars(
+  scholarIds: string[],
+  range: ShiftComplianceDateRange
+): Promise<Map<string, ScholarShiftCompliance>> {
+  const uniqueIds = [...new Set(scholarIds.filter(Boolean))];
+  if (uniqueIds.length === 0) return new Map();
+  const normalizedRange = normalizeComplianceRange(range);
+  const endExclusive = addEasternCalendarDays(normalizedRange.endDate, 1);
+  const logEndDate = new Date(endExclusive.getTime() - 1);
+  const [assignments, frontDeskRows, studySessionRows] = await Promise.all([
+    fetchActiveShiftAssignments(uniqueIds),
+    fetchFrontDeskLogs({
+      scholarUids: uniqueIds,
+      startDate: normalizedRange.startDate,
+      endDate: logEndDate,
+    }),
+    fetchStudySessionLogs({
+      scholarUids: uniqueIds,
+      startDate: normalizedRange.startDate,
+      endDate: logEndDate,
+    }),
+  ]);
+  return buildShiftComplianceForScholars(
+    uniqueIds,
+    assignments,
+    getScholarsWithValidEntryExit(frontDeskRows),
+    getScholarsWithValidEntryExit(studySessionRows),
+    normalizedRange
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Enrichment helpers
 // ---------------------------------------------------------------------------
 
@@ -427,8 +648,6 @@ export function enrichWithScholarNames<
 // ---------------------------------------------------------------------------
 // Double entry detection
 // ---------------------------------------------------------------------------
-
-const MS_PER_MINUTE = 60 * 1000;
 
 function computeOverlapMs(
   start1: number, end1: number, start2: number, end2: number

@@ -20,7 +20,7 @@
  * - Supabase queries (those belong in form-log.service.ts / other services)
  */
 import type { Response } from "express";
-import type { AuthenticatedRequest } from "./auth.controller.js";
+import type { AuthenticatedRequest } from "../middleware/auth.middleware.js";
 import { hasRoleAtLeast, parseRequestedScholarId } from "../../../shared/dist/auth.js";
 import {
   getMcfFormLogsForWeek,

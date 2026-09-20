@@ -21,6 +21,7 @@
  */
 import { campusWeekToDateRange, dateToCampusWeek, freshmanCohortYear, getWeekFetchEnd, sophomoreCohortYear } from "./time.service.js";
 import { fetchTeamLeaders, isEligibleScholar, isTeamLeaderForPerformance } from "./user.service.js";
+import { fetchMenteeTeamLeaderNames, teamLeaderLabelForScholar } from "./mentee.service.js";
 import {
   getCampusWeekAttendance,
 } from "./attendance-week.service.js";
@@ -31,14 +32,14 @@ import {
   getMcfFormLogsForWeekWithLate,
   getWhafFormLogsForWeekWithLate,
   getWplFormLogsForWeekWithLate,
-  getMcfFormLogsByUidAndWeek,
-  markMcfFormLogsLate,
   buildTeamLeaderFormStatsForWeek,
   countableFormRequired,
 } from "./form-log.service.js";
 import { getTutorReportLogsForWeek } from "./tutor-report-log.service.js";
-import type { FormLogRowWithLate, WahfFormLogRow } from "../models/form-log.model.js";
+import type { FormLogRowWithLate, McfFormLogRow, WahfFormLogRow } from "../models/form-log.model.js";
 import type { MemoUserRow } from "../models/user.model.js";
+import type { ScholarShiftCompliance, ShiftComplianceByKind } from "../models/session-log.model.js";
+import { getShiftComplianceForScholars } from "./session-log.service.js";
 
 export type ScholarWahfStatus = "on-time" | "late" | "missing";
 
@@ -106,13 +107,14 @@ function parseGradeEntriesFromWahf(row: FormLogRowWithLate<WahfFormLogRow>): Mem
 
 /** Parse assignment grades from the latest WAHF per scholar so resubmits do not duplicate. */
 export function buildGradeBreakdown(
-  wahfRows: FormLogRowWithLate<WahfFormLogRow>[]
+  wahfRows: FormLogRowWithLate<WahfFormLogRow>[],
+  scholarIds?: Set<string>,
 ): MemoGradeBreakdown {
   const breakdown: MemoGradeBreakdown = { high: [], mid: [], low: [] };
-  const scholarIds = new Set(
+  const ids = scholarIds ?? new Set(
     wahfRows.map((row) => row.scholar_uid).filter((uid): uid is string => Boolean(uid))
   );
-  for (const scholarId of scholarIds) {
+  for (const scholarId of ids) {
     const latest = latestScholarWahf(scholarId, wahfRows);
     if (!latest) continue;
     for (const entry of parseGradeEntriesFromWahf(latest)) {
@@ -144,6 +146,7 @@ export type MemoScholarAttendanceRow = {
   scholarId: string;
   scholarName: string;
   cohort: number | null;
+  teamLeader: string;
   fdTotal: number;
   ssTotal: number;
   fdRequired: number | null;
@@ -154,7 +157,43 @@ export type MemoScholarAttendanceRow = {
   ssPct: number | null;
   wahfStatus: ScholarWahfStatus;
   wahfSubmittedAt: string | null;
+  fdCompliance: ShiftComplianceByKind;
+  ssCompliance: ShiftComplianceByKind;
 };
+
+function emptyShiftCompliance(): ShiftComplianceByKind {
+  return { insideMinutes: 0, outsideMinutes: 0, noShowCount: 0, dates: [] };
+}
+
+/**
+ * Mirrors getMcfFormLogsByUidAndWeek's mentor-or-mentee predicate using the
+ * selected week's already-fetched rows, without issuing one query per leader.
+ */
+export function aggregateTeamLeaderMcfStats(
+  teamLeaderUids: string[],
+  mcfRowsWithLate: FormLogRowWithLate<McfFormLogRow>[]
+): Map<string, { count: number; hasLate: boolean; latestAt: string | null }> {
+  const teamLeaderUidSet = new Set(teamLeaderUids);
+  const stats = new Map<string, { count: number; hasLate: boolean; latestAt: string | null }>();
+
+  for (const row of mcfRowsWithLate) {
+    const matchingUids = new Set([row.mentor_uid, row.mentee_uid]);
+    for (const uid of matchingUids) {
+      if (!uid || !teamLeaderUidSet.has(uid)) continue;
+      const current = stats.get(uid) ?? { count: 0, hasLate: false, latestAt: null };
+      const latestAt = !current.latestAt || row.created_at > current.latestAt
+        ? row.created_at
+        : current.latestAt;
+      stats.set(uid, {
+        count: current.count + 1,
+        hasLate: current.hasLate || row.isLate,
+        latestAt,
+      });
+    }
+  }
+
+  return stats;
+}
 
 /**
  * Merge roster requirements with compute-on-read minutes + scholar_week_excuses.
@@ -164,7 +203,9 @@ export function buildMemoScholarAttendanceRows(
   users: MemoUserRow[],
   fdByUid: Map<string, CampusWeekAttendanceTotals>,
   ssByUid: Map<string, CampusWeekAttendanceTotals>,
-  wahfRows: FormLogRowWithLate<WahfFormLogRow>[] = []
+  wahfRows: FormLogRowWithLate<WahfFormLogRow>[] = [],
+  complianceByScholarId: Map<string, ScholarShiftCompliance> = new Map(),
+  teamLeaderByMenteeUid: Map<string, string> = new Map(),
 ): {
   scholars: MemoScholarAttendanceRow[];
   cohort2024: { total: number; fdCompleteCount: number; ssCompleteCount: number };
@@ -187,11 +228,13 @@ export function buildMemoScholarAttendanceRows(
     const fd_pct = fdReq != null && fdReq > 0 ? (fdEffective / fdReq) * 100 : null;
     const ss_pct = ssReq != null && ssReq > 0 ? (ssEffective / ssReq) * 100 : null;
     const name = [u.first_name, u.last_name].filter(Boolean).join(" ").trim() || u.uid;
+    const compliance = complianceByScholarId.get(u.uid);
 
     scholars.push({
       scholarId: u.uid,
       scholarName: name,
       cohort: u.cohort ?? null,
+      teamLeader: teamLeaderLabelForScholar(u.uid, teamLeaderByMenteeUid),
       fdTotal: fd.loggedMin,
       ssTotal: study.loggedMin,
       fdRequired: fdReq,
@@ -202,6 +245,8 @@ export function buildMemoScholarAttendanceRows(
       ssPct: ss_pct,
       wahfStatus: scholarWahfStatus(u.uid, wahfRows),
       wahfSubmittedAt: scholarWahfSubmittedAt(u.uid, wahfRows),
+      fdCompliance: compliance?.fdCompliance ?? emptyShiftCompliance(),
+      ssCompliance: compliance?.ssCompliance ?? emptyShiftCompliance(),
     });
 
     const fdComplete = fd_pct != null && fd_pct >= 100;
@@ -228,17 +273,18 @@ export function buildMemoScholarAttendanceRows(
  * 2. Fetch all data sources in parallel:
  *    - campus-week attendance (tickets + scholar_week_excuses), completed sessions,
  *      trafficWeeklyData, trafficEntryCount, trafficSessions,
- *      teamLeaders, mcf/whaf/wpl form logs (with late flags),
+ *      teamLeaders, mentor_mentee → TL names, mcf/whaf/wpl form logs (with late flags),
  *      tutorReportLogs.
  * 3. Parse assignment grades from the latest WHAF per scholar into a grade
  *    breakdown (high ≥90%, mid 70-89%, low <70%) so resubmits do not duplicate.
- * 4. Compute WHAF submission donut stats (total users, submitted, late).
+ * 4. Compute WHAF submission donut stats for enrolled eligible scholars (submitted, late).
  * 5. Build team leader form stats (MCF/WHAF/WPL completion per TL).
  * 6. Aggregate form completion totals across all team leaders.
  * 7. Build scholar rows: merge FD/SS compute-on-read minutes + excuses with
  *    roster requirements, compute completion percentages, attach WAHF status
- *    and latest form-log submitted-at from form logs, and track cohort-level
- *    stats for pie charts (2024 vs 2025).
+ *    and latest form-log submitted-at from form logs, attach team-leader name
+ *    from mentor_mentee (or "Unassigned"), and track cohort-level stats for
+ *    pie charts (2024 vs 2025).
  * 8. Build team leader MCF rows: per-TL MCF count, late flag, latest date.
  * 9. Resolve tutor report scholar names and derive day-of-week.
  * 10. Return everything as a single object for the frontend to render.
@@ -257,6 +303,7 @@ export async function getMemoPageData(weekNum: number) {
     trafficEntryCountForSelectedWeek,
     trafficSessions,
     teamLeadersRaw,
+    menteeTeamLeaders,
     mcfRowsWithLate,
     whafRowsWithLate,
     wplRowsWithLate,
@@ -267,6 +314,7 @@ export async function getMemoPageData(weekNum: number) {
     getTrafficEntryCountForWeek(weekNum),
     getTrafficSessionsForWeek(weekNum),
     fetchTeamLeaders(),
+    fetchMenteeTeamLeaderNames(),
     getMcfFormLogsForWeekWithLate(weekNum),
     getWhafFormLogsForWeekWithLate(weekNum),
     getWplFormLogsForWeekWithLate(weekNum),
@@ -274,20 +322,30 @@ export async function getMemoPageData(weekNum: number) {
   ]);
 
   const allUsers = attendance.users;
+  const enrolledScholars = allUsers.filter(isEligibleScholar);
+  const enrolledScholarIds = new Set(enrolledScholars.map((user) => user.uid));
   const completedStudy = attendance.ssSessions;
   const completedFd = attendance.fdSessions;
+  const complianceByScholarId = range
+    ? await getShiftComplianceForScholars(
+      enrolledScholars.map((user) => user.uid),
+      range
+    )
+    : new Map<string, ScholarShiftCompliance>();
 
-  const gradeBreakdown = buildGradeBreakdown(whafRowsWithLate);
+  const gradeBreakdown = buildGradeBreakdown(whafRowsWithLate, enrolledScholarIds);
 
-  // WHAF submission donut stats — all users, not just scholars with required hours
+  // WAHF census — enrolled eligible scholars only (`user_roster.status` = enrolled)
   const whafSubmitterUids = new Set(
     whafRowsWithLate
       .map((r) => r.scholar_uid)
       .filter((uid): uid is string => Boolean(uid))
   );
-  const totalUsers = allUsers.length;
-  const whafSubmittedCount = allUsers.filter((u) => whafSubmitterUids.has(u.uid)).length;
-  const whafLateCount = whafRowsWithLate.filter((r) => r.isLate).length;
+  const totalUsers = enrolledScholars.length;
+  const whafSubmittedCount = enrolledScholars.filter((u) => whafSubmitterUids.has(u.uid)).length;
+  const whafLateCount = enrolledScholars.filter(
+    (u) => scholarWahfStatus(u.uid, whafRowsWithLate) === "late"
+  ).length;
   const whafPct = totalUsers > 0 ? Math.round((whafSubmittedCount / totalUsers) * 100) : 0;
   const wahfDonut = {
     total: totalUsers,
@@ -326,7 +384,9 @@ export async function getMemoPageData(weekNum: number) {
     allUsers,
     attendance.fdByUid,
     attendance.ssByUid,
-    whafRowsWithLate
+    whafRowsWithLate,
+    complianceByScholarId,
+    menteeTeamLeaders,
   );
 
   const pieData = {
@@ -344,14 +404,9 @@ export async function getMemoPageData(weekNum: number) {
 
   // Team leaders MCF stats
   const tlUsers = allUsers.filter(isTeamLeaderForPerformance);
-  const mcfByTlUid = new Map<string, { count: number; hasLate: boolean; latestAt: string | null }>();
-  await Promise.all(
-    tlUsers.map(async (u) => {
-      const rawRows = await getMcfFormLogsByUidAndWeek(u.uid, weekNum);
-      const rows = markMcfFormLogsLate(rawRows, weekNum);
-      const latestAt = rows.length > 0 ? rows[rows.length - 1]!.created_at : null;
-      mcfByTlUid.set(u.uid, { count: rows.length, hasLate: rows.some((r) => r.isLate), latestAt });
-    })
+  const mcfByTlUid = aggregateTeamLeaderMcfStats(
+    tlUsers.map((user) => user.uid),
+    mcfRowsWithLate
   );
 
   const MCF_REQUIRED_PER_WEEK = 1;

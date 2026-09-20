@@ -4,7 +4,7 @@ import {
   isActingWriteRequest,
   rejectWritesWhenActing,
 } from "../middleware/reject-writes-when-acting.js";
-import type { AuthenticatedRequest } from "../controllers/auth.controller.js";
+import type { AuthenticatedRequest } from "../middleware/auth.middleware.js";
 
 function mockRes() {
   const res = {

@@ -4,9 +4,11 @@ import {
   getFrontDeskScholarsInRoom,
 } from "@/lib/server/data"
 import { getStartOfDayEastern } from "@/lib/format/time"
+import type { ScholarInRoom } from "@/lib/types/session-log"
 import { RoomPageToolbar } from "./_components/room-page-toolbar"
 import { RoomSummaryCards } from "./_components/room-summary-cards"
 import { RoomSessionPanel } from "./_components/room-session-panel"
+import { formatSnapshotLabel } from "./_lib/room-format"
 
 export const dynamic = "force-dynamic"
 
@@ -26,27 +28,14 @@ export default async function RoomMonitoringPage() {
   ])
 
   // Pass only serializable fields to client components (omit entryTicket).
-  const toRow = (s: (typeof studySessionRaw)[number]) => ({
+  const toRow = (s: ScholarInRoom) => ({
     scholarId: s.scholarId,
     scholarName: s.scholarName,
     entryAt: s.entryAt,
     timeInRoomMs: s.timeInRoomMs,
-    sessionType: s.sessionType ?? null,
   })
   const studySession = studySessionRaw.map(toRow)
   const frontDesk = frontDeskRaw.map(toRow)
-
-  const lastUpdatedLabel =
-    now.toLocaleString("en-US", {
-      timeZone: "America/New_York",
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    }) + " ET"
 
   const uniquePresent = new Set([
     ...studySession.map((s) => s.scholarId),
@@ -59,11 +48,11 @@ export default async function RoomMonitoringPage() {
         <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight">Room Monitoring</h1>
           <p className="text-muted-foreground">
-            Live room occupancy for study sessions and front desk duty
+            Current occupancy for study sessions and front desk duty
           </p>
         </div>
 
-        <RoomPageToolbar isLive lastUpdatedLabel={lastUpdatedLabel} />
+        <RoomPageToolbar lastUpdatedLabel={formatSnapshotLabel(now)} />
       </div>
 
       <RoomSummaryCards
@@ -77,14 +66,12 @@ export default async function RoomMonitoringPage() {
           title="Study Session"
           variant="study"
           scholars={studySession}
-          showSearch
           emptyMessage="No scholars in a study session at this time"
         />
         <RoomSessionPanel
           title="Front Desk"
           variant="front-desk"
           scholars={frontDesk}
-          showSearch
           emptyMessage="No scholars at front desk at this time"
         />
       </div>

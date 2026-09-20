@@ -8,7 +8,7 @@
  * Requires team leader or above.
  */
 import { Router } from "express";
-import { requireTeamLeaderOrAbove } from "../controllers/auth.controller.js";
+import { requireTeamLeaderOrAbove } from "../middleware/auth.middleware.js";
 import * as attendanceController from "../controllers/attendance-week.controller.js";
 
 const router = Router();

@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
+import { format, parseISO } from "date-fns"
 import type { DailyHoursEntry } from "./utils"
 
 const COLOR_CONFIG = {
@@ -43,8 +44,16 @@ export function HoursCard({
   const cfg = COLOR_CONFIG[color]
   const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1))
 
-  const maxHours = Math.max(...dailyHours.map((d) => d.hours), 0.1)
+  const maxHours = Math.max(
+    ...dailyHours.flatMap((day) => [day.hours, day.scheduledHours]),
+    0.1,
+  )
   const BAR_MAX_HEIGHT = 64 // px
+
+  const formatScheduledInterval = (start: string | null, end: string | null) => {
+    if (!start || !end) return null
+    return `${format(parseISO(start), "h:mm a")} to ${format(parseISO(end), "h:mm a")}`
+  }
 
   return (
     <Card className="h-full min-h-0 flex-col justify-start py-0">
@@ -76,29 +85,71 @@ export function HoursCard({
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             This week (UTC)
           </p>
-          <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+          <div
+            className="grid grid-cols-7 gap-1.5 sm:gap-2"
+            role="group"
+            aria-label={`${title}: actual logged hours and scheduled shift hours by day`}
+          >
             {dailyHours.map((day) => {
-              const barHeight =
+              const actualBarHeight =
                 day.hours > 0
                   ? Math.max(4, Math.round((day.hours / maxHours) * BAR_MAX_HEIGHT))
                   : 2
+              const scheduledBarHeight =
+                day.scheduledHours > 0
+                  ? Math.max(4, Math.round((day.scheduledHours / maxHours) * BAR_MAX_HEIGHT))
+                  : 0
               const isToday = day.dayLabel === todayLabel
+              const scheduledInterval = formatScheduledInterval(
+                day.scheduledStart,
+                day.scheduledEnd,
+              )
+              const status = day.noShow
+                ? "Scheduled shift not attended"
+                : day.unscheduled
+                  ? "Unscheduled activity"
+                  : null
+              const chartLabel = [
+                day.dayLabel,
+                `${fmt(day.hours)} actual logged hours`,
+                scheduledInterval
+                  ? `${fmt(day.scheduledHours)} scheduled hours, ${scheduledInterval}`
+                  : "No scheduled shift",
+                status,
+              ]
+                .filter(Boolean)
+                .join(". ")
 
               return (
                 <div
                   key={day.dayLabel}
                   className="flex min-w-0 flex-col items-center gap-1"
+                  role="group"
+                  aria-label={chartLabel}
                 >
                   <div
-                    className="flex w-full items-end justify-center"
+                    className="relative flex w-full items-end justify-center"
                     style={{ height: BAR_MAX_HEIGHT }}
+                    aria-hidden="true"
                   >
+                    {scheduledBarHeight > 0 && (
+                      <div
+                        className={cn(
+                          "absolute bottom-0 w-full max-w-8 rounded-sm border-2",
+                          day.noShow
+                            ? "border-warning border-dashed"
+                            : "border-foreground/70",
+                        )}
+                        style={{ height: scheduledBarHeight }}
+                      />
+                    )}
                     <div
                       className={cn(
-                        "w-full max-w-8 rounded-sm transition-[height]",
+                        "relative w-full max-w-8 rounded-sm transition-[height]",
                         day.hours > 0 ? cfg.bar : "bg-muted",
+                        day.unscheduled && "ring-1 ring-warning",
                       )}
-                      style={{ height: barHeight }}
+                      style={{ height: actualBarHeight }}
                     />
                   </div>
                   <span
@@ -114,9 +165,24 @@ export function HoursCard({
                   <span className="text-xs tabular-nums text-muted-foreground">
                     {day.hours > 0 ? `${fmt(day.hours)}h` : "-"}
                   </span>
+                  {status && (
+                    <span className="text-center text-[10px] font-medium leading-none text-muted-foreground">
+                      {day.noShow ? "No show" : "Unscheduled"}
+                    </span>
+                  )}
                 </div>
               )
             })}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5">
+              <span className={cn("size-2 rounded-sm", cfg.bar)} aria-hidden="true" />
+              Actual logged hours
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2 rounded-sm border border-foreground/70" aria-hidden="true" />
+              Scheduled shift
+            </span>
           </div>
         </div>
       </CardContent>

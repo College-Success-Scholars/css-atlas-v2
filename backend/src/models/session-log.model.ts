@@ -119,3 +119,53 @@ export interface DoubleEntry {
   overlapStart: string;
   overlapEnd: string;
 }
+
+export const SHIFT_GRACE_MINUTES = 15;
+
+export type ShiftSessionKind = "front_desk" | "study_session";
+
+export interface ScholarShiftAssignment {
+  id?: string;
+  scholar_id: string;
+  semester_id: string;
+  session_kind: ShiftSessionKind;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  is_active: boolean;
+}
+
+export interface ShiftComplianceDateRange {
+  startDate: Date;
+  endDate: Date;
+}
+
+export interface ShiftComplianceSession {
+  entryAt: string;
+  exitAt: string;
+  insideMinutes: number;
+  outsideMinutes: number;
+}
+
+export interface ShiftCompliancePerDate {
+  date: string;
+  scheduledStart: string | null;
+  scheduledEnd: string | null;
+  insideMinutes: number;
+  outsideMinutes: number;
+  noShow: boolean;
+  unscheduled: boolean;
+  sessions: ShiftComplianceSession[];
+}
+
+export interface ShiftComplianceByKind {
+  insideMinutes: number;
+  outsideMinutes: number;
+  noShowCount: number;
+  dates: ShiftCompliancePerDate[];
+}
+
+export interface ScholarShiftCompliance {
+  fdCompliance: ShiftComplianceByKind;
+  ssCompliance: ShiftComplianceByKind;
+}

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  canAccessCoordinatorView,
   canAccessMenteeMonitoring,
   canAccessWeeklyMemo,
   formatUserRoleLabel,
@@ -8,13 +9,26 @@ import {
 } from "./auth";
 
 describe("canAccessWeeklyMemo", () => {
-  it("allows team_leader and developer app_role", () => {
+  it("allows team_leader, coordinator, and developer app_role", () => {
     expect(canAccessWeeklyMemo({ app_role: "team_leader" })).toBe(true);
+    expect(canAccessWeeklyMemo({ app_role: "coordinator" })).toBe(true);
     expect(canAccessWeeklyMemo({ app_role: "developer" })).toBe(true);
   });
 
   it("denies null app_role scholars", () => {
     expect(canAccessWeeklyMemo({ program_role: "scholar", app_role: null })).toBe(false);
+  });
+});
+
+describe("canAccessCoordinatorView", () => {
+  it("allows coordinator and developer", () => {
+    expect(canAccessCoordinatorView({ app_role: "coordinator" })).toBe(true);
+    expect(canAccessCoordinatorView({ app_role: "developer" })).toBe(true);
+  });
+
+  it("denies team_leader and scholars", () => {
+    expect(canAccessCoordinatorView({ app_role: "team_leader" })).toBe(false);
+    expect(canAccessCoordinatorView({ program_role: "scholar", app_role: null })).toBe(false);
   });
 });
 
@@ -29,10 +43,18 @@ describe("resolveUserRole", () => {
     );
   });
 
+  it("returns coordinator when app_role is coordinator", () => {
+    expect(resolveUserRole({ app_role: "coordinator" })).toBe("coordinator");
+  });
+
   it("returns developer when app_role is developer", () => {
     expect(resolveUserRole({ program_role: "developer", app_role: "developer" })).toBe(
       "developer",
     );
+  });
+
+  it("does not collapse coordinator into team-leader", () => {
+    expect(resolveUserRole({ app_role: "coordinator" })).not.toBe("team-leader");
   });
 
   it("does not treat null app_role as team-leader", () => {
@@ -109,6 +131,7 @@ describe("canAccessMenteeMonitoring", () => {
 describe("formatUserRoleLabel", () => {
   it("maps UI roles to display labels", () => {
     expect(formatUserRoleLabel("team-leader")).toBe("Team Leader");
+    expect(formatUserRoleLabel("coordinator")).toBe("Coordinator");
     expect(formatUserRoleLabel("scholar")).toBe("Scholar");
     expect(formatUserRoleLabel("developer")).toBe("Developer");
     expect(formatUserRoleLabel("default")).toBe("Dashboard");

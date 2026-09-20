@@ -17,7 +17,7 @@
  * - Tutor report query logic (that's in tutor-report-log.service.ts)
  */
 import type { Response } from "express";
-import type { AuthenticatedRequest } from "./auth.controller.js";
+import type { AuthenticatedRequest } from "../middleware/auth.middleware.js";
 import {
   getTutorReportLogsForWeek,
   getTutorReportLogsByUid,

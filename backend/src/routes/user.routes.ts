@@ -22,7 +22,7 @@
  * - Business logic (that's controllers/user.controller.ts)
  */
 import { Router } from "express";
-import { requireAuth } from "../controllers/auth.controller.js";
+import { requireAuth } from "../middleware/auth.middleware.js";
 import * as userController from "../controllers/user.controller.js";
 
 const router = Router();

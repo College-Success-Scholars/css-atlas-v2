@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 import { MenteeMonitoringClient } from "@/components/mentee-monitoring/mentee-monitoring-client";
 import { canAccessMenteeMonitoring } from "@/lib/auth";
-import { getCurrentProfile, getMyMentees } from "@/lib/server/queries";
+import { getCurrentProfile } from "@/lib/server/queries";
+import { fetchMenteesWithCompliance } from "@/lib/server/data";
 import { backendPost } from "@/lib/server/api-client";
-import { dateToCampusWeek } from "@/lib/format/time";
-import type { ActivityRow, WahfRow, TutoringRow, MenteeRow } from "@/lib/types/supabase";
+import { campusWeekToDateRange, dateToCampusWeek } from "@/lib/format/time";
+import type { ActivityRow, WahfRow, TutoringRow, MenteeWithCompliance } from "@/lib/types/supabase";
 
 export default async function MenteePage() {
   const profile = await getCurrentProfile();
@@ -12,7 +13,11 @@ export default async function MenteePage() {
     redirect("/dashboard");
   }
 
-  const mentees = await getMyMentees();
+  const currentCampusWeek = dateToCampusWeek(new Date());
+  const complianceRange = currentCampusWeek == null ? null : campusWeekToDateRange(currentCampusWeek);
+  const mentees = complianceRange
+    ? await fetchMenteesWithCompliance(complianceRange.startDate, complianceRange.endDate)
+    : [];
 
   const menteeUids = (mentees as Array<{ scholar_uid?: string }>)
     .map((m) => m.scholar_uid)
@@ -30,12 +35,10 @@ export default async function MenteePage() {
       : Promise.resolve([] as TutoringRow[]),
   ]);
 
-  const currentCampusWeek = dateToCampusWeek(new Date());
-
   return (
     <div className="space-y-6">
       <MenteeMonitoringClient
-        mentees={mentees as MenteeRow[]}
+        mentees={mentees as MenteeWithCompliance[]}
         activity={activity as ActivityRow[]}
         wahf={wahf as WahfRow[]}
         tutoring={tutoring as TutoringRow[]}

@@ -37,10 +37,11 @@ import activityRoutes from "./routes/activity.routes.js";
 import tutorReportRoutes from "./routes/tutor-report-log.routes.js";
 import attendanceRoutes from "./routes/attendance.routes.js";
 import { requestLogger } from "./middleware/request-logger.js";
+import { formatSupabaseError, supabaseErrorStatus } from "./utils/supabase-errors.js";
 
 // CORS: accepts comma-separated origins via CORS_ORIGIN env var
 // e.g. "https://app.vercel.app,https://app.railway.app"
-const allowedOrigins = (process.env.CORS_ORIGIN ?? "http://localhost:3002")
+const allowedOrigins = (process.env.CORS_ORIGIN ?? "http://localhost:3000,http://localhost:3002")
   .split(",")
   .map((o) => o.trim())
   .filter(Boolean);
@@ -67,20 +68,19 @@ app.use("/api/daily-activity", activityRoutes);
 app.use("/api/tutor-reports", tutorReportRoutes);
 app.use("/api/attendance", attendanceRoutes);
 
-// Global error handler
+// Global error handler, the single place that decides how much of a thrown
+// error (Postgres or otherwise) is safe to expose to the client.
 app.use(
   (
     err: unknown,
     _req: express.Request,
     res: express.Response,
-    _next: express.NextFunction,
+    next: express.NextFunction,
   ) => {
-    console.error("Unhandled error:", err);
-    res
-      .status(500)
-      .json({
-        error: err instanceof Error ? err.message : "Internal server error",
-      });
+    if (res.headersSent) { next(err); return; }
+    const status = supabaseErrorStatus(err);
+    if (status >= 500) console.error("Unhandled error:", err);
+    res.status(status).json({ error: formatSupabaseError(err, status) });
   },
 );
 

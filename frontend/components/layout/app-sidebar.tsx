@@ -17,7 +17,7 @@
 "use client"
 
 import * as React from "react"
-import { 
+import {
   BookOpen,
   Bot,
   Building,
@@ -180,8 +180,10 @@ const defaultData = {
 // Role-specific navigation data
 const getRoleBasedNav = (role: UserRole, showMemo: boolean, showMentees: boolean) => {
   switch (role) {
+    case 'default':
     case 'scholar':
       return [
+
         {
           title: "Home",
           url: "/dashboard",
@@ -189,13 +191,20 @@ const getRoleBasedNav = (role: UserRole, showMemo: boolean, showMentees: boolean
           isActive: true,
         },
         {
+          title: "Roster",
+          url: "/dashboard/roster",
+          icon: UserCheck,
+          isActive: true,
+        },
+
+        {
           title: "Directory",
           url: "/dashboard/directory",
           icon: User,
           isActive: false,
         },
       ]
-    
+
     case 'team-leader':
     case 'developer':
       return [
@@ -204,6 +213,11 @@ const getRoleBasedNav = (role: UserRole, showMemo: boolean, showMentees: boolean
           url: "/dashboard",
           icon: Home,
           isActive: true,
+        },
+        {
+          title: "Roster",
+          url: "/dashboard/roster",
+          icon: UserCheck,
         },
         {
           title: "Personal",
@@ -217,21 +231,21 @@ const getRoleBasedNav = (role: UserRole, showMemo: boolean, showMentees: boolean
         },
         ...(showMentees
           ? [
-              {
-                title: "Mentees",
-                url: "/dashboard/mentee",
-                icon: Users,
-              },
-            ]
+            {
+              title: "Mentees",
+              url: "/dashboard/mentee",
+              icon: Users,
+            },
+          ]
           : []),
         ...(showMemo
           ? [
-              {
-                title: "Memo",
-                url: "/dashboard/memo",
-                icon: FileText,
-              },
-            ]
+            {
+              title: "Memo",
+              url: "/dashboard/memo",
+              icon: FileText,
+            },
+          ]
           : []),
         {
           title: "Teams",
@@ -249,7 +263,7 @@ const getRoleBasedNav = (role: UserRole, showMemo: boolean, showMentees: boolean
           ],
         },
       ]
-    
+
     default:
       return defaultData.navMain
   }
@@ -270,7 +284,7 @@ const getRoleBasedResources = (role: UserRole) => {
           icon: Calendar,
         },
       ]
-    
+
     case 'team-leader':
     case 'developer':
       return [
@@ -285,7 +299,7 @@ const getRoleBasedResources = (role: UserRole) => {
           icon: Calendar,
         }
       ]
-    
+
     default:
       return defaultData.projects
   }
@@ -303,7 +317,7 @@ const getRoleBasedSecondaryNav = (role: UserRole) => {
           icon: LifeBuoy,
         },
       ]
-    
+
     default:
       return defaultData.navSecondary
   }

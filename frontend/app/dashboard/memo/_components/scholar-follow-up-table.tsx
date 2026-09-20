@@ -35,6 +35,9 @@ function FollowUpIssueDetail({ issue }: { issue: ScholarFollowUpIssue }) {
       {issue.requiredMinutes != null && issue.requiredMinutes > 0 ? (
         <span className="text-muted-foreground text-xs tabular-nums">of {issue.requiredMinutes} min</span>
       ) : null}
+      <span className="text-muted-foreground text-xs tabular-nums">
+        {issue.insideMinutes} min inside · {issue.outsideMinutes} min outside
+      </span>
     </div>
   )
 }
@@ -65,7 +68,11 @@ export function ScholarFollowUpTable({ rows }: ScholarFollowUpTableProps) {
                 <div className="font-medium">{row.scholarName}</div>
                 <div className="text-muted-foreground text-xs">{row.scholarYear}</div>
               </TableCell>
-              <TableCell className="align-top text-sm">{row.teamLeader}</TableCell>
+              <TableCell
+                className={`align-top text-sm ${row.teamLeader === "Unassigned" ? "text-muted-foreground" : ""}`}
+              >
+                {row.teamLeader}
+              </TableCell>
               <TableCell className="align-top">
                 <div className="flex flex-col items-start gap-2">
                   {row.issues.map((issue, index) => (

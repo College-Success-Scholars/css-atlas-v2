@@ -11,7 +11,7 @@
  * - Ticket aggregation or Supabase queries
  */
 import type { Response } from "express";
-import type { AuthenticatedRequest } from "./auth.controller.js";
+import type { AuthenticatedRequest } from "../middleware/auth.middleware.js";
 import {
   getWeekBoard,
   parseAttendanceKind,

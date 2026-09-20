@@ -6,11 +6,12 @@
  * All routes require a valid JWT (requireAuth).
  *
  * Routes:
- *   GET /api/auth/me            → getMe
- *   GET /api/auth/profile       → getProfile
- *   POST /api/auth/profile      → createProfile
- *   GET /api/auth/mentees       → getMentees
- *   GET /api/auth/semester      → getActiveSemester (use sparingly; prefer shared campus calendar)
+ *   GET /api/auth/me            → getMe (auth.controller.ts)
+ *   GET /api/auth/profile       → getProfile (auth.controller.ts)
+ *   POST /api/auth/profile      → createProfile (auth.controller.ts)
+ *   GET /api/auth/mentees       → getMentees (mentees.controller.ts)
+ *   GET /api/auth/mentees/compliance → getMenteesWithCompliance (mentees.controller.ts)
+ *   GET /api/auth/semester      → getActiveSemester (semester.controller.ts; use sparingly, prefer shared campus calendar)
  *   GET /api/auth/active-semester → getActiveSemester (alias of /semester)
  *
  * ## What belongs here
@@ -18,27 +19,24 @@
  * - Auth middleware attachment
  *
  * ## What does NOT belong here
- * - Business logic (that's controllers/auth.controller.ts)
+ * - Business logic (that's controllers/auth.controller.ts, mentees.controller.ts, semester.controller.ts)
+ * - JWT verification or role gates (middleware/auth.middleware.ts)
  */
 import { Router } from "express";
-import {
-  requireAuth,
-  requireTeamLeaderOrAbove,
-  getMe,
-  getProfile,
-  createProfile,
-  getMentees,
-  getActiveSemester,
-} from "../controllers/auth.controller.js";
+import { authed, getMe, getProfile, createProfile } from "../controllers/auth.controller.js";
+import { getMentees, getMenteesWithCompliance } from "../controllers/mentees.controller.js";
+import { getActiveSemester } from "../controllers/semester.controller.js";
+import { requireAuth } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
 router.use(requireAuth);
 
-router.get("/me", getMe);
+router.get("/me", authed(getMe));
 router.get("/profile", getProfile);
 router.post("/profile", createProfile);
 router.get("/mentees", getMentees);
+router.get("/mentees/compliance", getMenteesWithCompliance);
 router.get("/semester", getActiveSemester);
 router.get("/active-semester", getActiveSemester);
 

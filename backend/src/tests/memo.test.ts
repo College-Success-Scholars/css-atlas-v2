@@ -3,14 +3,28 @@ import { describe, it, expect } from "vitest";
 import { app } from "../app.js";
 import { resolveMemoDefaultWeek } from "../services/memo-default-week.js";
 
-import { buildGradeBreakdown, buildMemoScholarAttendanceRows } from "../services/memo-page.service.js";
+import {
+  aggregateTeamLeaderMcfStats,
+  buildGradeBreakdown,
+  buildMemoScholarAttendanceRows,
+} from "../services/memo-page.service.js";
 import { EMPTY_WEEKLY_MINUTES } from "../models/weekly-minutes.model.js";
 import type { CampusWeekAttendanceTotals } from "../models/attendance-week.model.js";
 import type { MemoUserRow } from "../models/user.model.js";
-import type { FormLogRowWithLate, WahfFormLogRow } from "../models/form-log.model.js";
+import type { FormLogRowWithLate, McfFormLogRow, WahfFormLogRow } from "../models/form-log.model.js";
+import type { ScholarShiftCompliance } from "../models/session-log.model.js";
 import { freshmanCohortYear } from "../services/time.service.js";
 
 describe("Memo routes — auth gating", () => {
+  it("allows the local dashboard origin to request a memo PDF", async () => {
+    const res = await request(app)
+      .options("/api/memo/pdf?weekNumber=5")
+      .set("Origin", "http://localhost:3000")
+      .set("Access-Control-Request-Method", "GET");
+    expect(res.status).toBe(204);
+    expect(res.headers["access-control-allow-origin"]).toBe("http://localhost:3000");
+  });
+
   it("GET /api/memo/weekly returns 401 without token", async () => {
     const res = await request(app).get("/api/memo/weekly");
     expect(res.status).toBe(401);
@@ -18,6 +32,11 @@ describe("Memo routes — auth gating", () => {
 
   it("GET /api/memo/page-data returns 401 without token", async () => {
     const res = await request(app).get("/api/memo/page-data");
+    expect(res.status).toBe(401);
+  });
+
+  it("GET /api/memo/pdf returns 401 without token", async () => {
+    const res = await request(app).get("/api/memo/pdf?weekNumber=5");
     expect(res.status).toBe(401);
   });
 
@@ -72,6 +91,7 @@ describe("buildMemoScholarAttendanceRows", () => {
       ssExcuseMin: 0,
       fdPct: 0,
       ssPct: 0,
+      teamLeader: "Unassigned",
     });
   });
 
@@ -88,6 +108,35 @@ describe("buildMemoScholarAttendanceRows", () => {
     expect(scholars[0]?.fdExcuseMin).toBe(120);
     expect(scholars[0]?.fdPct).toBe(100);
     expect(cohort2025.fdCompleteCount).toBe(1);
+  });
+
+  it("enriches compliance without changing attendance, excuse, or completion values", () => {
+    const fdByUid = new Map<string, CampusWeekAttendanceTotals>([
+      ["1001", { ...zero, loggedMin: 90, excuseMin: 30 }],
+    ]);
+    const compliance: ScholarShiftCompliance = {
+      fdCompliance: { insideMinutes: 75, outsideMinutes: 15, noShowCount: 0, dates: [] },
+      ssCompliance: { insideMinutes: 30, outsideMinutes: 0, noShowCount: 1, dates: [] },
+    };
+
+    const { scholars } = buildMemoScholarAttendanceRows(
+      [scholar],
+      fdByUid,
+      new Map(),
+      [],
+      new Map([["1001", compliance]])
+    );
+
+    expect(scholars[0]).toMatchObject({
+      fdTotal: 90,
+      fdExcuseMin: 30,
+      fdPct: 100,
+      ssTotal: 0,
+      ssExcuseMin: 0,
+      ssPct: 0,
+      fdCompliance: { insideMinutes: 75, outsideMinutes: 15 },
+      ssCompliance: { insideMinutes: 30, outsideMinutes: 0, noShowCount: 1 },
+    });
   });
 
   it("sets WAHF status from latest form-log row for that scholar", () => {
@@ -166,6 +215,15 @@ describe("buildMemoScholarAttendanceRows", () => {
     expect(scholars).toHaveLength(0);
   });
 
+  it("excludes graduated scholars", () => {
+    const { scholars } = buildMemoScholarAttendanceRows(
+      [{ ...scholar, status: "graduated" }],
+      new Map(),
+      new Map(),
+    );
+    expect(scholars).toHaveLength(0);
+  });
+
   it("excludes juniors even when hours are set", () => {
     const { scholars } = buildMemoScholarAttendanceRows(
       [{ ...scholar, cohort: freshmanCohortYear() - 2 }],
@@ -182,6 +240,76 @@ describe("buildMemoScholarAttendanceRows", () => {
       new Map(),
     );
     expect(scholars).toHaveLength(0);
+  });
+
+  it("attaches the mentor_mentee team-leader name", () => {
+    const { scholars } = buildMemoScholarAttendanceRows(
+      [scholar],
+      new Map(),
+      new Map(),
+      [],
+      new Map(),
+      new Map([["1001", "Ada Mentor"]]),
+    );
+    expect(scholars[0]?.teamLeader).toBe("Ada Mentor");
+  });
+});
+
+const mcfRow = (
+  overrides: Partial<FormLogRowWithLate<McfFormLogRow>>
+): FormLogRowWithLate<McfFormLogRow> => ({
+  id: "mcf-1",
+  created_at: "2026-04-02T12:00:00.000Z",
+  mentor_name: null,
+  mentor_uid: null,
+  mentee_name: null,
+  mentee_uid: null,
+  meeting_date: null,
+  meeting_time: null,
+  met_in_person: null,
+  reason_no_meeting: null,
+  tasks_completed: null,
+  meeting_notes: null,
+  tutoring_status: null,
+  needs_tutor: null,
+  support_rank: null,
+  submitted_by_email: null,
+  isLate: false,
+  ...overrides,
+});
+
+describe("aggregateTeamLeaderMcfStats", () => {
+  it("uses fetched weekly MCF rows with the legacy mentor-or-mentee match semantics", () => {
+    const stats = aggregateTeamLeaderMcfStats(
+      ["tl-mentor", "tl-mentee"],
+      [
+        mcfRow({
+          id: "one",
+          mentor_uid: "tl-mentor",
+          mentee_uid: "tl-mentee",
+          created_at: "2026-04-02T12:00:00.000Z",
+        }),
+        mcfRow({
+          id: "two",
+          mentor_uid: "tl-mentor",
+          mentee_uid: "tl-mentor",
+          created_at: "2026-04-04T12:00:00.000Z",
+          isLate: true,
+        }),
+        mcfRow({ id: "three", mentor_uid: "other", mentee_uid: "another" }),
+      ]
+    );
+
+    expect(stats.get("tl-mentor")).toEqual({
+      count: 2,
+      hasLate: true,
+      latestAt: "2026-04-04T12:00:00.000Z",
+    });
+    expect(stats.get("tl-mentee")).toEqual({
+      count: 1,
+      hasLate: false,
+      latestAt: "2026-04-02T12:00:00.000Z",
+    });
   });
 });
 
@@ -293,5 +421,36 @@ describe("buildGradeBreakdown", () => {
     expect(breakdown.low).toEqual([
       expect.objectContaining({ scholarName: "Alan Turing", course: "PHYS161", percent: 65 }),
     ]);
+  });
+
+  it("keeps grades only for enrolled scholar UIDs when a roster set is provided", () => {
+    const breakdown = buildGradeBreakdown(
+      [
+        wahfRow({
+          scholar_uid: "1001",
+          scholar_name: "Ada Lovelace",
+          assignment_grades: { CMSC131: { Quiz: "91%" } },
+        }),
+        wahfRow({
+          id: "2",
+          scholar_uid: "inactive-1",
+          scholar_name: "Inactive Scholar",
+          assignment_grades: { PHYS161: { Lab: "65%" } },
+        }),
+        wahfRow({
+          id: "3",
+          scholar_uid: "tl-1",
+          scholar_name: "Team Leader",
+          assignment_grades: { ENGL101: { Essay: "94%" } },
+        }),
+      ],
+      new Set(["1001"]),
+    );
+
+    expect(breakdown.high).toEqual([
+      expect.objectContaining({ scholarName: "Ada Lovelace", course: "CMSC131", percent: 91 }),
+    ]);
+    expect(breakdown.mid).toHaveLength(0);
+    expect(breakdown.low).toHaveLength(0);
   });
 });

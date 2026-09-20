@@ -6,7 +6,7 @@
  * POST is not treated as write-by-default — many read endpoints use POST with a body.
  */
 import type { Response, NextFunction } from "express";
-import type { AuthenticatedRequest } from "../controllers/auth.controller.js";
+import type { AuthenticatedRequest } from "./auth.middleware.js";
 
 /** POST paths that mutate data (denylist). All other POSTs are reads and allowed when acting. */
 const ACTING_BLOCKED_POST_PATHS = new Set([

@@ -12,6 +12,7 @@ RUN npm run --prefix ./shared build
 
 # 2. Install ALL backend deps (devDeps needed for tsc)
 COPY backend/package.json backend/package-lock.json ./backend/
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 RUN npm ci --prefix ./backend
 
 # 3. Compile backend — run tsc directly so we skip the redundant shared rebuild
@@ -38,8 +39,15 @@ COPY --from=builder /app/shared/dist/ ./shared/dist/
 # Compiled backend
 COPY --from=builder /app/backend/dist/ ./backend/dist/
 
+# Chromium for weekly memo PDF. Skip Puppeteer's Chrome download (glibc
+# binary) and use Alpine's package instead. Launch also uses
+# --disable-dev-shm-usage because container /dev/shm is often 64MB.
+RUN apk add --no-cache chromium nss freetype harfbuzz ca-certificates ttf-freefont
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
 # Production-only deps
-COPY backend/package.json backend/package-lock.json ./backend/
+COPY backend/package.json backend/package-lock.json backend/.puppeteerrc.cjs ./backend/
 RUN npm ci --omit=dev --prefix ./backend
 
 EXPOSE 3001

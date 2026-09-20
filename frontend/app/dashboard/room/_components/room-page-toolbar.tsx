@@ -5,13 +5,7 @@ import { useRouter } from "next/navigation"
 import { RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-export function RoomPageToolbar({
-  isLive,
-  lastUpdatedLabel,
-}: {
-  isLive: boolean
-  lastUpdatedLabel: string
-}) {
+export function RoomPageToolbar({ lastUpdatedLabel }: { lastUpdatedLabel: string }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
@@ -25,11 +19,8 @@ export function RoomPageToolbar({
     <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
       <div className="flex flex-wrap items-center gap-3 text-sm">
         <span className="inline-flex items-center gap-1.5 text-foreground">
-          <span
-            className={`size-2 rounded-full ${isLive ? "bg-success" : "bg-muted-foreground"}`}
-            aria-hidden
-          />
-          {isLive ? "Live" : "Snapshot"}
+          <span className="size-2 rounded-full bg-muted-foreground" aria-hidden />
+          Snapshot
         </span>
         <span className="text-muted-foreground">
           Last updated: {lastUpdatedLabel}

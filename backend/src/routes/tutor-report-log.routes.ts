@@ -13,7 +13,7 @@
  * - Business logic (that's controllers/tutor-report-log.controller.ts)
  */
 import { Router } from "express";
-import { requireTeamLeaderOrAbove } from "../controllers/auth.controller.js";
+import { requireTeamLeaderOrAbove } from "../middleware/auth.middleware.js";
 import * as tutorReportController from "../controllers/tutor-report-log.controller.js";
 
 const router = Router();

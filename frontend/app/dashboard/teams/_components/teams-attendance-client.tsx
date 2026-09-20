@@ -4,14 +4,14 @@
  *
  * Shared FD / SS temporary teams board: campus-week completion + excuse edit.
  * Layout follows Weekly Memo / Mentee monitoring (header + week nav + section card).
+ * Board data is loaded on the server; this client owns week nav, tabs, and excuse UI.
  */
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { backendGet, backendPatch } from "@/lib/client/api-client";
-import { dateToCampusWeek, formatMinutesToHoursAndMinutes } from "@/lib/format/time";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { formatMinutesToHoursAndMinutes } from "@/lib/format/time";
 import {
   DataTable,
   type DataTableColumn,
@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { upsertAttendanceExcuseAction } from "@/lib/server/actions";
 import type {
   AttendanceKind,
   AttendanceWeekBoard,
@@ -36,6 +37,10 @@ export type TeamsAttendanceClientProps = {
   kind: AttendanceKind;
   title: string;
   basePath: string;
+  weekNum: number;
+  currentCampusWeek: number | null;
+  board: AttendanceWeekBoard | null;
+  error: string | null;
 };
 
 const KIND_TABS: { kind: AttendanceKind; label: string; href: string }[] = [
@@ -59,19 +64,19 @@ function dayCell(mins: number) {
   );
 }
 
-function TeamsBoardSkeleton() {
+export function TeamsPageFallback() {
   return (
-    <Card className="gap-0 py-0">
-      <CardHeader className="border-b px-4 py-3">
-        <Skeleton className="h-5 w-40" />
-      </CardHeader>
-      <CardContent className="space-y-3 p-4">
-        <Skeleton className="h-9 w-full" />
-        <Skeleton className="h-9 w-full" />
-        <Skeleton className="h-9 w-full" />
-        <Skeleton className="h-9 w-3/4" />
-      </CardContent>
-    </Card>
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <Skeleton className="h-8 w-40" />
+          <Skeleton className="mt-2 h-4 w-56" />
+        </div>
+        <Skeleton className="h-9 w-[calc(5rem+190px)]" />
+      </div>
+      <Skeleton className="h-9 w-64" />
+      <Skeleton className="h-64 w-full" />
+    </div>
   );
 }
 
@@ -79,20 +84,13 @@ export function TeamsAttendanceClient({
   kind,
   title,
   basePath,
+  weekNum,
+  currentCampusWeek,
+  board,
+  error,
 }: TeamsAttendanceClientProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const weekParam = searchParams.get("week");
-  const currentCampusWeek = dateToCampusWeek(new Date());
   const yearStarted = currentCampusWeek != null;
-
-  const weekNum = useMemo(() => {
-    if (weekParam) {
-      const n = parseInt(weekParam, 10);
-      if (!Number.isNaN(n) && n >= 1) return n;
-    }
-    return currentCampusWeek ?? 1;
-  }, [weekParam, currentCampusWeek]);
 
   const availableWeeks = useMemo(() => {
     if (currentCampusWeek == null || currentCampusWeek < 1) return [];
@@ -110,49 +108,10 @@ export function TeamsAttendanceClient({
     ? formatCampusWeekRangeWithYear(weekNum)
     : null;
 
-  const [board, setBoard] = useState<AttendanceWeekBoard | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [excuseRow, setExcuseRow] = useState<AttendanceWeekBoardRow | null>(
     null
   );
   const [excuseOpen, setExcuseOpen] = useState(false);
-
-  const load = useCallback(async () => {
-    if (!yearStarted) {
-      setLoading(false);
-      setBoard(null);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await backendGet<AttendanceWeekBoard>(
-        `/api/attendance/week/${weekNum}?kind=${kind}`
-      );
-      if (!result.ok) {
-        setError(result.error);
-        setBoard(null);
-        return;
-      }
-      setBoard(result.data);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load board");
-      setBoard(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [weekNum, kind, yearStarted]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  useEffect(() => {
-    if (!weekParam && currentCampusWeek != null) {
-      router.replace(`${basePath}?week=${currentCampusWeek}`);
-    }
-  }, [weekParam, currentCampusWeek, basePath, router]);
 
   const columns: DataTableColumn<AttendanceWeekBoardRow>[] = useMemo(
     () => [
@@ -317,7 +276,7 @@ export function TeamsAttendanceClient({
             ))}
           </div>
 
-          {summary && !loading ? (
+          {summary ? (
             <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
               <span>{summary.scholar_count} scholars</span>
               <span aria-hidden>·</span>
@@ -332,9 +291,7 @@ export function TeamsAttendanceClient({
             </p>
           ) : null}
 
-          {loading ? (
-            <TeamsBoardSkeleton />
-          ) : board ? (
+          {board ? (
             <Card className="gap-0 py-0 overflow-hidden">
               <CardHeader className="border-b px-4 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -376,17 +333,17 @@ export function TeamsAttendanceClient({
           initialDescription={excuseRow.description}
           initialExcuseMin={excuseRow.excuse_min}
           onSubmit={async (values) => {
-            const result = await backendPatch("/api/attendance/excuse", {
+            const result = await upsertAttendanceExcuseAction({
               uid: excuseRow.scholar_uid,
               weekNum: excuseRow.week_num,
               kind: excuseRow.kind,
               excuse_min: values.excuse_min,
               description: values.description,
             });
-            if (!result.ok) {
+            if ("error" in result && result.error) {
               throw new Error(result.error);
             }
-            await load();
+            router.refresh();
           }}
         />
       )}

@@ -14,7 +14,7 @@
  * - Routes accessible to non-developer roles
  */
 import { Router } from "express";
-import { requireDeveloper } from "../controllers/auth.controller.js";
+import { requireDeveloper } from "../middleware/auth.middleware.js";
 import * as devController from "../controllers/dev.controller.js";
 
 const router = Router();

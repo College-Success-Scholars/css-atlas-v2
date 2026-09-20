@@ -12,6 +12,7 @@ const STATUS_SCORE: Record<FormStatus, number> = {
   "on-time": 0,
   missing: 3,
   late: 1,
+  incomplete: 2,
   "check-mentees": 0.5,
 }
 
@@ -47,6 +48,8 @@ const mockFollowUpIssues = (row: Omit<ScholarFollowUpRow, "issues">): ScholarFol
       glance: "Front desk",
       pct: row.frontDeskPct,
       requiredMinutes: row.fdRequired,
+      insideMinutes: 0,
+      outsideMinutes: 0,
     })
   }
   if (row.studySessionPct < LOW_COMPLETION_THRESHOLD) {
@@ -55,6 +58,8 @@ const mockFollowUpIssues = (row: Omit<ScholarFollowUpRow, "issues">): ScholarFol
       glance: "Study session",
       pct: row.studySessionPct,
       requiredMinutes: row.ssRequired,
+      insideMinutes: 0,
+      outsideMinutes: 0,
     })
   }
   if (row.flags.some((flag) => /grade/i.test(flag))) {

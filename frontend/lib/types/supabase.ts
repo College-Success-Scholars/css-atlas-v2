@@ -9,6 +9,37 @@ export type MenteeRow = {
   ss_required: number | null
 }
 
+export type ShiftComplianceSession = {
+  entryAt: string
+  exitAt: string
+  insideMinutes: number
+  outsideMinutes: number
+}
+
+export type ShiftCompliancePerDate = {
+  date: string
+  scheduledStart: string | null
+  scheduledEnd: string | null
+  insideMinutes: number
+  outsideMinutes: number
+  noShow: boolean
+  unscheduled: boolean
+  sessions: ShiftComplianceSession[]
+}
+
+export type ShiftComplianceByKind = {
+  insideMinutes: number
+  outsideMinutes: number
+  noShowCount: number
+  dates: ShiftCompliancePerDate[]
+}
+
+/** Response row from GET /api/auth/mentees/compliance. */
+export type MenteeWithCompliance = MenteeRow & {
+  fdCompliance: ShiftComplianceByKind | null
+  ssCompliance: ShiftComplianceByKind | null
+}
+
 /** Response shape when calling break-week helpers (backend maps RPC / semester APIs). */
 export type WeekBreakRpcRow = {
   break_days: number | null
@@ -86,7 +117,7 @@ export type ProfileRow = {
 }
 
 export interface MenteeMonitoringClientProps {
-  mentees: MenteeRow[]
+  mentees: MenteeWithCompliance[]
   activity: ActivityRow[]
   wahf: WahfRow[]
   tutoring: TutoringRow[]

@@ -16,7 +16,7 @@ export default async function WeeklyMemoPage({ searchParams }: PageProps) {
   const { week } = await searchParams
 
   return (
-    <WeeklyMemoNavProvider>
+    <WeeklyMemoNavProvider key={week ?? "current"}>
       <main className="space-y-4 pb-4">
         <WeeklyMemoHeaderShell weekParam={week} />
         <Suspense key={week ?? "current"} fallback={<WeeklyMemoDataSkeleton />}>

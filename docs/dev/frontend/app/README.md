@@ -7,7 +7,7 @@
 
 [← Root](../../README.md) › [Frontend](../README.md) › app
 
-Children: [auth/](auth/README.md) · [dashboard/](dashboard/README.md) · [dev/](dev/README.md) · [traffic/](traffic/README.md)
+Children: api/ · [auth/](auth/README.md) · [dashboard/](dashboard/README.md) · [dev/](dev/README.md) · [traffic/](traffic/README.md)
 
 ---
 
@@ -31,6 +31,7 @@ Next.js App Router directory. Every `page.tsx`, `layout.tsx`, and `route.ts` her
 
 | Directory | URL Prefix | Docs | Description |
 |-----------|-----------|------|-------------|
+| `api/` | `/api/*` | _(hub)_ | Next.js route handlers that proxy the Express backend for the browser (e.g. weekly memo PDF) |
 | `auth/` | `/auth/*` | [auth/README.md](auth/README.md) | Login, sign-up, password reset, email confirmation |
 | `dashboard/` | `/dashboard/*` | [dashboard/README.md](dashboard/README.md) | Main authenticated app: memo, personal, mentee, room, directory, settings |
 | `dev/` | `/dev/*` | [dev/README.md](dev/README.md) | Developer scratchpad for backend integration testing |
@@ -62,3 +63,4 @@ Next.js App Router directory. Every `page.tsx`, `layout.tsx`, and `route.ts` her
 - **`/traffic` is always public** — foot-traffic kiosk for shared devices; never redirect by session or `app_role`. Middleware allowlist + ungated `layout.tsx`; writes via `recordTrafficEntry`. See [traffic/README.md](traffic/README.md).
 - **`/traffic` is the theme-safe animation reference** — success/check-in UI uses semantic tokens only; theme-safety Vitest coverage + `npm run check:theme-safety` (CI) scan this tree.
 - **`layout.tsx` at root level only** — avoid deep nested layouts unless there is a clear shared UI shell.
+- **`app/api` proxies Express** — browser binary downloads (weekly memo PDF) go through a Next route handler that uses `lib/server` + `BACKEND_URL`. Do not call Express from the browser with `NEXT_PUBLIC_BACKEND_URL` for those downloads.

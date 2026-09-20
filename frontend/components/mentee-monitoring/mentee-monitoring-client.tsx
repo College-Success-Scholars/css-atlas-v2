@@ -15,6 +15,7 @@ import {
   computeWeekOptions,
   filterActivityForMenteeWeek,
   computeDailyHours,
+  addComplianceToDailyHours,
   sumMinutesToHours,
   computeWahfStatus,
   computeTutoringSessions,
@@ -68,8 +69,24 @@ export function MenteeMonitoringClient({
     [activity, selectedUid, selectedWeek, yearStarted],
   )
 
-  const ssDailyHours = useMemo(() => computeDailyHours(studySession), [studySession])
-  const fdDailyHours = useMemo(() => computeDailyHours(frontDesk), [frontDesk])
+  const ssDailyHours = useMemo(
+    () =>
+      addComplianceToDailyHours(
+        computeDailyHours(studySession),
+        selectedMentee?.ssCompliance ?? null,
+        selectedWeek,
+      ),
+    [studySession, selectedMentee?.ssCompliance, selectedWeek],
+  )
+  const fdDailyHours = useMemo(
+    () =>
+      addComplianceToDailyHours(
+        computeDailyHours(frontDesk),
+        selectedMentee?.fdCompliance ?? null,
+        selectedWeek,
+      ),
+    [frontDesk, selectedMentee?.fdCompliance, selectedWeek],
+  )
 
   const ssCompleted = useMemo(() => sumMinutesToHours(studySession), [studySession])
   const fdCompleted = useMemo(() => sumMinutesToHours(frontDesk), [frontDesk])

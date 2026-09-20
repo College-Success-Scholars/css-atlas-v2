@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "CSS Atlas Backend Topology",
+    "quality_profile": "showcase",
+    "locale": "en",
+    "repository": {
+      "url": "https://github.com/College-Success-Scholars/css-atlas-v2.git",
+      "provider": "github",
+      "link_mode": "local-only",
+      "revision": "81e753f802b38ed18a487ecf19d18ea9e08c9c54"
+    }
+  },
+  "components": [
+    { "id": "browser", "type": "external", "label": "Web Browser", "sublabel": "CSS Atlas users", "pos": [40, 300], "size": [140, 64] },
+    { "id": "frontend", "type": "frontend", "label": "Next.js Web App", "sublabel": "Session and API client", "pos": [250, 300], "size": [150, 64], "sources": [{ "path": "frontend/lib/server/data.ts", "label": "Backend API client" }] },
+    { "id": "express", "type": "backend", "label": "Express API", "sublabel": "CORS, JSON, logging, errors", "pos": [470, 300], "size": [160, 64], "sources": [{ "path": "backend/src/app.ts", "line": 49, "end_line": 85, "label": "App composition" }] },
+    { "id": "routes", "type": "backend", "label": "Route Modules", "sublabel": "/api/* domain endpoints", "pos": [700, 300], "size": [150, 64], "sources": [{ "path": "backend/src/routes/auth.routes.ts", "label": "Route group example" }] },
+    { "id": "controllers", "type": "backend", "label": "Controllers", "sublabel": "Validate and orchestrate", "pos": [700, 440], "size": [150, 64], "sources": [{ "path": "backend/src/controllers/auth.controller.ts", "label": "Controller example" }] },
+    { "id": "services", "type": "backend", "label": "Domain Services", "sublabel": "Query and aggregate", "pos": [920, 440], "size": [150, 64], "sources": [{ "path": "backend/src/services/session-log.service.ts", "label": "Service example" }] },
+    { "id": "auth", "type": "security", "label": "Auth Middleware", "sublabel": "JWT and RBAC", "pos": [470, 130], "size": [160, 64], "sources": [{ "path": "backend/src/middleware/auth.middleware.ts", "line": 50, "end_line": 117, "label": "Auth and RBAC" }] },
+    { "id": "supabase", "type": "database", "label": "Supabase", "sublabel": "Auth, RLS, Postgres", "pos": [1140, 440], "size": [150, 64], "sources": [{ "path": "backend/src/supabase/client.ts", "line": 29, "end_line": 67, "label": "Client factory" }] },
+    { "id": "intake", "type": "external", "label": "Google Forms Intake", "sublabel": "Operational forms and logs", "pos": [1140, 170], "size": [150, 64], "sources": [{ "path": "docs/dev/supabase/README.md", "label": "Forms intake" }] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "CSS Atlas application", "wraps": ["frontend", "express", "routes", "controllers", "services", "auth"] },
+    { "kind": "security-group", "label": "Authenticated API request boundary", "wraps": ["express", "routes", "auth", "controllers", "services"] }
+  ],
+  "connections": [
+    { "id": "browser-frontend", "from": "browser", "to": "frontend", "label": "HTTPS" },
+    { "id": "frontend-api", "from": "frontend", "to": "express", "label": "Bearer JWT + JSON", "variant": "emphasis", "labelDy": 56 },
+    { "id": "express-routes", "from": "express", "to": "routes", "label": "mount /api/*", "labelDy": 56 },
+    { "id": "routes-controllers", "from": "routes", "to": "controllers", "label": "dispatch endpoint", "labelDy": 24 },
+    { "id": "controllers-services", "from": "controllers", "to": "services", "label": "validate and orchestrate", "labelDy": 56 },
+    { "id": "services-supabase", "from": "services", "to": "supabase", "label": "typed client with RLS", "variant": "emphasis", "labelDy": 49 },
+    { "id": "routes-auth", "from": "routes", "to": "auth", "label": "require auth or role", "variant": "security" },
+    { "id": "auth-supabase", "from": "auth", "to": "supabase", "label": "verify JWT and load profile", "variant": "security" },
+    { "id": "intake-supabase", "from": "intake", "to": "supabase", "label": "populate operational rows", "variant": "dashed", "labelDy": 24 }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "HTTP Boundary", "items": ["Express mounts ten domain route groups under /api", "Controllers return normalized JSON responses"] },
+    { "dot": "emerald", "title": "Data Access", "items": ["Services use a typed Supabase client", "User JWT context keeps Postgres RLS in effect"] },
+    { "dot": "amber", "title": "Operational Intake", "items": ["Google Forms populates source rows outside the app", "The API reads and derives operational aggregates"] }
+  ]
+}

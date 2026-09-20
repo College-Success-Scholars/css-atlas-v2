@@ -18,7 +18,7 @@
  * - Activity aggregation logic (that's in daily-scholar-activity.service.ts)
  */
 import type { Response } from "express";
-import type { AuthenticatedRequest } from "./auth.controller.js";
+import type { AuthenticatedRequest } from "../middleware/auth.middleware.js";
 import { getTotalMinutesForMenteeWeek } from "../services/daily-scholar-activity.service.js";
 
 // GET /api/daily-activity/minutes?menteeUid=X&weekNum=Y&logSource=Z

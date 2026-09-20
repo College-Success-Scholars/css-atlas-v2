@@ -5,14 +5,15 @@ import { classifyScholarFollowUpRisk } from "./risk-classifier"
 
 const freshman = freshmanCohortYear()
 const sophomore = sophomoreCohortYear()
+const zeroCompliance = { insideMinutes: 0, outsideMinutes: 0, noShowCount: 0, dates: [] }
 
 describe("risk-classifier", () => {
   const baseData = {
     scholars: [
-      { scholarId: "2024-001", scholarName: "A Scholar", cohort: freshman, fdPct: 90, ssPct: 90, fdRequired: 120, ssRequired: 120, fdTotal: 0, ssTotal: 0, fdExcuseMin: 0, ssExcuseMin: 0, wahfStatus: "on-time", wahfSubmittedAt: "2026-04-02T16:00:00.000Z" },
-      { scholarId: "2023-010", scholarName: "B Scholar", cohort: sophomore, fdPct: 60, ssPct: 90, fdRequired: 120, ssRequired: 120, fdTotal: 0, ssTotal: 0, fdExcuseMin: 0, ssExcuseMin: 0, wahfStatus: "on-time", wahfSubmittedAt: "2026-04-02T16:00:00.000Z" },
-      { scholarId: "2023-011", scholarName: "C Scholar", cohort: sophomore, fdPct: 70, ssPct: 50, fdRequired: 120, ssRequired: 120, fdTotal: 0, ssTotal: 0, fdExcuseMin: 0, ssExcuseMin: 0, wahfStatus: "on-time", wahfSubmittedAt: "2026-04-02T16:00:00.000Z" },
-      { scholarId: "2023-012", scholarName: "D Scholar", cohort: sophomore, fdPct: 90, ssPct: 90, fdRequired: 120, ssRequired: 120, fdTotal: 0, ssTotal: 0, fdExcuseMin: 0, ssExcuseMin: 0, wahfStatus: "missing", wahfSubmittedAt: null },
+      { scholarId: "2024-001", scholarName: "A Scholar", cohort: freshman, teamLeader: "TL One", fdPct: 90, ssPct: 90, fdRequired: 120, ssRequired: 120, fdTotal: 0, ssTotal: 0, fdExcuseMin: 0, ssExcuseMin: 0, wahfStatus: "on-time", wahfSubmittedAt: "2026-04-02T16:00:00.000Z", fdCompliance: zeroCompliance, ssCompliance: zeroCompliance },
+      { scholarId: "2023-010", scholarName: "B Scholar", cohort: sophomore, teamLeader: "TL One", fdPct: 60, ssPct: 90, fdRequired: 120, ssRequired: 120, fdTotal: 0, ssTotal: 0, fdExcuseMin: 0, ssExcuseMin: 0, wahfStatus: "on-time", wahfSubmittedAt: "2026-04-02T16:00:00.000Z", fdCompliance: zeroCompliance, ssCompliance: zeroCompliance },
+      { scholarId: "2023-011", scholarName: "C Scholar", cohort: sophomore, teamLeader: "TL Two", fdPct: 70, ssPct: 50, fdRequired: 120, ssRequired: 120, fdTotal: 0, ssTotal: 0, fdExcuseMin: 0, ssExcuseMin: 0, wahfStatus: "on-time", wahfSubmittedAt: "2026-04-02T16:00:00.000Z", fdCompliance: zeroCompliance, ssCompliance: zeroCompliance },
+      { scholarId: "2023-012", scholarName: "D Scholar", cohort: sophomore, teamLeader: "TL Two", fdPct: 90, ssPct: 90, fdRequired: 120, ssRequired: 120, fdTotal: 0, ssTotal: 0, fdExcuseMin: 0, ssExcuseMin: 0, wahfStatus: "missing", wahfSubmittedAt: null, fdCompliance: zeroCompliance, ssCompliance: zeroCompliance },
     ],
     teamLeaders: [],
     pieData: { cohort2024: { total: 0, fdCompleteCount: 0, ssCompleteCount: 0, fdPercent: 0, ssPercent: 0 }, cohort2025: { total: 0, fdCompleteCount: 0, ssCompleteCount: 0, fdPercent: 0, ssPercent: 0 } },
@@ -41,14 +42,16 @@ describe("risk-classifier", () => {
     expect(rows[0]?.flags).toContain("Low study session completion")
     expect(rows[1]?.flags).toContain("Low front desk completion")
     expect(rows[0]?.issues).toEqual([
-      { kind: "front-desk", glance: "Front desk", pct: 70, requiredMinutes: 120 },
-      { kind: "study-session", glance: "Study session", pct: 50, requiredMinutes: 120 },
+      { kind: "front-desk", glance: "Front desk", pct: 70, requiredMinutes: 120, insideMinutes: 0, outsideMinutes: 0 },
+      { kind: "study-session", glance: "Study session", pct: 50, requiredMinutes: 120, insideMinutes: 0, outsideMinutes: 0 },
       { kind: "grade", glance: "X · Y", pct: 60 },
     ])
     expect(rows[1]?.issues).toEqual([
-      { kind: "front-desk", glance: "Front desk", pct: 60, requiredMinutes: 120 },
+      { kind: "front-desk", glance: "Front desk", pct: 60, requiredMinutes: 120, insideMinutes: 0, outsideMinutes: 0 },
     ])
     expect(rows.find((row) => row.scholarName === "A Scholar")).toBeUndefined()
+    expect(rows.find((row) => row.scholarName === "B Scholar")?.teamLeader).toBe("TL One")
+    expect(rows.find((row) => row.scholarName === "C Scholar")?.teamLeader).toBe("TL Two")
     expect(rows.flatMap((row) => row.issues.filter((issue) => issue.kind === "grade"))).toHaveLength(1)
   })
 
@@ -96,7 +99,16 @@ describe("risk-classifier", () => {
       ssRequired: 180,
     })
     expect(rows[0]?.issues).toEqual([
-      { kind: "front-desk", glance: "Front desk", pct: 60, requiredMinutes: 90 },
+      { kind: "front-desk", glance: "Front desk", pct: 60, requiredMinutes: 90, insideMinutes: 0, outsideMinutes: 0 },
     ])
+  })
+
+  it("keeps Unassigned when the scholar has no mentor_mentee name", () => {
+    const rows = classifyScholarFollowUpRisk({
+      ...baseData,
+      scholars: [{ ...baseData.scholars[1]!, teamLeader: "  " }],
+      gradeBreakdown: { low: [], high: [], mid: [] },
+    })
+    expect(rows[0]?.teamLeader).toBe("Unassigned")
   })
 })

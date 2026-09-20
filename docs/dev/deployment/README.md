@@ -84,7 +84,7 @@ Server-side frontend then resolves the API as `https://<VERCEL_URL>/_/backend` w
 
 | Service | Host ports (default) | Notes |
 |---------|----------------------|--------|
-| `backend` | `3001` | Build args / env: `SUPABASE_*`, `CORS_ORIGIN` (default `http://localhost:3000`) |
+| `backend` | `3001` | Build args / env: `SUPABASE_*`, `CORS_ORIGIN` (default `http://localhost:3000`). Image installs Alpine Chromium for weekly memo PDF (`PUPPETEER_EXECUTABLE_PATH`). Compose sets `shm_size: 1gb`; Puppeteer also launches with `--disable-dev-shm-usage`. |
 | `frontend` | `3000` | Browser → `NEXT_PUBLIC_BACKEND_URL` (default `http://localhost:3001`); RSC → `BACKEND_URL=http://backend:3001` on the compose network |
 
 Required at compose build/run: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` (root `.env` or exports).
@@ -123,7 +123,7 @@ Never commit real `.env` files; inject secrets in Railway / Vercel / CI.
 
 1. Backend `GET /` returns 200; Railway/frontend healthchecks green.
 2. `CORS_ORIGIN` includes the live frontend origin; smoke with matching `SMOKE_ORIGIN`.
-3. Frontend can reach backend via `BACKEND_URL` / `NEXT_PUBLIC_BACKEND_URL` (or Vercel `/_/backend` fallback for server fetches).
+3. Frontend can reach backend via `BACKEND_URL` / `NEXT_PUBLIC_BACKEND_URL` (or Vercel `/_/backend` fallback for server fetches). Weekly memo PDF export uses `BACKEND_URL` through `GET /api/memo/pdf` on the Next host, not a browser call to Express.
 4. Supabase Auth redirect / Site URL match the frontend origin (see [`docs/dev/frontend/app/auth/README.md`](../frontend/app/auth/README.md)).
 5. Against a live backend: `BASE_URL=… SMOKE_ORIGIN=… bash scripts/smoke-test.sh`.
 

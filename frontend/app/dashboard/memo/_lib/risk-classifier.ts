@@ -52,6 +52,8 @@ const buildScholarFollowUpIssues = (
       glance: "Front desk",
       pct: frontDeskPct,
       requiredMinutes: row.fdRequired,
+      insideMinutes: row.fdCompliance?.insideMinutes ?? 0,
+      outsideMinutes: row.fdCompliance?.outsideMinutes ?? 0,
     })
   }
   if ((row.ssPct ?? 0) < LOW_COMPLETION_THRESHOLD) {
@@ -61,6 +63,8 @@ const buildScholarFollowUpIssues = (
       glance: "Study session",
       pct: studySessionPct,
       requiredMinutes: row.ssRequired,
+      insideMinutes: row.ssCompliance?.insideMinutes ?? 0,
+      outsideMinutes: row.ssCompliance?.outsideMinutes ?? 0,
     })
   }
 
@@ -101,7 +105,7 @@ export const classifyScholarFollowUpRisk = (data: MemoLivePageData): ScholarFoll
       return {
         scholarName: row.scholarName,
         scholarYear: toScholarYear(row.cohort),
-        teamLeader: "Unassigned",
+        teamLeader: row.teamLeader?.trim() || "Unassigned",
         flags,
         issues,
         frontDeskPct: Math.max(0, Math.round(row.fdPct ?? 0)),

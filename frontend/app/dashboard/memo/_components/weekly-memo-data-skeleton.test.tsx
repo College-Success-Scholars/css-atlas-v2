@@ -14,6 +14,7 @@ describe("WeeklyMemoDataSkeleton", () => {
 
     expect(html).toContain("Team leader performance")
     expect(html).toContain("Scholar follow-up")
+    expect(html).not.toContain("Scholar WAHF")
     expect(html).toContain("Tutoring log")
     expect(html).toContain("Recognition board")
     expect(html).toContain("90–100% · 70–89% · Below 70%")

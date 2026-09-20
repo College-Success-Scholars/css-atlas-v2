@@ -3,6 +3,7 @@ import {
   buildScholarProfileInsertRow,
   isEligibleScholar,
   isEnrolled,
+  isEnrolledScholar,
   isGraduated,
   isTeamLeaderForPerformance,
   overlayRosterAppRoleFromProfile,
@@ -71,6 +72,18 @@ describe("isEligibleScholar", () => {
     ).toBe(false);
   });
 
+  it("excludes graduated scholars", () => {
+    expect(
+      isEligibleScholar({
+        program_role: "scholar",
+        cohort: freshman,
+        status: "graduated",
+        fd_required: 120,
+        ss_required: 180,
+      }),
+    ).toBe(false);
+  });
+
   it("excludes juniors with leftover hours", () => {
     expect(
       isEligibleScholar({
@@ -84,29 +97,42 @@ describe("isEligibleScholar", () => {
   });
 });
 
+describe("isEnrolledScholar", () => {
+  it("includes enrolled scholar roster rows", () => {
+    expect(isEnrolledScholar({ program_role: "Scholar", status: "enrolled" })).toBe(true);
+  });
+
+  it("excludes inactive, graduated, and non-scholar rows", () => {
+    expect(isEnrolledScholar({ program_role: "scholar", status: "inactive" })).toBe(false);
+    expect(isEnrolledScholar({ program_role: "scholar", status: "graduated" })).toBe(false);
+    expect(isEnrolledScholar({ program_role: "Team Leader", status: "enrolled" })).toBe(false);
+  });
+});
+
 describe("isTeamLeaderForPerformance", () => {
-  it("includes enrolled team leaders and staff with unset status", () => {
+  it("includes enrolled team leaders and Program Coordinator", () => {
     expect(
       isTeamLeaderForPerformance({ program_role: "team_leader", status: "enrolled" }),
     ).toBe(true);
-    expect(isTeamLeaderForPerformance({ program_role: "Team Leader", status: null })).toBe(true);
-    expect(isTeamLeaderForPerformance({ program_role: "GA", status: "inactive" })).toBe(true);
+    expect(isTeamLeaderForPerformance({ program_role: "Team Leader", status: "ENROLLED" })).toBe(true);
+    expect(
+      isTeamLeaderForPerformance({ program_role: "Program Coordinator", status: "enrolled" }),
+    ).toBe(true);
   });
 
-  it("excludes scholars and graduated roster rows", () => {
+  it("excludes inactive, graduated, and unset roster status", () => {
+    expect(isTeamLeaderForPerformance({ program_role: "GA", status: "inactive" })).toBe(false);
+    expect(isTeamLeaderForPerformance({ program_role: "Team Leader", status: null })).toBe(false);
     expect(isGraduated("Graduated")).toBe(true);
     expect(
       isTeamLeaderForPerformance({ program_role: "team_leader", status: "graduated" }),
     ).toBe(false);
+  });
+
+  it("excludes scholars and Coordinator", () => {
     expect(
       isTeamLeaderForPerformance({ program_role: "scholar", status: "enrolled" }),
     ).toBe(false);
-  });
-
-  it("includes Program Coordinator and excludes Coordinator", () => {
-    expect(
-      isTeamLeaderForPerformance({ program_role: "Program Coordinator", status: "enrolled" }),
-    ).toBe(true);
     expect(
       isTeamLeaderForPerformance({ program_role: "Coordinator", status: "enrolled" }),
     ).toBe(false);

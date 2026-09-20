@@ -14,7 +14,7 @@
  * - Business logic (that's controllers/session-log.controller.ts)
  */
 import { Router } from "express";
-import { requireAuth } from "../controllers/auth.controller.js";
+import { requireAuth } from "../middleware/auth.middleware.js";
 import * as sessionLogController from "../controllers/session-log.controller.js";
 
 const router = Router();

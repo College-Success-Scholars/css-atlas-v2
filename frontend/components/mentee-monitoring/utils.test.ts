@@ -10,10 +10,12 @@ import {
   computeWahfStatus,
   computeTutoringSessions,
   filterActivityForMenteeWeek,
+  addComplianceToDailyHours,
+  computeDailyHours,
   durationMinutesFromClockTimes,
   clockStringToMinutes,
 } from "./utils"
-import type { ActivityRow, WahfRow, TutoringRow } from "@/lib/types/supabase"
+import type { ActivityRow, ShiftComplianceByKind, WahfRow, TutoringRow } from "@/lib/types/supabase"
 
 const UID = "scholar-1"
 
@@ -165,6 +167,67 @@ describe("filterActivityForMenteeWeek", () => {
     expect(studySession).toHaveLength(1)
     expect(studySession[0].duration_minutes).toBe(60)
     expect(frontDesk).toHaveLength(0)
+  })
+})
+
+describe("addComplianceToDailyHours", () => {
+  it("preserves actual bars while adding scheduled intervals and no-show or unscheduled status", () => {
+    const week = 2
+    const monday = dayInCampusWeek(week, 0)
+    const tuesday = dayInCampusWeek(week, 1)
+    const wednesday = dayInCampusWeek(week, 2)
+    const compliance: ShiftComplianceByKind = {
+      insideMinutes: 60,
+      outsideMinutes: 30,
+      noShowCount: 1,
+      dates: [
+        {
+          date: monday,
+          scheduledStart: `${monday}T14:00:00.000Z`,
+          scheduledEnd: `${monday}T16:00:00.000Z`,
+          insideMinutes: 60,
+          outsideMinutes: 0,
+          noShow: false,
+          unscheduled: false,
+          sessions: [],
+        },
+        {
+          date: tuesday,
+          scheduledStart: `${tuesday}T14:00:00.000Z`,
+          scheduledEnd: `${tuesday}T16:00:00.000Z`,
+          insideMinutes: 0,
+          outsideMinutes: 0,
+          noShow: true,
+          unscheduled: false,
+          sessions: [],
+        },
+        {
+          date: wednesday,
+          scheduledStart: null,
+          scheduledEnd: null,
+          insideMinutes: 0,
+          outsideMinutes: 30,
+          noShow: false,
+          unscheduled: true,
+          sessions: [],
+        },
+      ],
+    }
+
+    const daily = computeDailyHours([
+      {
+        scholar_uid: UID,
+        activity_date: monday,
+        week_num: week,
+        log_source: "study_session_logs",
+        duration_minutes: 90,
+      },
+    ])
+    const result = addComplianceToDailyHours(daily, compliance, week)
+
+    expect(result[0]).toMatchObject({ hours: 1.5, scheduledHours: 2, noShow: false })
+    expect(result[1]).toMatchObject({ hours: 0, scheduledHours: 2, noShow: true })
+    expect(result[2]).toMatchObject({ hours: 0, scheduledHours: 0, unscheduled: true })
   })
 })
 

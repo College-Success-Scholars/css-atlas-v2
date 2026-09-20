@@ -13,6 +13,7 @@ const buildMemoData = (): MemoLivePageData =>
         scholarId: "2024-001",
         scholarName: "Alice Scholar",
         cohort: freshman,
+        teamLeader: "TL One",
         fdPct: 95,
         ssPct: 91,
         fdRequired: 120,
@@ -23,11 +24,14 @@ const buildMemoData = (): MemoLivePageData =>
         ssExcuseMin: 0,
         wahfStatus: "on-time" as const,
         wahfSubmittedAt: "2026-04-02T16:00:00.000Z",
+        fdCompliance: { insideMinutes: 114, outsideMinutes: 0, noShowCount: 0, dates: [] },
+        ssCompliance: { insideMinutes: 109, outsideMinutes: 0, noShowCount: 0, dates: [] },
       },
       {
         scholarId: "2023-010",
         scholarName: "Bob Scholar",
         cohort: sophomore,
+        teamLeader: "TL Two",
         fdPct: 50,
         ssPct: 70,
         fdRequired: 120,
@@ -38,6 +42,8 @@ const buildMemoData = (): MemoLivePageData =>
         ssExcuseMin: 0,
         wahfStatus: "missing" as const,
         wahfSubmittedAt: null,
+        fdCompliance: { insideMinutes: 24, outsideMinutes: 6, noShowCount: 0, dates: [] },
+        ssCompliance: { insideMinutes: 40, outsideMinutes: 44, noShowCount: 0, dates: [] },
       },
     ],
     teamLeaders: [],
@@ -128,10 +134,11 @@ describe("weekly-memo-assembler", () => {
     })
     expect(result.scholarRows[0]).toMatchObject({
       scholarName: "Bob Scholar",
+      teamLeader: "TL Two",
       flags: ["Low front desk completion", "Low study session completion", "Low grade", "Missing WAHF"],
       issues: [
-        { kind: "front-desk", glance: "Front desk", pct: 50, requiredMinutes: 120 },
-        { kind: "study-session", glance: "Study session", pct: 70, requiredMinutes: 120 },
+        { kind: "front-desk", glance: "Front desk", pct: 50, requiredMinutes: 120, insideMinutes: 24, outsideMinutes: 6 },
+        { kind: "study-session", glance: "Study session", pct: 70, requiredMinutes: 120, insideMinutes: 40, outsideMinutes: 44 },
         { kind: "grade", glance: "X · Y", pct: 60 },
         { kind: "wahf", glance: "WAHF", status: "missing", submittedAtLabel: null },
       ],
@@ -211,6 +218,38 @@ describe("weekly-memo-assembler", () => {
       { kind: "grade", glance: "X · Y", pct: 60 },
     ])
     expect(result.scholarRows.flatMap((row) => row.issues.filter((issue) => issue.kind === "grade"))).toHaveLength(1)
+    expect(result.scholarRows.flatMap((row) => row.issues.filter((issue) => issue.kind === "wahf"))).toHaveLength(1)
+  })
+
+  it("keeps a WAHF-only scholar on scholar follow-up", () => {
+    const result = assembleWeeklyMemo({
+      ...buildMemoData(),
+      scholars: [
+        ...buildMemoData().scholars,
+        {
+          scholarId: "wahf-only",
+          scholarName: "Cara OnlyWahf",
+          cohort: freshman,
+          teamLeader: "TL One",
+          fdPct: 100,
+          ssPct: 100,
+          fdRequired: 120,
+          ssRequired: 120,
+          fdTotal: 120,
+          ssTotal: 120,
+          fdExcuseMin: 0,
+          ssExcuseMin: 0,
+          wahfStatus: "late" as const,
+          wahfSubmittedAt: "2026-04-04T12:00:00.000Z",
+        },
+      ],
+    })
+
+    expect(result.scholarRows.map((row) => row.scholarName)).toEqual(["Bob Scholar", "Cara OnlyWahf"])
+    expect(result.scholarRows.find((row) => row.scholarName === "Cara OnlyWahf")).toMatchObject({
+      flags: ["Late WAHF"],
+      issues: [expect.objectContaining({ kind: "wahf", status: "late" })],
+    })
   })
 
   it("sorts recognition-board grades descending by percent within each band", () => {
@@ -271,5 +310,70 @@ describe("weekly-memo-assembler", () => {
       mcf: "on-time",
       hasNoMentee: true,
     })
+  })
+
+  it("marks MCF incomplete when some but not all mentee forms are in", () => {
+    const result = assembleWeeklyMemo({
+      ...buildMemoData(),
+      teamLeaderFormStats: [
+        {
+          scholarId: "tl-partial",
+          name: "TL Partial",
+          programRole: "Team Leader",
+          mcfCompleted: 1,
+          mcfRequired: 3,
+          mcfLate: false,
+          mcfPct: 33,
+          mcfLatestAt: "2026-04-03T12:00:00.000Z",
+          wplCompleted: 1,
+          wplRequired: 1,
+          wplLate: false,
+          wplPct: 100,
+          wplLatestAt: "",
+          wahfCompleted: 1,
+          wahfRequired: 1,
+          wahfLate: false,
+          wahfPct: 100,
+          wahfLatestAt: "",
+        },
+      ],
+    })
+
+    expect(result.teamLeaderRows[0]).toMatchObject({
+      leaderName: "TL Partial",
+      mcf: "incomplete",
+      wpl: "on-time",
+      wahf: "on-time",
+    })
+  })
+
+  it("keeps partial MCF incomplete even when a submitted check-in was late", () => {
+    const result = assembleWeeklyMemo({
+      ...buildMemoData(),
+      teamLeaderFormStats: [
+        {
+          scholarId: "tl-partial-late",
+          name: "TL Partial Late",
+          programRole: "Team Leader",
+          mcfCompleted: 1,
+          mcfRequired: 2,
+          mcfLate: true,
+          mcfPct: 50,
+          mcfLatestAt: "2026-04-04T22:00:00.000Z",
+          wplCompleted: 1,
+          wplRequired: 1,
+          wplLate: false,
+          wplPct: 100,
+          wplLatestAt: "",
+          wahfCompleted: 1,
+          wahfRequired: 1,
+          wahfLate: false,
+          wahfPct: 100,
+          wahfLatestAt: "",
+        },
+      ],
+    })
+
+    expect(result.teamLeaderRows[0]?.mcf).toBe("incomplete")
   })
 })

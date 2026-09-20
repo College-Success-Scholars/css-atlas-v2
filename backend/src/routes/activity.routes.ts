@@ -13,7 +13,7 @@
  * - Business logic (that's controllers/activity.controller.ts)
  */
 import { Router } from "express";
-import { requireAuth } from "../controllers/auth.controller.js";
+import { requireAuth } from "../middleware/auth.middleware.js";
 import * as activityController from "../controllers/activity.controller.js";
 
 const router = Router();

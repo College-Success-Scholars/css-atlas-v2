@@ -14,6 +14,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types.js";
 
 export type AppSupabaseClient = SupabaseClient<Database>;
+export type ServiceSupabaseClient = SupabaseClient;
 
 let authClient: AppSupabaseClient | null = null;
 
@@ -54,4 +55,14 @@ export function getSupabaseAuthClient(): AppSupabaseClient {
   }
   authClient = createClient<Database>(url, key);
   return authClient;
+}
+
+/** Service-role client for isolated cron jobs that must bypass user-scoped RLS. */
+export function getSupabaseServiceRoleClient(): ServiceSupabaseClient {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY env vars");
+  }
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }

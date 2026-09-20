@@ -13,7 +13,7 @@
  * - Application-wide request/response logging
  *
  * ## What does NOT belong here
- * - Authentication logic (see controllers/auth.controller.ts)
+ * - Authentication logic (see middleware/auth.middleware.ts)
  * - Route-specific middleware
  */
 import type { Request, Response, NextFunction } from "express";

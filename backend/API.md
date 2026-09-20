@@ -178,7 +178,7 @@ All routes under `/api/users` require **requireAuth**.
 ### `GET /api/users/team-leaders`
 
 **Auth:** requireAuth
-**Description:** Returns roster rows whose `program_role` is not scholar or Coordinator and whose `status` is not graduated (team leader performance / form stats). Program Coordinator still appears.
+**Description:** Returns roster rows whose `program_role` is not scholar or Coordinator and whose `user_roster.status` is enrolled (team leader performance / form stats). Inactive and graduated rows are omitted. Program Coordinator still appears.
 **Request:** None
 **Response:**
 ```json
@@ -190,7 +190,7 @@ All routes under `/api/users` require **requireAuth**.
 ### `GET /api/users/scholar-uids`
 
 **Auth:** requireAuth
-**Description:** Returns UIDs for all scholars.
+**Description:** Returns UIDs for scholars whose `user_roster.status` is enrolled. Inactive and graduated roster rows are omitted.
 **Request:** None
 **Response:**
 ```json
@@ -962,7 +962,7 @@ Routes under `/api/memo` require **requireTeamLeaderOrAbove** unless noted other
 ### `GET /api/memo/page-data`
 
 **Auth:** requireTeamLeaderOrAbove
-**Description:** Returns all processed data needed to render the memo page for a given week (aggregated in one call). FD/SS minutes are computed on read from cleaned tickets; excuses come from `scholar_week_excuses` (not `*_records`). Each scholar row includes `wahfStatus` (`on-time` | `late` | `missing`) and `wahfSubmittedAt` (latest weekly WAHF form-log `created_at`, or `null` if none) from that week's WAHF form logs. `gradeBreakdown` lists assignment grades parsed from the **latest WAHF per scholar** (high ≥90%, mid 70–89%, low <70%) so resubmits do not duplicate; each band is sorted by percent descending. Scholars owe WAHF only; WPL/MCF stay on team-leader form stats.
+**Description:** Returns all processed data needed to render the memo page for a given week (aggregated in one call). Scholar rows, WAHF census (`wahfDonut`), and `gradeBreakdown` include only enrolled freshman/sophomore scholars with required hours (`user_roster.status` = enrolled). Team leader form stats (`teamLeaderFormStats`, `formCompletionOverall`, MCF rows) include only enrolled non-scholar, non-Coordinator roster rows. Inactive and graduated roster rows are omitted. FD/SS minutes are computed on read from cleaned tickets; excuses come from `scholar_week_excuses` (not `*_records`). Each scholar row includes `wahfStatus` (`on-time` | `late` | `missing`) and `wahfSubmittedAt` (latest weekly WAHF form-log `created_at`, or `null` if none) from that week's WAHF form logs. `teamLeader` is the mentor display name from `mentor_mentee` (`Unassigned` when the scholar has no row). `gradeBreakdown` lists assignment grades parsed from the **latest WAHF per enrolled scholar** (high ≥90%, mid 70–89%, low <70%) so resubmits do not duplicate; each band is sorted by percent descending. Scholars owe WAHF only; WPL/MCF stay on team-leader form stats.
 **Query Params:**
 - `weekNumber` (integer >= 1; legacy `weekNum` accepted; defaults to current campus week if omitted)
 
@@ -970,6 +970,17 @@ Routes under `/api/memo` require **requireTeamLeaderOrAbove** unless noted other
 ```json
 { "data": { /* full memo page data object */ } }
 ```
+
+---
+
+### `GET /api/memo/pdf`
+
+**Auth:** requireTeamLeaderOrAbove
+**Description:** Renders the weekly memo printout as a PDF. FD/SS roster and Needs Attention completion match the memo page: logged minutes plus `scholar_week_excuses`, integer percent capped at 100. Program Snapshot FD/SS bars count a scholar complete at 80% or more (same hours math), not the page pie’s 100% threshold. Snapshot FD/SS rows and appendix roster group headings use class-year labels (Sophomore, Freshman), not entering cohort numbers. Study-session and front-desk appendix rosters are grouped by class year and sorted by completed minutes descending. The masthead and footer include an Eastern `Printed` timestamp. `Content-Disposition` uses `weekly-memo-week-{weekNumber}-{YYYY-MM-DD-HHmm}.pdf` in America/New_York. Response has `Cache-Control: no-store`. Returns `503` if Chromium/PDF rendering fails.
+**Query Params:**
+- `weekNumber` (integer >= 1; legacy `weekNum` accepted; defaults to current campus week if omitted)
+
+**Response:** PDF binary (`Content-Type: application/pdf`)
 
 ---
 

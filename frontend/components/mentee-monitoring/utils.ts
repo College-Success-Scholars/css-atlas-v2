@@ -8,6 +8,7 @@ import { getWhafDeadlineForWeek } from "@/lib/format/form-deadlines"
 import { dateToCampusWeek, parseEasternDate } from "@/lib/format/time"
 import type {
   ActivityRow,
+  ShiftComplianceByKind,
   WahfRow,
   TutoringRow,
 } from "@/lib/types/supabase"
@@ -26,6 +27,11 @@ export { computeWeekOptions, type WeekOption }
 export type DailyHoursEntry = {
   dayLabel: string
   hours: number
+  scheduledHours: number
+  scheduledStart: string | null
+  scheduledEnd: string | null
+  noShow: boolean
+  unscheduled: boolean
 }
 
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const
@@ -71,7 +77,52 @@ export function computeDailyHours(rows: ActivityRow[]): DailyHoursEntry[] {
   return buckets.map((mins, i) => ({
     dayLabel: DAY_LABELS[i],
     hours: Math.round((mins / 60) * 10) / 10,
+    scheduledHours: 0,
+    scheduledStart: null,
+    scheduledEnd: null,
+    noShow: false,
+    unscheduled: false,
   }))
+}
+
+/** Adds assignment-aware schedule details without changing the actual log totals. */
+export function addComplianceToDailyHours(
+  dailyHours: DailyHoursEntry[],
+  compliance: ShiftComplianceByKind | null,
+  weekNum: number,
+): DailyHoursEntry[] {
+  if (!compliance) return dailyHours
+
+  const entries = dailyHours.map((day) => ({ ...day }))
+
+  for (const date of compliance.dates) {
+    let dateValue: Date
+    try {
+      dateValue = parseEasternDate(date.date)
+    } catch {
+      continue
+    }
+    if (dateToCampusWeek(dateValue) !== weekNum) continue
+
+    const dayIndex = getISODay(dateValue) - 1
+    const entry = entries[dayIndex]
+    if (!entry) continue
+
+    entry.noShow ||= date.noShow
+    entry.unscheduled ||= date.unscheduled
+    if (!date.scheduledStart || !date.scheduledEnd) continue
+
+    const scheduledHours =
+      (new Date(date.scheduledEnd).getTime() - new Date(date.scheduledStart).getTime()) /
+      (60 * 60 * 1000)
+    if (!Number.isFinite(scheduledHours) || scheduledHours <= 0) continue
+
+    entry.scheduledHours += scheduledHours
+    entry.scheduledStart ??= date.scheduledStart
+    entry.scheduledEnd = date.scheduledEnd
+  }
+
+  return entries
 }
 
 export function sumMinutesToHours(rows: ActivityRow[]): number {

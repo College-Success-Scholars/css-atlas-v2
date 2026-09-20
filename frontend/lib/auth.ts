@@ -15,14 +15,15 @@
  *
  * ## What does NOT belong here
  * - Auth helpers that read from Supabase (use lib/supabase/server.ts)
- * - Role enforcement / access guards (use requireTeamLeaderOrAbove, requireDeveloper)
+ * - Role enforcement / access guards (use requireTeamLeaderOrAbove,
+ *   requireCoordinatorOrAbove, requireDeveloper)
  */
 
 import { hasRoleAtLeast, isDeveloperProfile } from "../../shared/dist/auth.js";
 
 export { isDeveloperProfile };
 
-export type UserRole = "scholar" | "team-leader" | "developer" | "default";
+export type UserRole = "scholar" | "team-leader" | "coordinator" | "developer" | "default";
 
 type ProfileRoleFields = {
   app_role?: string | null;
@@ -58,22 +59,34 @@ export function canAccessMenteeMonitoring(
 }
 
 /**
- * Weekly memo and other team-leader dashboards require team_leader or developer.
- * Public `/traffic` kiosk check-in is ungated (anyone may use it without signing in).
+ * Weekly memo and other team-leader dashboards require team_leader or higher
+ * (coordinator and developer included). Public `/traffic` kiosk check-in is
+ * ungated (anyone may use it without signing in).
  */
 export function canAccessWeeklyMemo(profile: ProfileRoleFields | null | undefined): boolean {
   return hasRoleAtLeast(profile?.app_role ?? null, "team_leader");
 }
 
 /**
+ * Coordinator View and freshman grades require coordinator or developer.
+ * Ordinary team leaders do not pass.
+ */
+export function canAccessCoordinatorView(profile: ProfileRoleFields | null | undefined): boolean {
+  return hasRoleAtLeast(profile?.app_role ?? null, "coordinator");
+}
+
+/**
  * Maps merged profile fields to the UI role used for nav and dashboard variants.
  * Scholars have app_role null and program_role "scholar".
+ * Check developer, then coordinator, then team_leader so higher rungs do not
+ * collapse into the team-leader home.
  */
 export function resolveUserRole(profile: ProfileRoleFields | null | undefined): UserRole {
   if (!profile) return "default";
 
   const appRole = profile.app_role ?? null;
   if (appRole === "developer") return "developer";
+  if (hasRoleAtLeast(appRole, "coordinator")) return "coordinator";
   if (hasRoleAtLeast(appRole, "team_leader")) return "team-leader";
 
   const programRole = (profile.program_role ?? "").toLowerCase();
@@ -89,6 +102,8 @@ export function formatUserRoleLabel(role: UserRole): string {
       return "Scholar";
     case "team-leader":
       return "Team Leader";
+    case "coordinator":
+      return "Coordinator";
     case "developer":
       return "Developer";
     default:

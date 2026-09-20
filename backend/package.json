@@ -8,8 +8,11 @@
     "build": "npm --prefix ../shared run build && tsc",
     "typecheck": "tsc --noEmit",
     "start": "node dist/server.js",
+    "start:signin-detector": "node dist/domains/notifications/detectors/signin-detector.js",
+    "start:reconciliation-detector": "node dist/domains/notifications/detectors/reconciliation-detector.js",
     "test": "vitest run",
     "test:watch": "vitest",
+    "install:chrome": "puppeteer browsers install chrome",
     "db:types": "cd .. && supabase gen types typescript --linked --schema public > backend/src/supabase/database.types.ts && node -e \"const fs=require('fs');const f='backend/src/supabase/database.types.ts';const h='/**\\n * Generated Postgres types for public schema. Do not edit by hand.\\n * Regen: npm run db:types --prefix backend\\n */\\n\\n';const t=fs.readFileSync(f,'utf8');if(!t.startsWith('/**'))fs.writeFileSync(f,h+t);\""
   },
   "keywords": [],
@@ -17,11 +20,13 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@fontsource/archivo": "5.3.0",
     "@supabase/supabase-js": "^2.104.0",
     "cors": "^2.8.6",
     "date-fns": "^4.1.0",
     "dotenv": "^17.4.2",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "puppeteer": "25.8.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

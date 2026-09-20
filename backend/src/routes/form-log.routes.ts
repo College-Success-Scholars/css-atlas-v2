@@ -22,7 +22,7 @@ import {
   requireSelfOrTeamLeader,
   requireSelfScholarIdOrTeamLeader,
   requireTeamLeaderRole,
-} from "../controllers/auth.controller.js";
+} from "../middleware/auth.middleware.js";
 import * as formLogController from "../controllers/form-log.controller.js";
 
 const router = Router();
