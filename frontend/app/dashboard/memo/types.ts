@@ -70,6 +70,8 @@ export type MemoLivePageData = {
   completedFd: ScholarWithCompletedSession[]
   trafficWeeklyData: { weekNumber: number; entryCount: number }[]
   trafficEntryCountForSelectedWeek: number
+  /** Prior-week entries through the same weekday/time (current week) or the full prior week. */
+  trafficComparableLastWeekCount: number
   trafficSessions: TrafficSession[]
   tutorReports: MemoTutorReportRow[]
   gradeBreakdown: GradeBreakdown
@@ -95,12 +97,21 @@ export function isMemoYearNotStarted(
 
 export type FormStatus = "submitted" | "on-time" | "missing" | "late" | "incomplete" | "check-mentees"
 
+export type WeeklyKpiSubStat = {
+  label: string
+  value: string
+  /** 0–100 fill for the class-year track. Omit when the card has no slider. */
+  pct?: number
+}
+
 export type WeeklyKpiCard = {
   title: string
   primaryValue: string
   secondaryText: string
   trendText: string
-  subStats: { label: string; value: string }[]
+  /** Combined 0–100 fill for hours cards. */
+  pct?: number
+  subStats: WeeklyKpiSubStat[]
 }
 
 export type TeamLeaderPerformanceRow = {

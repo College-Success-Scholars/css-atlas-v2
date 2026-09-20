@@ -1,6 +1,7 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { ChevronLeft, ChevronRight, AlertCircle, User, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -10,13 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
 import type { MenteeMonitoringClientProps } from "@/lib/types/supabase"
 import {
   computeWeekOptions,
-  filterActivityForMenteeWeek,
-  computeDailyHours,
   addComplianceToDailyHours,
-  sumMinutesToHours,
+  attendanceRowForKind,
+  dailyHoursFromAttendance,
+  minutesToHours,
   computeWahfStatus,
   computeTutoringSessions,
   menteeName,
@@ -27,13 +29,25 @@ import { TutoringCard } from "./tutoring-card"
 import { WahfCard } from "./wahf-card"
 import { YearNotStartedState } from "@/components/dashboard/widgets/year-not-started-state"
 
+function menteeHref(week: number | null, uid?: string | null) {
+  const params = new URLSearchParams()
+  if (week != null && week > 0) params.set("week", String(week))
+  if (uid) params.set("uid", uid)
+  const query = params.toString()
+  return query ? `/dashboard/mentee?${query}` : "/dashboard/mentee"
+}
+
 export function MenteeMonitoringClient({
   mentees,
-  activity,
+  attendance,
   wahf,
   tutoring,
   currentCampusWeek,
+  selectedWeek,
+  selectedUid: selectedUidProp,
 }: MenteeMonitoringClientProps) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
   const yearStarted = currentCampusWeek != null
 
   const validMentees = useMemo(
@@ -41,73 +55,77 @@ export function MenteeMonitoringClient({
     [mentees],
   )
 
-  const [selectedUid, setSelectedUid] = useState<string>(
-    () => validMentees[0]?.scholar_uid ?? "",
-  )
-  const [selectedWeek, setSelectedWeek] = useState<number>(
-    () => currentCampusWeek ?? 0,
-  )
+  const selectedUid = selectedUidProp ?? validMentees[0]?.scholar_uid ?? ""
+  const weekNum = selectedWeek ?? currentCampusWeek ?? 0
 
   const weekOptions = useMemo(
     () => computeWeekOptions(currentCampusWeek),
     [currentCampusWeek],
   )
 
-  const weekIndex = weekOptions.findIndex((w) => w.weekNum === selectedWeek)
+  const weekIndex = weekOptions.findIndex((w) => w.weekNum === weekNum)
 
   const selectedMentee = validMentees.find((m) => m.scholar_uid === selectedUid)
   const name = selectedMentee ? menteeName(selectedMentee) : "Unknown"
   const todayLabel = getTodayDayLabel()
 
-  // ---- Derived data -------------------------------------------------------
+  function navigate(week: number | null, uid: string) {
+    const href = menteeHref(week, uid)
+    startTransition(() => {
+      router.push(href)
+    })
+  }
 
-  const { studySession, frontDesk } = useMemo(
-    () =>
-      yearStarted && selectedUid
-        ? filterActivityForMenteeWeek(activity, selectedUid, selectedWeek)
-        : { studySession: [], frontDesk: [] },
-    [activity, selectedUid, selectedWeek, yearStarted],
+  const ssRow = useMemo(
+    () => attendanceRowForKind(attendance.rows, selectedUid, "study_session"),
+    [attendance.rows, selectedUid],
+  )
+  const fdRow = useMemo(
+    () => attendanceRowForKind(attendance.rows, selectedUid, "front_desk"),
+    [attendance.rows, selectedUid],
   )
 
   const ssDailyHours = useMemo(
     () =>
       addComplianceToDailyHours(
-        computeDailyHours(studySession),
+        dailyHoursFromAttendance(ssRow),
         selectedMentee?.ssCompliance ?? null,
-        selectedWeek,
+        weekNum,
       ),
-    [studySession, selectedMentee?.ssCompliance, selectedWeek],
+    [ssRow, selectedMentee?.ssCompliance, weekNum],
   )
   const fdDailyHours = useMemo(
     () =>
       addComplianceToDailyHours(
-        computeDailyHours(frontDesk),
+        dailyHoursFromAttendance(fdRow),
         selectedMentee?.fdCompliance ?? null,
-        selectedWeek,
+        weekNum,
       ),
-    [frontDesk, selectedMentee?.fdCompliance, selectedWeek],
+    [fdRow, selectedMentee?.fdCompliance, weekNum],
   )
 
-  const ssCompleted = useMemo(() => sumMinutesToHours(studySession), [studySession])
-  const fdCompleted = useMemo(() => sumMinutesToHours(frontDesk), [frontDesk])
+  const ssCompleted = minutesToHours(ssRow?.logged_min ?? 0)
+  const fdCompleted = minutesToHours(fdRow?.logged_min ?? 0)
+  const ssExcuseHours = minutesToHours(ssRow?.excuse_min ?? 0)
+  const fdExcuseHours = minutesToHours(fdRow?.excuse_min ?? 0)
 
   const ssRequired = (selectedMentee?.ss_required ?? 0) / 60
   const fdRequired = (selectedMentee?.fd_required ?? 0) / 60
 
   const wahfStatus = useMemo(
     () =>
-      yearStarted
-        ? computeWahfStatus(wahf, selectedUid, selectedWeek, currentCampusWeek)
+      yearStarted && weekNum > 0
+        ? computeWahfStatus(wahf, selectedUid, weekNum, currentCampusWeek)
         : null,
-    [wahf, selectedUid, selectedWeek, currentCampusWeek, yearStarted],
+    [wahf, selectedUid, weekNum, currentCampusWeek, yearStarted],
   )
 
   const tutoringSessions = useMemo(
     () =>
-      yearStarted
-        ? computeTutoringSessions(tutoring, selectedUid, selectedWeek)
+      yearStarted && weekNum > 0
+        ? computeTutoringSessions(tutoring, selectedUid, weekNum)
         : [],
-    [tutoring, selectedUid, selectedWeek, yearStarted],
+    [tutoring, selectedUid, weekNum, yearStarted],
   )
 
   if (validMentees.length === 0) {
@@ -127,21 +145,17 @@ export function MenteeMonitoringClient({
     )
   }
 
-  // ---- Week navigation helpers --------------------------------------------
-
   const canGoBack = weekIndex < weekOptions.length - 1
   const canGoForward = weekIndex > 0
 
   function goBack() {
-    if (canGoBack) setSelectedWeek(weekOptions[weekIndex + 1].weekNum)
+    if (canGoBack) navigate(weekOptions[weekIndex + 1].weekNum, selectedUid)
   }
   function goForward() {
-    if (canGoForward) setSelectedWeek(weekOptions[weekIndex - 1].weekNum)
+    if (canGoForward) navigate(weekOptions[weekIndex - 1].weekNum, selectedUid)
   }
 
   const currentWeekOption = weekOptions[weekIndex]
-
-  // ---- Alert banner -------------------------------------------------------
 
   const showAlert =
     wahfStatus != null && !wahfStatus.submitted && wahfStatus.daysOverdue > 0
@@ -157,7 +171,7 @@ export function MenteeMonitoringClient({
             {yearStarted ? (
               <>
                 {" "}
-                &middot; {currentWeekOption?.label ?? `Week ${selectedWeek}`}
+                &middot; {currentWeekOption?.label ?? `Week ${weekNum}`}
               </>
             ) : null}
           </p>
@@ -166,7 +180,10 @@ export function MenteeMonitoringClient({
         {/* Width = two h-9 icon buttons + gap-1 + former week dropdown (190px) */}
         <div className="flex w-full flex-col gap-2 sm:ml-auto sm:w-[calc(5rem+190px)] sm:shrink-0">
           {/* Mentee selector — same width as week row below */}
-          <Select value={selectedUid} onValueChange={setSelectedUid}>
+          <Select
+            value={selectedUid}
+            onValueChange={(uid) => navigate(selectedWeek, uid)}
+          >
             <SelectTrigger className="w-full cursor-pointer">
               <User className="size-4 shrink-0 text-muted-foreground" />
               <SelectValue placeholder="Select mentee" />
@@ -181,12 +198,12 @@ export function MenteeMonitoringClient({
           </Select>
 
           {yearStarted && (
-            <div className="flex w-full items-center gap-1">
+            <div className={cn("flex w-full items-center gap-1", isPending && "opacity-60")}>
               <Button
                 variant="outline"
                 size="icon"
                 className="h-9 w-9 shrink-0 cursor-pointer"
-                disabled={!canGoBack}
+                disabled={!canGoBack || isPending}
                 onClick={goBack}
                 aria-label="Previous week"
               >
@@ -195,8 +212,9 @@ export function MenteeMonitoringClient({
 
               <div className="min-w-0 flex-1">
                 <Select
-                  value={String(selectedWeek)}
-                  onValueChange={(v) => setSelectedWeek(Number(v))}
+                  value={String(weekNum)}
+                  onValueChange={(v) => navigate(Number(v), selectedUid)}
+                  disabled={isPending}
                 >
                   <SelectTrigger className="w-full min-w-0 cursor-pointer">
                     <SelectValue />
@@ -215,7 +233,7 @@ export function MenteeMonitoringClient({
                 variant="outline"
                 size="icon"
                 className="h-9 w-9 shrink-0 cursor-pointer"
-                disabled={!canGoForward}
+                disabled={!canGoForward || isPending}
                 onClick={goForward}
                 aria-label="Next week"
               >
@@ -254,6 +272,8 @@ export function MenteeMonitoringClient({
               color="emerald"
               dailyHours={ssDailyHours}
               todayLabel={todayLabel}
+              excuseHours={ssExcuseHours}
+              excuseDescription={ssRow?.description ?? null}
             />
             <HoursCard
               title="Front desk hours"
@@ -262,6 +282,8 @@ export function MenteeMonitoringClient({
               color="sky"
               dailyHours={fdDailyHours}
               todayLabel={todayLabel}
+              excuseHours={fdExcuseHours}
+              excuseDescription={fdRow?.description ?? null}
             />
             <TutoringCard sessions={tutoringSessions} menteeName={name} />
             {wahfStatus != null && (

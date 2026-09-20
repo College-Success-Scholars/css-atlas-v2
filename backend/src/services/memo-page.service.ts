@@ -27,7 +27,7 @@ import {
 } from "./attendance-week.service.js";
 import type { CampusWeekAttendanceTotals } from "../models/attendance-week.model.js";
 import { EMPTY_WEEKLY_MINUTES } from "../models/weekly-minutes.model.js";
-import { getTrafficEntryCountsForWeeks, getTrafficEntryCountForWeek, getTrafficSessionsForWeek } from "./traffic.service.js";
+import { getTrafficEntryCountsForWeeks, getTrafficEntryCountForWeek, getTrafficEntryCountForWeekThrough, getTrafficSessionsForWeek, comparableLastWeekThroughDate } from "./traffic.service.js";
 import {
   getMcfFormLogsForWeekWithLate,
   getWhafFormLogsForWeekWithLate,
@@ -276,7 +276,7 @@ export function buildMemoScholarAttendanceRows(
  * 1. Resolve the campus week date range and prepare query boundaries.
  * 2. Fetch all data sources in parallel:
  *    - campus-week attendance (tickets + scholar_week_excuses), completed sessions,
- *      trafficWeeklyData, trafficEntryCount, trafficSessions,
+ *      trafficWeeklyData, trafficEntryCount, same-weekday last-week traffic count, trafficSessions,
  *      teamLeaders, mentor_mentee → TL names, mcf/whaf/wpl form logs (with late flags),
  *      tutorReportLogs.
  * 3. Parse assignment grades from the latest WHAF per submitter (scholars and
@@ -301,11 +301,14 @@ export async function getMemoPageData(weekNum: number) {
 
   const weekPickerMax = Math.max(25, currentCampusWeek ?? 1, weekNum);
   const weekNumbers = Array.from({ length: weekPickerMax }, (_, i) => i + 1);
+  const now = new Date();
+  const lastWeekThrough = comparableLastWeekThroughDate(now, weekNum, currentCampusWeek);
 
   const [
     attendance,
     trafficWeeklyData,
     trafficEntryCountForSelectedWeek,
+    trafficComparableLastWeekCount,
     trafficSessions,
     teamLeadersRaw,
     menteeTeamLeaders,
@@ -317,6 +320,9 @@ export async function getMemoPageData(weekNum: number) {
     getCampusWeekAttendance(weekNum),
     getTrafficEntryCountsForWeeks(weekNumbers),
     getTrafficEntryCountForWeek(weekNum),
+    lastWeekThrough == null
+      ? Promise.resolve(0)
+      : getTrafficEntryCountForWeekThrough(weekNum - 1, lastWeekThrough),
     getTrafficSessionsForWeek(weekNum),
     fetchTeamLeaders(),
     fetchMenteeTeamLeaderNames(),
@@ -468,6 +474,7 @@ export async function getMemoPageData(weekNum: number) {
     completedFd,
     trafficWeeklyData,
     trafficEntryCountForSelectedWeek,
+    trafficComparableLastWeekCount,
     trafficSessions,
     tutorReports,
     teamLeaderFormStats: teamLeaderFormRows,

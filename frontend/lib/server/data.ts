@@ -35,6 +35,7 @@ import type {
 import type {
   AttendanceKind,
   AttendanceWeekBoard,
+  AttendanceForUids,
   ScholarWeekExcuse,
 } from "@/lib/types/attendance-week";
 import type { RosterRow } from "@/lib/types/roster";
@@ -214,6 +215,16 @@ export async function getAttendanceWeekBoard(
   kind: AttendanceKind
 ): Promise<AttendanceWeekBoard> {
   return backendGet(`/api/attendance/week/${weekNum}?kind=${kind}`);
+}
+
+export async function fetchAttendanceForUids(
+  weekNum: number,
+  uids: string[]
+): Promise<AttendanceForUids> {
+  if (uids.length === 0) {
+    return { week_num: weekNum, week_start: "", rows: [] };
+  }
+  return backendPost<AttendanceForUids>(`/api/attendance/week/${weekNum}/by-uids`, { uids });
 }
 
 export async function upsertAttendanceExcuse(payload: {
