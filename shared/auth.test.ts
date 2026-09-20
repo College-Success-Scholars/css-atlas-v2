@@ -31,13 +31,21 @@ describe("hasRoleAtLeast", () => {
     expect(hasRoleAtLeast("scholar", "team_leader")).toBe(false);
   });
 
-  it("allows team_leader and developer for team_leader minimum", () => {
+  it("allows team_leader, coordinator, and developer for team_leader minimum", () => {
     expect(hasRoleAtLeast("team_leader", "team_leader")).toBe(true);
+    expect(hasRoleAtLeast("coordinator", "team_leader")).toBe(true);
     expect(hasRoleAtLeast("developer", "team_leader")).toBe(true);
+  });
+
+  it("allows coordinator and developer for coordinator minimum", () => {
+    expect(hasRoleAtLeast("team_leader", "coordinator")).toBe(false);
+    expect(hasRoleAtLeast("coordinator", "coordinator")).toBe(true);
+    expect(hasRoleAtLeast("developer", "coordinator")).toBe(true);
   });
 
   it("allows only developer for developer minimum", () => {
     expect(hasRoleAtLeast("team_leader", "developer")).toBe(false);
+    expect(hasRoleAtLeast("coordinator", "developer")).toBe(false);
     expect(hasRoleAtLeast("developer", "developer")).toBe(true);
   });
 });
