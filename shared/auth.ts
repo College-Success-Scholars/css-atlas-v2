@@ -6,10 +6,10 @@
  * Single source of truth for both backend auth middleware and frontend server auth.
  */
 
-export const APP_ROLE_ORDER = [null, "team_leader", "coordinator", "developer"] as const;
+export const APP_ROLE_ORDER = [null, "team_leader", "developer"] as const;
 export type AppRole = (typeof APP_ROLE_ORDER)[number];
 
-export type MinAppRole = "team_leader" | "coordinator" | "developer";
+export type MinAppRole = "team_leader" | "developer";
 
 export function hasRoleAtLeast(role: string | null, minRole: MinAppRole): boolean {
   const idx = APP_ROLE_ORDER.indexOf(role as AppRole);
