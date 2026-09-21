@@ -35,7 +35,7 @@ import {
   buildTeamLeaderFormStatsForWeek,
   countableFormRequired,
 } from "./form-log.service.js";
-import { getTutorReportLogsForWeek } from "./tutor-report-log.service.js";
+import { getTutorReportLogsForWeek, tutoringSessionDayOfWeek } from "./tutor-report-log.service.js";
 import type { FormLogRowWithLate, McfFormLogRow, WahfFormLogRow } from "../models/form-log.model.js";
 import type { MemoUserRow } from "../models/user.model.js";
 import type { ScholarShiftCompliance, ShiftComplianceByKind } from "../models/session-log.model.js";
@@ -439,14 +439,6 @@ export async function getMemoPageData(weekNum: number) {
     allUsers.map(u => [u.uid, [u.first_name, u.last_name].filter(Boolean).join(" ").trim() || u.uid])
   );
   const tutorReports = tutorReportLogs.map(log => {
-    // Derive day of week from created_at in Eastern time
-    let dayOfWeek: string = "—";
-    if (log.created_at) {
-      dayOfWeek = new Date(log.created_at).toLocaleDateString("en-US", {
-        weekday: "short",
-        timeZone: "America/New_York",
-      });
-    }
     return {
       id: log.id,
       scholarId: log.scholar_uid,
@@ -457,7 +449,7 @@ export async function getMemoPageData(weekNum: number) {
       courses: log.courses,
       startTime: log.start_time,
       endTime: log.end_time,
-      dayOfWeek,
+      dayOfWeek: tutoringSessionDayOfWeek(log),
     };
   });
 
