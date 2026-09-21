@@ -23,7 +23,7 @@ import { hasRoleAtLeast, isDeveloperProfile } from "../../shared/dist/auth.js";
 
 export { isDeveloperProfile };
 
-export type UserRole = "scholar" | "team-leader" | "coordinator" | "developer" | "default";
+export type UserRole = "scholar" | "team-leader" | "developer" | "default";
 
 type ProfileRoleFields = {
   app_role?: string | null;
@@ -60,33 +60,36 @@ export function canAccessMenteeMonitoring(
 
 /**
  * Weekly memo and other team-leader dashboards require team_leader or higher
- * (coordinator and developer included). Public `/traffic` kiosk check-in is
- * ungated (anyone may use it without signing in).
+ * (developer included). Public `/traffic` kiosk check-in is ungated (anyone
+ * may use it without signing in).
+ *
+ * Coordinator is not on the shared APP_ROLE_ORDER ladder yet, so it does not
+ * pass team_leader gates here.
  */
 export function canAccessWeeklyMemo(profile: ProfileRoleFields | null | undefined): boolean {
   return hasRoleAtLeast(profile?.app_role ?? null, "team_leader");
 }
 
 /**
- * Coordinator View and freshman grades require coordinator or developer.
- * Ordinary team leaders do not pass.
+ * Coordinator View and freshman grades require a rung above team_leader.
+ * Shared MinAppRole has no coordinator yet, so this is developer-only until
+ * the ladder lands.
  */
 export function canAccessCoordinatorView(profile: ProfileRoleFields | null | undefined): boolean {
-  return hasRoleAtLeast(profile?.app_role ?? null, "coordinator");
+  return hasRoleAtLeast(profile?.app_role ?? null, "developer");
 }
 
 /**
  * Maps merged profile fields to the UI role used for nav and dashboard variants.
  * Scholars have app_role null and program_role "scholar".
- * Check developer, then coordinator, then team_leader so higher rungs do not
- * collapse into the team-leader home.
+ * Check developer, then team_leader so higher rungs do not collapse into the
+ * team-leader home. Coordinator is omitted until APP_ROLE_ORDER includes it.
  */
 export function resolveUserRole(profile: ProfileRoleFields | null | undefined): UserRole {
   if (!profile) return "default";
 
   const appRole = profile.app_role ?? null;
   if (appRole === "developer") return "developer";
-  if (hasRoleAtLeast(appRole, "coordinator")) return "coordinator";
   if (hasRoleAtLeast(appRole, "team_leader")) return "team-leader";
 
   const programRole = (profile.program_role ?? "").toLowerCase();
@@ -102,8 +105,6 @@ export function formatUserRoleLabel(role: UserRole): string {
       return "Scholar";
     case "team-leader":
       return "Team Leader";
-    case "coordinator":
-      return "Coordinator";
     case "developer":
       return "Developer";
     default:
