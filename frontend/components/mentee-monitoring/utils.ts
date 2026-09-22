@@ -1,17 +1,16 @@
 import {
   format,
-  parseISO,
   getISODay,
   differenceInCalendarDays,
 } from "date-fns"
 import { getWhafDeadlineForWeek } from "@/lib/format/form-deadlines"
 import { dateToCampusWeek, parseEasternDate } from "@/lib/format/time"
 import type {
-  ActivityRow,
   ShiftComplianceByKind,
   WahfRow,
   TutoringRow,
 } from "@/lib/types/supabase"
+import type { AttendanceKind, AttendanceWeekBoardRow } from "@/lib/types/attendance-week"
 import {
   computeWeekOptions,
   findSubmissionForCampusWeek,
@@ -21,7 +20,7 @@ import {
 export { computeWeekOptions, type WeekOption }
 
 // ---------------------------------------------------------------------------
-// Activity filtering
+// Campus-week hours (tickets + excuses — same scale as Weekly Memo)
 // ---------------------------------------------------------------------------
 
 export type DailyHoursEntry = {
@@ -34,49 +33,33 @@ export type DailyHoursEntry = {
   unscheduled: boolean
 }
 
-const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const
+const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri"] as const
+const DAY_MINUTE_KEYS = [
+  "mon_min",
+  "tues_min",
+  "wed_min",
+  "thurs_min",
+  "fri_min",
+] as const
 
-/** Campus week from activity_date — never trust stored week_num. */
-function campusWeekForActivityDate(activityDate: string): number | null {
-  const day = activityDate.slice(0, 10)
-  if (/^\d{4}-\d{2}-\d{2}$/.test(day)) {
-    try {
-      return dateToCampusWeek(parseEasternDate(day))
-    } catch {
-      return null
-    }
-  }
-  const d = new Date(activityDate)
-  if (Number.isNaN(d.getTime())) return null
-  return dateToCampusWeek(d)
+export function minutesToHours(mins: number): number {
+  return Math.round((mins / 60) * 10) / 10
 }
 
-export function filterActivityForMenteeWeek(
-  activity: ActivityRow[],
+export function attendanceRowForKind(
+  rows: AttendanceWeekBoardRow[],
   uid: string,
-  weekNum: number,
-) {
-  const rows = activity.filter((r) => {
-    if (r.scholar_uid !== uid) return false
-    return campusWeekForActivityDate(r.activity_date) === weekNum
-  })
-  const studySession = rows.filter((r) => r.log_source === "study_session_logs")
-  const frontDesk = rows.filter((r) => r.log_source === "front_desk_logs")
-  return { studySession, frontDesk }
+  kind: AttendanceKind,
+): AttendanceWeekBoardRow | null {
+  return rows.find((row) => row.scholar_uid === uid && row.kind === kind) ?? null
 }
 
-export function computeDailyHours(rows: ActivityRow[]): DailyHoursEntry[] {
-  const buckets = new Array<number>(7).fill(0)
-
-  for (const row of rows) {
-    const date = parseISO(row.activity_date)
-    const dayIndex = getISODay(date) - 1 // 1=Mon → 0, 7=Sun → 6
-    buckets[dayIndex] += row.duration_minutes
-  }
-
-  return buckets.map((mins, i) => ({
-    dayLabel: DAY_LABELS[i],
-    hours: Math.round((mins / 60) * 10) / 10,
+export function dailyHoursFromAttendance(
+  row: AttendanceWeekBoardRow | null,
+): DailyHoursEntry[] {
+  return DAY_LABELS.map((dayLabel, i) => ({
+    dayLabel,
+    hours: row ? minutesToHours(row[DAY_MINUTE_KEYS[i]]) : 0,
     scheduledHours: 0,
     scheduledStart: null,
     scheduledEnd: null,
@@ -123,11 +106,6 @@ export function addComplianceToDailyHours(
   }
 
   return entries
-}
-
-export function sumMinutesToHours(rows: ActivityRow[]): number {
-  const total = rows.reduce((sum, r) => sum + r.duration_minutes, 0)
-  return Math.round((total / 60) * 10) / 10
 }
 
 // ---------------------------------------------------------------------------
@@ -276,5 +254,5 @@ export function menteeName(
 
 export function getTodayDayLabel(): string {
   const idx = getISODay(new Date()) - 1
-  return DAY_LABELS[idx]
+  return DAY_LABELS[idx] ?? ""
 }

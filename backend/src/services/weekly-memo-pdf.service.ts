@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import puppeteer from "puppeteer";
 import { groupRosterByCohort, type WeeklyMemoReport, type WeeklyMemoRosterRow } from "./weekly-memo-report.service.js";
-import { scholarYearLabel } from "./time.service.js";
+import { scholarYearGroupLabel } from "./time.service.js";
 import { cohortBarSvg, submissionStackSvg, trafficBarLineSvg, trafficHeatmapSvg } from "./weekly-memo-pdf-charts.js";
 
 const require = createRequire(import.meta.url);
@@ -40,7 +40,7 @@ function rosterRows(rows: WeeklyMemoRosterRow[]): string {
 
 function cohortClassYearLabel(cohort: number | null): string {
   if (cohort == null) return "Cohort unknown";
-  return scholarYearLabel(cohort) ?? `Cohort ${cohort}`;
+  return scholarYearGroupLabel(cohort) ?? `Cohort ${cohort}`;
 }
 
 function twoColumnRoster(rows: WeeklyMemoRosterRow[], empty: string): string {

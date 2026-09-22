@@ -15,7 +15,8 @@
  *
  * ## What does NOT belong here
  * - Auth helpers that read from Supabase (use lib/supabase/server.ts)
- * - Role enforcement / access guards (use requireTeamLeaderOrAbove, requireDeveloper)
+ * - Role enforcement / access guards (use requireTeamLeaderOrAbove,
+ *   requireCoordinatorOrAbove, requireDeveloper)
  */
 
 import { hasRoleAtLeast, isDeveloperProfile } from "../../shared/dist/auth.js";
@@ -58,16 +59,31 @@ export function canAccessMenteeMonitoring(
 }
 
 /**
- * Weekly memo and other team-leader dashboards require team_leader or developer.
- * Public `/traffic` kiosk check-in is ungated (anyone may use it without signing in).
+ * Weekly memo and other team-leader dashboards require team_leader or higher
+ * (developer included). Public `/traffic` kiosk check-in is ungated (anyone
+ * may use it without signing in).
+ *
+ * Coordinator is not on the shared APP_ROLE_ORDER ladder yet, so it does not
+ * pass team_leader gates here.
  */
 export function canAccessWeeklyMemo(profile: ProfileRoleFields | null | undefined): boolean {
   return hasRoleAtLeast(profile?.app_role ?? null, "team_leader");
 }
 
 /**
+ * Coordinator View and freshman grades require a rung above team_leader.
+ * Shared MinAppRole has no coordinator yet, so this is developer-only until
+ * the ladder lands.
+ */
+export function canAccessCoordinatorView(profile: ProfileRoleFields | null | undefined): boolean {
+  return hasRoleAtLeast(profile?.app_role ?? null, "developer");
+}
+
+/**
  * Maps merged profile fields to the UI role used for nav and dashboard variants.
  * Scholars have app_role null and program_role "scholar".
+ * Check developer, then team_leader so higher rungs do not collapse into the
+ * team-leader home. Coordinator is omitted until APP_ROLE_ORDER includes it.
  */
 export function resolveUserRole(profile: ProfileRoleFields | null | undefined): UserRole {
   if (!profile) return "default";

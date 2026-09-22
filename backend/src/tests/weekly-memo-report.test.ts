@@ -11,7 +11,7 @@ function source(weekNumber: number): MemoPageData {
       { scholarId: "zero", scholarName: "Zero Scholar", cohort: 2024, teamLeader: "Unassigned", fdTotal: 0, ssTotal: 0, fdRequired: 60, ssRequired: 120, fdExcuseMin: 0, ssExcuseMin: 0, fdPct: 0, ssPct: 0, wahfStatus: "missing", wahfSubmittedAt: null, fdCompliance: { insideMinutes: 0, outsideMinutes: 0, noShowCount: 0, dates: [] }, ssCompliance: { insideMinutes: 0, outsideMinutes: 0, noShowCount: 0, dates: [] } },
       { scholarId: "complete", scholarName: "Complete Scholar", cohort: 2025, teamLeader: "TL One", fdTotal: 60, ssTotal: 120, fdRequired: 60, ssRequired: 120, fdExcuseMin: 0, ssExcuseMin: 0, fdPct: 100, ssPct: 100, wahfStatus: "on-time", wahfSubmittedAt: "2026-04-03T12:00:00.000Z", fdCompliance: { insideMinutes: 0, outsideMinutes: 0, noShowCount: 0, dates: [] }, ssCompliance: { insideMinutes: 0, outsideMinutes: 0, noShowCount: 0, dates: [] } },
     ],
-    completedStudy: [], completedFd: [], trafficWeeklyData: [], trafficEntryCountForSelectedWeek: 8, trafficSessions: [],
+    completedStudy: [], completedFd: [], trafficWeeklyData: [], trafficEntryCountForSelectedWeek: 8, trafficComparableLastWeekCount: 0, trafficSessions: [],
     tutorReports: [{ id: 1, scholarId: "n/a", scholarName: "EMPTY SESSION", tutorName: "Tutor", courses: ["Math"], startTime: "10:00", endTime: "11:00", dayOfWeek: "Mon" }],
     teamLeaderFormStats: [{ scholarId: "tl", name: "Leader", programRole: "Team Leader", mcfCompleted: 0, mcfRequired: 1, mcfLate: false, mcfPct: 0, mcfLatestAt: "", wahfCompleted: 1, wahfRequired: 1, wahfLate: false, wahfPct: 100, wahfLatestAt: "", wplCompleted: 1, wplRequired: 1, wplLate: false, wplPct: 100, wplLatestAt: "" }],
     gradeBreakdown: { high: [{ scholarName: "Complete Scholar", course: "Math", assessment: "Quiz", grade: "95", percent: 95 }], mid: [{ scholarName: "Complete Scholar", course: "English", assessment: "Essay", grade: "85", percent: 85 }], low: [{ scholarName: "Zero Scholar", course: "History", assessment: "Essay", grade: "77", percent: 77 }] },
@@ -49,10 +49,10 @@ describe("weekly memo print report", () => {
     const html = renderWeeklyMemoHtml(report);
     expect(html).toContain("1 on-time, 0 late, 1 missing");
     expect(html).toContain(`Printed ${report.printedAtLabel}`);
-    expect(html).toContain('<div class="overview-row"><span>Sophomore</span>');
-    expect(html).toContain('<div class="overview-row"><span>Freshman</span>');
-    expect(html.indexOf('<div class="overview-row"><span>Sophomore</span>')).toBeLessThan(
-      html.indexOf('<div class="overview-row"><span>Freshman</span>'),
+    expect(html).toContain('<div class="overview-row"><span>Sophomores</span>');
+    expect(html).toContain('<div class="overview-row"><span>Freshmen</span>');
+    expect(html.indexOf('<div class="overview-row"><span>Sophomores</span>')).toBeLessThan(
+      html.indexOf('<div class="overview-row"><span>Freshmen</span>'),
     );
     expect(html).not.toContain('<div class="overview-row"><span>Cohort ');
   });
@@ -213,9 +213,9 @@ describe("weekly memo print report", () => {
       ["Bea Scholar", 30],
     ]);
     const html = renderWeeklyMemoHtml(report);
-    expect(html).toContain("<h4>Freshman</h4>");
-    expect(html).toContain("<h4>Sophomore</h4>");
-    expect(html.indexOf("<h4>Freshman</h4>")).toBeLessThan(html.indexOf("<h4>Sophomore</h4>"));
+    expect(html).toContain("<h4>Freshmen</h4>");
+    expect(html).toContain("<h4>Sophomores</h4>");
+    expect(html.indexOf("<h4>Freshmen</h4>")).toBeLessThan(html.indexOf("<h4>Sophomores</h4>"));
     expect(html).toContain("Sorted by minutes, highest first, and grouped by cohort.");
     expect(html).not.toContain("Sorted by completion, highest first");
     expect(html).not.toContain("Sorted by first name");

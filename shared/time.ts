@@ -200,6 +200,7 @@ export function isHourEligibleCohort(cohort: number | null | undefined): boolean
 }
 
 export type ScholarYearLabel = "Freshman" | "Sophomore";
+export type ScholarYearGroupLabel = "Freshmen" | "Sophomores";
 
 /** Class-year label for hour-eligible cohorts; null for juniors+ or missing cohort. */
 export function scholarYearLabel(cohort: number | null | undefined): ScholarYearLabel | null {
@@ -207,5 +208,13 @@ export function scholarYearLabel(cohort: number | null | undefined): ScholarYear
   const year = Number(cohort);
   if (year === freshmanCohortYear()) return "Freshman";
   if (year === sophomoreCohortYear()) return "Sophomore";
+  return null;
+}
+
+/** Plural class-year label for cohort groups (print snapshot, roster headings). */
+export function scholarYearGroupLabel(cohort: number | null | undefined): ScholarYearGroupLabel | null {
+  const label = scholarYearLabel(cohort);
+  if (label === "Freshman") return "Freshmen";
+  if (label === "Sophomore") return "Sophomores";
   return null;
 }

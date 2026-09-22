@@ -125,6 +125,7 @@ export const SHIFT_GRACE_MINUTES = 15;
 export type ShiftSessionKind = "front_desk" | "study_session";
 
 export interface ScholarShiftAssignment {
+  id?: string;
   scholar_id: string;
   semester_id: string;
   session_kind: ShiftSessionKind;

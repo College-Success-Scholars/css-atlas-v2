@@ -12,8 +12,8 @@
  * ## What does NOT belong here
  * - Functions, queries, or runtime logic
  *
- * Prefer `date` (session calendar day) when present; week filtering in the UI
- * may still use `start_time` until call sites are updated.
+ * Prefer `date` (session calendar day) when present. Memo and mentee week
+ * filters use `date`, then a parseable `start_time`; not form `created_at`.
  */
 export interface TutorReportLogRow {
   id: number;

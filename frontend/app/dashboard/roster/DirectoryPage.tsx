@@ -51,40 +51,40 @@ export default function DirectoryPage({
     [initialRows],
   )
 
-const filtered = useMemo(() => {
-  const q = search.trim().toLowerCase()
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
 
-  return initialRows.filter((row) => {
-    if (team !== ALL && !row.teams.includes(team)) return false
+    return initialRows.filter((row) => {
+      if (team !== ALL && !row.teams.includes(team)) return false
 
-    if (programRole !== ALL && row.programRole !== programRole) {
-      return false
-    }
+      if (programRole !== ALL && row.programRole !== programRole) {
+        return false
+      }
 
-    if (
-      cohort !== ALL &&
-      "cohort" in row &&
-      String(row.cohort ?? "") !== cohort
-    ) {
-      return false
-    }
+      if (
+        cohort !== ALL &&
+        "cohort" in row &&
+        String(row.cohort ?? "") !== cohort
+      ) {
+        return false
+      }
 
-    if (!q) return true
+      if (!q) return true
 
-    const haystack = [
-      row.scholarName,
-      row.email,
-      row.programRole,
-      row.teams.join(" "),
-      "appRole" in row ? row.appRole : null,
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase()
+      const haystack = [
+        row.scholarName,
+        row.email,
+        row.programRole,
+        row.teams.join(" "),
+        "appRole" in row ? row.appRole : null,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
 
-    return haystack.includes(q)
-  })
-}, [initialRows, search, team, programRole, cohort])
+      return haystack.includes(q)
+    })
+  }, [initialRows, search, team, programRole, cohort])
   return (
     <div className="space-y-4">
       <div>

@@ -55,10 +55,10 @@ describe("weekly memo print charts", () => {
     expect(low).toContain('data-print-chart="cohort-bar"');
     expect(low).toContain(`data-cohort="${sophomore}"`);
     expect(low).toContain(`fill="${PRINT_CHART.accent}"`);
-    expect(low).toContain("Sophomore 2 of 10 complete");
+    expect(low).toContain("Sophomores 2 of 10 complete");
     const high = cohortBarSvg({ cohort: freshman, completed: 10, total: 10 }, "fd-fresh");
     expect(high).toContain(`fill="${PRINT_CHART.good}"`);
-    expect(high).toContain("Freshman 10 of 10 complete");
+    expect(high).toContain("Freshmen 10 of 10 complete");
   });
 
   it("draws weekly traffic as bars plus a rolling-average line", () => {

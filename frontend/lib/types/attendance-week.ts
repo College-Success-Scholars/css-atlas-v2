@@ -34,6 +34,12 @@ export interface AttendanceWeekBoard {
   summary: AttendanceWeekBoardSummary;
 }
 
+export interface AttendanceForUids {
+  week_num: number;
+  week_start: string;
+  rows: AttendanceWeekBoardRow[];
+}
+
 export interface ScholarWeekExcuse {
   scholar_uid: string;
   week_start: string;

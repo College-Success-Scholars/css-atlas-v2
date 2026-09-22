@@ -7,21 +7,19 @@ import {
   assertThemeSafeMarkup,
 } from "@/lib/theme/theme-safety.test-helpers"
 import { TrafficCheckInForm } from "./traffic-check-in-form"
+import { leaveAtFromNowPlusMinutes } from "./traffic-format"
 
 const baseProps = {
   uid: "123456789",
   uidError: "",
   uidInputRef: createRef<HTMLInputElement>(),
-  durationChoice: 60 as const,
-  durationMin: 60,
-  customHours: "",
-  customMinutes: "",
+  quickStay: 60 as const,
+  leaveAt: leaveAtFromNowPlusMinutes(60, new Date("2024-06-15T18:00:00.000Z")),
+  leaveAtError: "",
   isSubmitting: false,
   onUidChange: vi.fn(),
-  onSelectDuration: vi.fn(),
-  onCustomHoursChange: vi.fn(),
-  onCustomMinutesChange: vi.fn(),
-  onAdjustCustomByMinutes: vi.fn(),
+  onSelectQuickStay: vi.fn(),
+  onLeaveAtTimeChange: vi.fn(),
   onSubmit: vi.fn(),
 }
 
@@ -32,6 +30,14 @@ describe("TrafficCheckInForm theme safety", () => {
     assertNoColorTransitionAll(markup, "TrafficCheckInForm")
     expect(markup).toContain("bg-success")
     expect(markup).toContain("Record Traffic")
+    expect(markup).toContain("What time are you leaving?")
+    expect(markup).toContain("Quick stay")
+    expect(markup).toContain("Enter 9-digit UID")
+    expect(markup).toContain("Press Enter to submit")
+    expect(markup).not.toContain("How long will you stay?")
+    expect(markup).not.toContain("Custom Time Entry")
+    expect(markup).not.toContain('type="time"')
+    expect(markup).toContain("Type leave time")
   })
 
   it("uses destructive tokens for UID errors", () => {
@@ -41,6 +47,17 @@ describe("TrafficCheckInForm theme safety", () => {
     expect(markup).toContain("text-destructive")
     expect(markup).not.toMatch(/text-red-500|bg-red-50/)
     assertThemeSafeMarkup(markup, "TrafficCheckInForm (error)")
+  })
+
+  it("shows leave-at validation error at kiosk scale", () => {
+    const markup = renderToStaticMarkup(
+      <TrafficCheckInForm
+        {...baseProps}
+        leaveAtError="Leave time must be in the future."
+      />
+    )
+    expect(markup).toContain("Leave time must be in the future.")
+    expect(markup).toContain("text-destructive")
   })
 
   it("stays theme-safe under .dark", () => {

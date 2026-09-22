@@ -408,7 +408,7 @@ Minutes are computed on read from cleaned session tickets (campus week). Excuses
 **Auth:** requireTeamLeaderOrAbove  
 **Description:** Week board for eligible scholars (enrolled freshman/sophomore with required hours for the kind). Includes Mon–Fri minutes, logged total, excuse, description, and completion %.  
 **Request Params:** `weekNum` (integer, >= 1)  
-**Query:** `kind` = `front_desk` | `study_session` (required)  
+**Query:** `kind` = `front_desk` | `study_session` (required)
 **Response:**
 ```json
 {
@@ -440,6 +440,45 @@ Minutes are computed on read from cleaned session tickets (campus week). Excuses
       "at_or_above_90": 0,
       "below_75": 0
     }
+  }
+}
+```
+
+---
+
+### `POST /api/attendance/week/:weekNum/by-uids`
+
+**Auth:** requireTeamLeaderOrAbove
+**Description:** Campus-week FD and SS minutes for the given scholar UIDs, using the same compute-on-read tickets + `scholar_week_excuses` math as Weekly Memo. Returns one front_desk row and one study_session row per UID (zeros when there are no tickets or excuse). `required_min` and `completion_pct` are null — callers use roster requirements.
+**Request Params:** `weekNum` (integer, >= 1)
+**Request Body:**
+```json
+{ "uids": ["12345", "67890"] }
+```
+**Response:**
+```json
+{
+  "data": {
+    "week_num": 1,
+    "week_start": "2026-08-31",
+    "rows": [
+      {
+        "scholar_uid": "12345",
+        "kind": "front_desk",
+        "logged_min": 75,
+        "excuse_min": 15,
+        "description": "Doctor appointment",
+        "effective_min": 90
+      },
+      {
+        "scholar_uid": "12345",
+        "kind": "study_session",
+        "logged_min": 0,
+        "excuse_min": 0,
+        "description": null,
+        "effective_min": 0
+      }
+    ]
   }
 }
 ```
@@ -962,7 +1001,7 @@ Routes under `/api/memo` require **requireTeamLeaderOrAbove** unless noted other
 ### `GET /api/memo/page-data`
 
 **Auth:** requireTeamLeaderOrAbove
-**Description:** Returns all processed data needed to render the memo page for a given week (aggregated in one call). Scholar rows and WAHF census (`wahfDonut`) include only enrolled freshman/sophomore scholars with required hours (`user_roster.status` = enrolled). `gradeBreakdown` is the Recognition board census: assignment grades parsed from the **latest WAHF per submitter that week** (scholars and team leaders; high ≥90%, mid 70–89%, low <70%) so resubmits do not duplicate; each band is sorted by percent descending. Team leader form stats (`teamLeaderFormStats`, `formCompletionOverall`, MCF rows) include only enrolled non-scholar, non-Coordinator roster rows. Inactive and graduated roster rows are omitted from scholar lists and TL form stats. FD/SS minutes are computed on read from cleaned tickets; excuses come from `scholar_week_excuses` (not `*_records`). Each scholar row includes `wahfStatus` (`on-time` | `late` | `missing`) and `wahfSubmittedAt` (latest weekly WAHF form-log `created_at`, or `null` if none) from that week's WAHF form logs. `teamLeader` is the mentor display name from `mentor_mentee` (`Unassigned` when the scholar has no row). Scholars owe WAHF only; WPL/MCF stay on team-leader form stats.
+**Description:** Returns all processed data needed to render the memo page for a given week (aggregated in one call). Scholar rows and WAHF census (`wahfDonut`) include only enrolled freshman/sophomore scholars with required hours (`user_roster.status` = enrolled). `gradeBreakdown` is the Recognition board census: assignment grades parsed from the **latest WAHF per submitter that week** (scholars and team leaders; high ≥90%, mid 70–89%, low <70%) so resubmits do not duplicate; each band is sorted by percent descending. Team leader form stats (`teamLeaderFormStats`, `formCompletionOverall`, MCF rows) include only enrolled non-scholar, non-Coordinator roster rows. Inactive and graduated roster rows are omitted from scholar lists and TL form stats. FD/SS minutes are computed on read from cleaned tickets; excuses come from `scholar_week_excuses` (not `*_records`). Each scholar row includes `wahfStatus` (`on-time` | `late` | `missing`) and `wahfSubmittedAt` (latest weekly WAHF form-log `created_at`, or `null` if none) from that week's WAHF form logs. `teamLeader` is the mentor display name from `mentor_mentee` (`Unassigned` when the scholar has no row). Scholars owe WAHF only; WPL/MCF stay on team-leader form stats. `trafficComparableLastWeekCount` is prior-week entries through the same weekday and time when the selected week is the current campus week (not the full prior week).
 **Query Params:**
 - `weekNumber` (integer >= 1; legacy `weekNum` accepted; defaults to current campus week if omitted)
 

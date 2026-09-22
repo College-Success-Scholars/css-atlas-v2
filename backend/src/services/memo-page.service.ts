@@ -27,7 +27,7 @@ import {
 } from "./attendance-week.service.js";
 import type { CampusWeekAttendanceTotals } from "../models/attendance-week.model.js";
 import { EMPTY_WEEKLY_MINUTES } from "../models/weekly-minutes.model.js";
-import { getTrafficEntryCountsForWeeks, getTrafficEntryCountForWeek, getTrafficSessionsForWeek } from "./traffic.service.js";
+import { getTrafficEntryCountsForWeeks, getTrafficEntryCountForWeek, getTrafficEntryCountForWeekThrough, getTrafficSessionsForWeek, comparableLastWeekThroughDate } from "./traffic.service.js";
 import {
   getMcfFormLogsForWeekWithLate,
   getWhafFormLogsForWeekWithLate,
@@ -35,7 +35,7 @@ import {
   buildTeamLeaderFormStatsForWeek,
   countableFormRequired,
 } from "./form-log.service.js";
-import { getTutorReportLogsForWeek } from "./tutor-report-log.service.js";
+import { getTutorReportLogsForWeek, tutoringSessionDayOfWeek } from "./tutor-report-log.service.js";
 import type { FormLogRowWithLate, McfFormLogRow, WahfFormLogRow } from "../models/form-log.model.js";
 import type { MemoUserRow } from "../models/user.model.js";
 import type { ScholarShiftCompliance, ShiftComplianceByKind } from "../models/session-log.model.js";
@@ -276,7 +276,7 @@ export function buildMemoScholarAttendanceRows(
  * 1. Resolve the campus week date range and prepare query boundaries.
  * 2. Fetch all data sources in parallel:
  *    - campus-week attendance (tickets + scholar_week_excuses), completed sessions,
- *      trafficWeeklyData, trafficEntryCount, trafficSessions,
+ *      trafficWeeklyData, trafficEntryCount, same-weekday last-week traffic count, trafficSessions,
  *      teamLeaders, mentor_mentee → TL names, mcf/whaf/wpl form logs (with late flags),
  *      tutorReportLogs.
  * 3. Parse assignment grades from the latest WHAF per submitter (scholars and
@@ -301,11 +301,14 @@ export async function getMemoPageData(weekNum: number) {
 
   const weekPickerMax = Math.max(25, currentCampusWeek ?? 1, weekNum);
   const weekNumbers = Array.from({ length: weekPickerMax }, (_, i) => i + 1);
+  const now = new Date();
+  const lastWeekThrough = comparableLastWeekThroughDate(now, weekNum, currentCampusWeek);
 
   const [
     attendance,
     trafficWeeklyData,
     trafficEntryCountForSelectedWeek,
+    trafficComparableLastWeekCount,
     trafficSessions,
     teamLeadersRaw,
     menteeTeamLeaders,
@@ -317,6 +320,9 @@ export async function getMemoPageData(weekNum: number) {
     getCampusWeekAttendance(weekNum),
     getTrafficEntryCountsForWeeks(weekNumbers),
     getTrafficEntryCountForWeek(weekNum),
+    lastWeekThrough == null
+      ? Promise.resolve(0)
+      : getTrafficEntryCountForWeekThrough(weekNum - 1, lastWeekThrough),
     getTrafficSessionsForWeek(weekNum),
     fetchTeamLeaders(),
     fetchMenteeTeamLeaderNames(),
@@ -433,14 +439,6 @@ export async function getMemoPageData(weekNum: number) {
     allUsers.map(u => [u.uid, [u.first_name, u.last_name].filter(Boolean).join(" ").trim() || u.uid])
   );
   const tutorReports = tutorReportLogs.map(log => {
-    // Derive day of week from created_at in Eastern time
-    let dayOfWeek: string = "—";
-    if (log.created_at) {
-      dayOfWeek = new Date(log.created_at).toLocaleDateString("en-US", {
-        weekday: "short",
-        timeZone: "America/New_York",
-      });
-    }
     return {
       id: log.id,
       scholarId: log.scholar_uid,
@@ -451,7 +449,7 @@ export async function getMemoPageData(weekNum: number) {
       courses: log.courses,
       startTime: log.start_time,
       endTime: log.end_time,
-      dayOfWeek,
+      dayOfWeek: tutoringSessionDayOfWeek(log),
     };
   });
 
@@ -468,6 +466,7 @@ export async function getMemoPageData(weekNum: number) {
     completedFd,
     trafficWeeklyData,
     trafficEntryCountForSelectedWeek,
+    trafficComparableLastWeekCount,
     trafficSessions,
     tutorReports,
     teamLeaderFormStats: teamLeaderFormRows,
