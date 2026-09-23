@@ -13,27 +13,27 @@
  * - Scholar-only content (that's scholar-dashboard.tsx)
  */
 import Link from "next/link"
-import { FileText, Monitor, User, Users } from "lucide-react"
+import { DoorOpen, ChartColumn, Handshake, ClipboardCheck } from "lucide-react"
 
 const baseOverviewLinks = [
   {
     title: "Personal",
     href: "/dashboard/personal",
-    icon: User,
+    icon: ClipboardCheck,
     description:
       "Track your WPL, MCF, and WAHF submission status.",
   },
   {
     title: "Room Monitoring",
     href: "/dashboard/room",
-    icon: Monitor,
+    icon: DoorOpen,
     description:
       "View real-time room occupancy and scholar presence for study sessions and front desk duty.",
   },
   {
     title: "Weekly Memo",
     href: "/dashboard/memo",
-    icon: FileText,
+    icon: ChartColumn,
     description:
       "Review the weekly memo: scholar follow-up, team leader form compliance, and attendance.",
   },
@@ -42,7 +42,7 @@ const baseOverviewLinks = [
 const menteesOverviewLink = {
   title: "Mentees",
   href: "/dashboard/mentee",
-  icon: Users,
+  icon: Handshake,
   description:
     "Monitor your mentees' study sessions, front desk hours, tutoring, and WAHF status.",
 } as const
