@@ -427,9 +427,9 @@ export function DirectoryDashboard() {
               </SheetContent>
             </Sheet>
             <DirectoryFiltersForm filters={filters} facets={facets} onChange={(next) => updateState({ ...state, ...next })} layout="inline" />
-            <div className="inline-flex h-11 shrink-0 overflow-hidden rounded-md border">
+            <div className="inline-flex h-9 shrink-0 overflow-hidden rounded-md border">
               <Button
-                className="h-11 rounded-none px-2 text-xs sm:px-3 sm:text-sm"
+                className="h-9 rounded-none px-2 text-xs sm:px-3 sm:text-sm"
                 size="sm"
                 variant={state.view === "flat" ? "default" : "ghost"}
                 onClick={() => updateState({ ...state, view: "flat" })}
@@ -437,7 +437,7 @@ export function DirectoryDashboard() {
                 Flat list
               </Button>
               <Button
-                className="h-11 rounded-none border-l px-2 text-xs sm:px-3 sm:text-sm"
+                className="h-9 rounded-none border-l px-2 text-xs sm:px-3 sm:text-sm"
                 size="sm"
                 variant={state.view === "grouped" ? "default" : "ghost"}
                 onClick={() => updateState({ ...state, view: "grouped" })}
@@ -445,18 +445,17 @@ export function DirectoryDashboard() {
                 By team
               </Button>
             </div>
+            <Select value={state.sort} onValueChange={(sort) => updateState({ ...state, sort: sort as DirectoryState["sort"] })}>
+                <SelectTrigger className="h-11 w-auto flex-1 px-2 text-xs sm:w-auto sm:flex-none sm:px-3 sm:text-sm [&>span]:truncate">
+                <span className="text-muted-foreground">Sort:</span>
+                <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                <SelectItem value="asc">Name A–Z</SelectItem>
+                <SelectItem value="desc">Name Z–A</SelectItem>
+                </SelectContent>
+            </Select>
           </div>
-
-          <Select value={state.sort} onValueChange={(sort) => updateState({ ...state, sort: sort as DirectoryState["sort"] })}>
-            <SelectTrigger className="h-11 min-w-0 flex-1 px-2 text-xs sm:w-auto sm:flex-none sm:px-3 sm:text-sm [&>span]:truncate">
-              <span className="text-muted-foreground">Sort:</span>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="asc">Name A–Z</SelectItem>
-              <SelectItem value="desc">Name Z–A</SelectItem>
-            </SelectContent>
-          </Select>
       </div>
 
       {error && <p className="rounded-md border border-destructive/50 p-3 text-sm text-destructive">{error}</p>}
