@@ -3,7 +3,7 @@
 Sync user_roster.mentee_count / mentee_uids from public.mentor_mentee.
 
 Invoked by scripts/sync-mentee-count-from-mentor-mentee.sh. Team leaders
-(program_role ≠ scholar, status ≠ graduated — same rule as
+(program_role ≠ scholar, status = enrolled — same rule as
 isTeamLeaderForPerformance) are compared to mentor_mentee via profiles.id.
 
 TLs with join rows get mentee_count = distinct mentee_uid count and mentee_uids
@@ -106,13 +106,13 @@ def fetch_pages(
         offset += PAGE_SIZE
 
 
-def is_graduated(status: Any) -> bool:
-    return (status or "").strip().lower() == "graduated"
+def is_enrolled(status: Any) -> bool:
+    return (status or "").strip().lower() == "enrolled"
 
 
 def is_team_leader_for_performance(row: dict[str, Any]) -> bool:
     role = (row.get("program_role") or "").strip().lower()
-    return role != "scholar" and not is_graduated(row.get("status"))
+    return role != "scholar" and is_enrolled(row.get("status"))
 
 
 def normalize_uids(value: Any) -> list[str]:

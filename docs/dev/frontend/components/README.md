@@ -69,7 +69,7 @@ Non-component utilities (dictionaries, assemblers, formatters) belong in `lib/`,
 - **Layout chrome** — no domain fetching; role-aware nav via `lib/auth.ts`; register new dashboard breadcrumb labels in `lib/dashboard-breadcrumb.ts`; `ThemeToggle` lives in the dashboard header (`layout/theme-toggle.tsx`).
 - **Auth UI** — all auth forms live in `auth/`; pages stay thin; use `@/lib/supabase/client` in client forms and `@/lib/supabase/server` in server components; errors use `text-destructive`.
 - **Charts** — shared Recharts + `ChartContainer` here (not under `app/dev/`); charts need `"use client"`; consume CSS vars from `lib/theme/css-color.ts` instead of local hex.
-- **Mentee monitoring** — one card per tracking category; single WA HF card (`wahf-card.tsx`); card-local formatting in `utils.ts` with tests; client distributes props to cards.
+- **Mentee monitoring** — one card per tracking category; single WA HF card (`wahf-card.tsx`); FD/SS hours from campus-week tickets + `scholar_week_excuses` (same math as Weekly Memo), with excuse minutes shown next to logged hours; card-local formatting in `utils.ts` with tests; client distributes props to cards. Week comes from `?week=` (campus calendar), not `daily_scholar_activity`.
 - **Personal** — page-private; transforms in `utils.ts`. Promote to shared only when reused.
 - **Settings** — page owns data; mutations via `lib/supabase/client.ts`.
 - **Marketing** — no auth/API; assets in `frontend/public/`.

@@ -9,13 +9,15 @@ import {
 import {
   computeWahfStatus,
   computeTutoringSessions,
-  filterActivityForMenteeWeek,
   addComplianceToDailyHours,
-  computeDailyHours,
+  dailyHoursFromAttendance,
+  attendanceRowForKind,
+  minutesToHours,
   durationMinutesFromClockTimes,
   clockStringToMinutes,
 } from "./utils"
-import type { ActivityRow, ShiftComplianceByKind, WahfRow, TutoringRow } from "@/lib/types/supabase"
+import type { ShiftComplianceByKind, WahfRow, TutoringRow } from "@/lib/types/supabase"
+import type { AttendanceWeekBoardRow } from "@/lib/types/attendance-week"
 
 const UID = "scholar-1"
 
@@ -127,46 +129,61 @@ describe("computeWahfStatus", () => {
   })
 })
 
-describe("filterActivityForMenteeWeek", () => {
-  it("buckets by campus week of activity_date, ignoring wrong week_num", () => {
-    const week = 2
-    const inWeek = dayInCampusWeek(week, 1)
-    const priorWeek = dayInCampusWeek(week - 1, 1)
-    vi.useFakeTimers({ now: noonOnDay(inWeek) })
-    expect(dateToCampusWeek(noonOnDay(inWeek))).toBe(week)
+function mockAttendanceRow(
+  overrides: Partial<AttendanceWeekBoardRow> & Pick<AttendanceWeekBoardRow, "kind">,
+): AttendanceWeekBoardRow {
+  return {
+    scholar_uid: UID,
+    scholar_name: null,
+    week_num: 2,
+    mon_min: 0,
+    tues_min: 0,
+    wed_min: 0,
+    thurs_min: 0,
+    fri_min: 0,
+    logged_min: 0,
+    excuse_min: 0,
+    description: null,
+    required_min: null,
+    effective_min: 0,
+    completion_pct: null,
+    ...overrides,
+  }
+}
 
-    const activity: ActivityRow[] = [
-      {
-        scholar_uid: UID,
-        activity_date: inWeek,
-        week_num: 999, // intentionally wrong — must not be used
-        log_source: "study_session_logs",
-        duration_minutes: 60,
-      },
-      {
-        scholar_uid: UID,
-        activity_date: priorWeek,
-        week_num: week, // stored as target week but date is prior week
-        log_source: "front_desk_logs",
-        duration_minutes: 30,
-      },
-      {
-        scholar_uid: "other",
-        activity_date: inWeek,
-        week_num: week,
-        log_source: "study_session_logs",
-        duration_minutes: 45,
-      },
+describe("dailyHoursFromAttendance", () => {
+  it("maps Mon–Fri ticket minutes and ignores missing rows", () => {
+    const row = mockAttendanceRow({
+      kind: "study_session",
+      mon_min: 90,
+      wed_min: 30,
+      logged_min: 120,
+      excuse_min: 15,
+      effective_min: 135,
+    })
+    const daily = dailyHoursFromAttendance(row)
+    expect(daily).toHaveLength(5)
+    expect(daily.map((d) => d.dayLabel)).toEqual(["Mon", "Tue", "Wed", "Thu", "Fri"])
+    expect(daily[0].hours).toBe(1.5)
+    expect(daily[1].hours).toBe(0)
+    expect(daily[2].hours).toBe(0.5)
+    expect(dailyHoursFromAttendance(null).every((d) => d.hours === 0)).toBe(true)
+  })
+
+  it("picks the row for uid and kind", () => {
+    const rows = [
+      mockAttendanceRow({ kind: "front_desk", scholar_uid: UID, logged_min: 30 }),
+      mockAttendanceRow({ kind: "study_session", scholar_uid: UID, logged_min: 90, excuse_min: 15 }),
+      mockAttendanceRow({ kind: "study_session", scholar_uid: "other", logged_min: 10 }),
     ]
+    expect(attendanceRowForKind(rows, UID, "study_session")?.logged_min).toBe(90)
+    expect(attendanceRowForKind(rows, UID, "front_desk")?.logged_min).toBe(30)
+    expect(attendanceRowForKind(rows, "missing", "front_desk")).toBeNull()
+  })
 
-    const { studySession, frontDesk } = filterActivityForMenteeWeek(
-      activity,
-      UID,
-      week,
-    )
-    expect(studySession).toHaveLength(1)
-    expect(studySession[0].duration_minutes).toBe(60)
-    expect(frontDesk).toHaveLength(0)
+  it("converts minutes to hours at one decimal", () => {
+    expect(minutesToHours(90)).toBe(1.5)
+    expect(minutesToHours(15)).toBe(0.3)
   })
 })
 
@@ -214,20 +231,20 @@ describe("addComplianceToDailyHours", () => {
       ],
     }
 
-    const daily = computeDailyHours([
-      {
-        scholar_uid: UID,
-        activity_date: monday,
-        week_num: week,
-        log_source: "study_session_logs",
-        duration_minutes: 90,
-      },
-    ])
+    const daily = dailyHoursFromAttendance(
+      mockAttendanceRow({
+        kind: "study_session",
+        mon_min: 90,
+        logged_min: 90,
+        effective_min: 90,
+      }),
+    )
     const result = addComplianceToDailyHours(daily, compliance, week)
 
     expect(result[0]).toMatchObject({ hours: 1.5, scheduledHours: 2, noShow: false })
     expect(result[1]).toMatchObject({ hours: 0, scheduledHours: 2, noShow: true })
     expect(result[2]).toMatchObject({ hours: 0, scheduledHours: 0, unscheduled: true })
+    expect(result).toHaveLength(5)
   })
 })
 

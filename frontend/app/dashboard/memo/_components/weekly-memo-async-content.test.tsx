@@ -64,7 +64,11 @@ vi.mock("@/components/dashboard/widgets/year-not-started-state", () => ({
   YearNotStartedState: () => React.createElement("div", { "data-testid": "year-not-started" }),
 }))
 
+import { freshmanCohortYear, sophomoreCohortYear } from "@/lib/format/time"
 import { WeeklyMemoAsyncContent } from "./weekly-memo-async-content"
+
+const freshman = freshmanCohortYear()
+const sophomore = sophomoreCohortYear()
 
 const renderAsyncContent = async (props: { weekParam?: string } = {}) => {
   const element = await WeeklyMemoAsyncContent(props)
@@ -76,14 +80,14 @@ const buildMemoData = (overrides: Record<string, unknown> = {}) => ({
     {
       scholarId: "2024-001",
       scholarName: "Alice Scholar",
-      cohort: 2024,
+      cohort: freshman,
       teamLeader: "TL One",
       fdPct: 95,
       ssPct: 91,
       fdRequired: 120,
       ssRequired: 120,
-      fdTotal: 0,
-      ssTotal: 0,
+      fdTotal: 114,
+      ssTotal: 109,
       fdExcuseMin: 0,
       ssExcuseMin: 0,
       wahfStatus: "on-time",
@@ -94,14 +98,14 @@ const buildMemoData = (overrides: Record<string, unknown> = {}) => ({
     {
       scholarId: "2023-010",
       scholarName: "Bob Scholar",
-      cohort: 2024,
+      cohort: sophomore,
       teamLeader: "Unassigned",
       fdPct: 50,
       ssPct: 70,
       fdRequired: 120,
       ssRequired: 120,
-      fdTotal: 0,
-      ssTotal: 0,
+      fdTotal: 30,
+      ssTotal: 84,
       fdExcuseMin: 0,
       ssExcuseMin: 0,
       wahfStatus: "missing",
@@ -138,8 +142,9 @@ const buildMemoData = (overrides: Record<string, unknown> = {}) => ({
     { weekNumber: 4, entryCount: 80 },
     { weekNumber: 5, entryCount: 100 },
   ],
-  trafficEntryCountForSelectedWeek: 100,
-  trafficSessions: [{ id: "session-1" }],
+    trafficEntryCountForSelectedWeek: 100,
+    trafficComparableLastWeekCount: 80,
+    trafficSessions: [{ id: "session-1" }],
   tutorReports: [{ id: 1, scholarId: "1", scholarName: "A", tutorName: "T", courses: [], startTime: "", endTime: "", dayOfWeek: "Mon" }],
   gradeBreakdown: {
     high: [{ scholarName: "Alice Scholar", course: "CMSC131", assessment: "Quiz", grade: "95%", percent: 95 }],
@@ -248,7 +253,16 @@ describe("WeeklyMemoAsyncContent", () => {
       expect.objectContaining({
         cards: expect.arrayContaining([
           expect.objectContaining({ title: "Visits this week", primaryValue: "100" }),
-          expect.objectContaining({ title: "Front desk completion", primaryValue: "73%" }),
+          expect.objectContaining({
+            title: "Front desk hours",
+            primaryValue: "1 / 2",
+            secondaryText: "80% or more",
+          }),
+          expect.objectContaining({
+            title: "Tutoring sessions",
+            primaryValue: "1",
+            secondaryText: "0 no-shows",
+          }),
         ]),
       }),
       undefined

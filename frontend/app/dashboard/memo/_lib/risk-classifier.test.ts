@@ -22,6 +22,7 @@ describe("risk-classifier", () => {
     completedFd: [],
     trafficWeeklyData: [],
     trafficEntryCountForSelectedWeek: 0,
+    trafficComparableLastWeekCount: 0,
     trafficSessions: [],
     tutorReports: [],
     gradeBreakdown: {

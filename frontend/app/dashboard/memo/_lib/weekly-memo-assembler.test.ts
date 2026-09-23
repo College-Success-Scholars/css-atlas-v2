@@ -75,6 +75,7 @@ const buildMemoData = (): MemoLivePageData =>
       { weekNumber: 5, entryCount: 100 },
     ],
     trafficEntryCountForSelectedWeek: 100,
+    trafficComparableLastWeekCount: 80,
     trafficSessions: [{ id: "session-1" }],
     tutorReports: [
       { id: 1, scholarId: "1", scholarName: "A", tutorName: "T", courses: [], startTime: "", endTime: "", dayOfWeek: "Mon" },
@@ -121,8 +122,27 @@ describe("weekly-memo-assembler", () => {
     expect(result.weekEndLabel).toBe("Apr 7")
     expect(result.kpis).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ title: "Visits this week", primaryValue: "100" }),
-        expect.objectContaining({ title: "Front desk completion", primaryValue: "73%" }),
+        expect.objectContaining({ title: "Visits this week", primaryValue: "100", trendText: "up vs last week" }),
+        expect.objectContaining({
+          title: "Front desk hours",
+          primaryValue: "1 / 2",
+          secondaryText: "80% or more",
+          pct: 50,
+          subStats: [
+            { label: "Sophomores", value: "0 / 1 (0%)", pct: 0 },
+            { label: "Freshmen", value: "1 / 1 (100%)", pct: 100 },
+          ],
+        }),
+        expect.objectContaining({
+          title: "Study session hours",
+          primaryValue: "1 / 2",
+          secondaryText: "80% or more",
+          pct: 50,
+          subStats: [
+            { label: "Sophomores", value: "0 / 1 (0%)", pct: 0 },
+            { label: "Freshmen", value: "1 / 1 (100%)", pct: 100 },
+          ],
+        }),
       ])
     )
     expect(result.teamLeaderRows[0]).toMatchObject({
@@ -161,7 +181,11 @@ describe("weekly-memo-assembler", () => {
     })
     expect(result.kpis).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ title: "Tutoring sessions held", secondaryText: "1 empty session" }),
+        expect.objectContaining({
+          title: "Tutoring sessions",
+          primaryValue: "1",
+          secondaryText: "1 no-show",
+        }),
       ])
     )
   })
@@ -310,5 +334,179 @@ describe("weekly-memo-assembler", () => {
       mcf: "on-time",
       hasNoMentee: true,
     })
+  })
+
+  it("marks MCF incomplete when some but not all mentee forms are in", () => {
+    const result = assembleWeeklyMemo({
+      ...buildMemoData(),
+      teamLeaderFormStats: [
+        {
+          scholarId: "tl-partial",
+          name: "TL Partial",
+          programRole: "Team Leader",
+          mcfCompleted: 1,
+          mcfRequired: 3,
+          mcfLate: false,
+          mcfPct: 33,
+          mcfLatestAt: "2026-04-03T12:00:00.000Z",
+          wplCompleted: 1,
+          wplRequired: 1,
+          wplLate: false,
+          wplPct: 100,
+          wplLatestAt: "",
+          wahfCompleted: 1,
+          wahfRequired: 1,
+          wahfLate: false,
+          wahfPct: 100,
+          wahfLatestAt: "",
+        },
+      ],
+    })
+
+    expect(result.teamLeaderRows[0]).toMatchObject({
+      leaderName: "TL Partial",
+      mcf: "incomplete",
+      wpl: "on-time",
+      wahf: "on-time",
+    })
+  })
+
+  it("keeps partial MCF incomplete even when a submitted check-in was late", () => {
+    const result = assembleWeeklyMemo({
+      ...buildMemoData(),
+      teamLeaderFormStats: [
+        {
+          scholarId: "tl-partial-late",
+          name: "TL Partial Late",
+          programRole: "Team Leader",
+          mcfCompleted: 1,
+          mcfRequired: 2,
+          mcfLate: true,
+          mcfPct: 50,
+          mcfLatestAt: "2026-04-04T22:00:00.000Z",
+          wplCompleted: 1,
+          wplRequired: 1,
+          wplLate: false,
+          wplPct: 100,
+          wplLatestAt: "",
+          wahfCompleted: 1,
+          wahfRequired: 1,
+          wahfLate: false,
+          wahfPct: 100,
+          wahfLatestAt: "",
+        },
+      ],
+    })
+
+    expect(result.teamLeaderRows[0]?.mcf).toBe("incomplete")
+  })
+
+  it("counts KPI hours complete at 80% or more, including excused minutes", () => {
+    const zeroCompliance = { insideMinutes: 0, outsideMinutes: 0, noShowCount: 0, dates: [] }
+    const result = assembleWeeklyMemo({
+      ...buildMemoData(),
+      scholars: [
+        {
+          ...buildMemoData().scholars[0]!,
+          scholarId: "at80",
+          scholarName: "At Eighty",
+          cohort: freshman,
+          fdTotal: 48,
+          fdRequired: 60,
+          ssTotal: 96,
+          ssRequired: 120,
+          fdExcuseMin: 0,
+          ssExcuseMin: 0,
+          fdPct: 80,
+          ssPct: 80,
+          fdCompliance: zeroCompliance,
+          ssCompliance: zeroCompliance,
+        },
+        {
+          ...buildMemoData().scholars[0]!,
+          scholarId: "below80",
+          scholarName: "Below Eighty",
+          cohort: freshman,
+          fdTotal: 47,
+          fdRequired: 60,
+          ssTotal: 95,
+          ssRequired: 120,
+          fdExcuseMin: 0,
+          ssExcuseMin: 0,
+          fdPct: 78,
+          ssPct: 79,
+          fdCompliance: zeroCompliance,
+          ssCompliance: zeroCompliance,
+        },
+        {
+          ...buildMemoData().scholars[1]!,
+          scholarId: "excuse80",
+          scholarName: "Excuse Eighty",
+          cohort: sophomore,
+          fdTotal: 0,
+          fdExcuseMin: 48,
+          fdRequired: 60,
+          ssTotal: 0,
+          ssExcuseMin: 96,
+          ssRequired: 120,
+          fdPct: 0,
+          ssPct: 0,
+          fdCompliance: zeroCompliance,
+          ssCompliance: zeroCompliance,
+        },
+      ],
+    })
+
+    const hoursSubStats = [
+      { label: "Sophomores", value: "1 / 1 (100%)", pct: 100 },
+      { label: "Freshmen", value: "1 / 2 (50%)", pct: 50 },
+    ]
+    expect(result.kpis).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: "Front desk hours",
+          primaryValue: "2 / 3",
+          secondaryText: "80% or more",
+          pct: 67,
+          subStats: hoursSubStats,
+        }),
+        expect.objectContaining({
+          title: "Study session hours",
+          primaryValue: "2 / 3",
+          secondaryText: "80% or more",
+          pct: 67,
+          subStats: hoursSubStats,
+        }),
+      ])
+    )
+  })
+
+  it("compares current-week visits to the same weekday last week, not last week's full total", () => {
+    const weekday = new Date().toLocaleDateString("en-US", {
+      weekday: "long",
+      timeZone: "America/New_York",
+    })
+    const currentWeek = 6
+    const result = assembleWeeklyMemo({
+      ...buildMemoData(),
+      selectedWeekNumber: currentWeek,
+      currentCampusWeek: currentWeek,
+      trafficEntryCountForSelectedWeek: 40,
+      trafficComparableLastWeekCount: 55,
+      trafficWeeklyData: [
+        { weekNumber: 5, entryCount: 90 },
+        { weekNumber: 6, entryCount: 40 },
+      ],
+    })
+
+    expect(result.kpis).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: "Visits this week",
+          primaryValue: "40",
+          trendText: `down vs last ${weekday}`,
+        }),
+      ]),
+    )
   })
 })

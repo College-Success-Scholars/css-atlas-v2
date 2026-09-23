@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Sync user_roster.mentee_count / mentee_uids from public.mentor_mentee.
 #
-# Team leaders (roster program_role ≠ scholar, status ≠ graduated) with no join
+# Team leaders (roster program_role ≠ scholar, status = enrolled) with no join
 # rows get mentee_count = -1 (no relationship yet). Assigned TLs get the join
 # count. Linked profiles.mentee_count is updated to match.
 #

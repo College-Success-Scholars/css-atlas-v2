@@ -40,7 +40,8 @@ COPY --from=builder /app/shared/dist/ ./shared/dist/
 COPY --from=builder /app/backend/dist/ ./backend/dist/
 
 # Chromium for weekly memo PDF. Skip Puppeteer's Chrome download (glibc
-# binary) and use Alpine's package instead.
+# binary) and use Alpine's package instead. Launch also uses
+# --disable-dev-shm-usage because container /dev/shm is often 64MB.
 RUN apk add --no-cache chromium nss freetype harfbuzz ca-certificates ttf-freefont
 ENV PUPPETEER_SKIP_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium

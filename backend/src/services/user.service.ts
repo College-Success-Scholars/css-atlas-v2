@@ -11,7 +11,7 @@
  * - Fetch scholar display names by UID array
  * - Fetch required front-desk and study-session hours per scholar
  * - Filter UIDs to eligible scholars (enrolled freshman/sophomore with hours)
- * - Fetch all user UIDs, memo users, team leaders, scholar UIDs
+ * - Fetch all user UIDs, memo users, team leaders, enrolled scholar UIDs
  * - Get a single user's data by UID
  * - Developer roster get/update (dual-write profiles + mentee assignments)
  *
@@ -25,7 +25,19 @@
  */
 import { getSupabaseClient } from "../supabase/client.js";
 import type { Database } from "../supabase/database.types.js";
-import type { MemoUserRow, RosterPatch, RosterRow, TeamLeaderRow } from "../models/user.model.js";
+import type {
+  DirectoryFacets,
+  DirectoryGroup,
+  DirectoryPagination,
+  DirectoryPerson,
+  DirectoryQuery,
+  DirectoryResponse,
+  DirectorySort,
+  MemoUserRow,
+  RosterPatch,
+  RosterRow,
+  TeamLeaderRow,
+} from "../models/user.model.js";
 import { isHourEligibleCohort } from "./time.service.js";
 
 /** Writable profiles insert — excludes generated `full_name` and server `created_at`. */
@@ -41,6 +53,160 @@ function uniqueNonEmptyStrings(values: string[]): string[] {
 export const ENROLLED_STATUS = "enrolled";
 export const GRADUATED_STATUS = "graduated";
 
+type DirectorySourceRow = Pick<
+  Database["public"]["Tables"]["user_roster"]["Row"],
+  "id" | "first_name" | "last_name" | "email" | "cohort" | "teams" | "program_role" | "phone_number"
+> & {
+  /** Search-only: never copied onto the mapped DirectoryPerson returned to clients. */
+  uid?: string | null;
+};
+
+type DirectoryCursor = { name: string; id: string };
+
+export class DirectoryCursorError extends Error {}
+
+function directoryName(row: Pick<DirectorySourceRow, "first_name" | "last_name">): string {
+  return [row.first_name, row.last_name].filter(Boolean).join(" ").trim() || "Unnamed person";
+}
+
+export function mapDirectoryPerson(row: DirectorySourceRow): DirectoryPerson {
+  return {
+    id: String(row.id),
+    name: directoryName(row),
+    cohort: row.cohort == null ? null : Number(row.cohort),
+    email: row.email ?? null,
+    phoneNumber: row.phone_number ?? null,
+    teams: [...new Set((row.teams ?? []).map((team) => team.trim()).filter(Boolean))],
+    programRole: row.program_role ?? null,
+  };
+}
+
+export function encodeDirectoryCursor(cursor: DirectoryCursor): string {
+  return Buffer.from(JSON.stringify(cursor)).toString("base64url");
+}
+
+export function decodeDirectoryCursor(value: string): DirectoryCursor {
+  try {
+    const parsed: unknown = JSON.parse(Buffer.from(value, "base64url").toString("utf8"));
+    if (
+      parsed == null ||
+      typeof parsed !== "object" ||
+      typeof (parsed as DirectoryCursor).name !== "string" ||
+      typeof (parsed as DirectoryCursor).id !== "string" ||
+      !(parsed as DirectoryCursor).name ||
+      !(parsed as DirectoryCursor).id
+    ) throw new Error("invalid cursor");
+    return parsed as DirectoryCursor;
+  } catch {
+    throw new DirectoryCursorError("Invalid directory cursor");
+  }
+}
+
+function compareDirectoryPeople(a: DirectoryPerson, b: DirectoryPerson, sort: DirectorySort): number {
+  const nameOrder = a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+  const idOrder = a.id.localeCompare(b.id, undefined, { numeric: true });
+  const order = nameOrder || idOrder;
+  return sort === "asc" ? order : -order;
+}
+
+function paginateDirectoryPeople(
+  people: DirectoryPerson[],
+  query: Pick<DirectoryQuery, "cursor" | "limit" | "sort">,
+): { members: DirectoryPerson[]; pagination: DirectoryPagination } {
+  let offset = 0;
+  if (query.cursor) {
+    const cursor = decodeDirectoryCursor(query.cursor);
+    const cursorIndex = people.findIndex((person) => person.id === cursor.id && person.name === cursor.name);
+    if (cursorIndex === -1) throw new DirectoryCursorError("Stale directory cursor");
+    offset = cursorIndex + 1;
+  }
+  const members = people.slice(offset, offset + query.limit);
+  const hasNext = offset + members.length < people.length;
+  const last = members.at(-1);
+  return {
+    members,
+    pagination: {
+      total: people.length,
+      range: { start: members.length ? offset + 1 : 0, end: offset + members.length },
+      hasNext,
+      nextCursor: hasNext && last ? encodeDirectoryCursor({ name: last.name, id: last.id }) : null,
+    },
+  };
+}
+
+function belongsToGroup(person: DirectoryPerson, group: string): boolean {
+  return group === "Unassigned" ? person.teams.length === 0 : person.teams.includes(group);
+}
+
+/** Matches the directory search box's "name, email, or UID" contract without exposing UID on the mapped person. */
+function matchesDirectorySearch(row: DirectorySourceRow, person: DirectoryPerson, search: string): boolean {
+  if (!search) return true;
+  const haystack = `${person.name} ${person.email ?? ""} ${row.uid ?? ""}`.toLocaleLowerCase();
+  return haystack.includes(search);
+}
+
+/** Applies directory filtering and pagination after the RLS-scoped, restricted projection is read. */
+export function queryDirectoryRows(rows: DirectorySourceRow[], query: DirectoryQuery): DirectoryResponse {
+  const search = query.search.toLocaleLowerCase();
+  const people = rows
+    .map((row) => ({ row, person: mapDirectoryPerson(row) }))
+    .filter(({ row, person }) =>
+      matchesDirectorySearch(row, person, search) &&
+      (!query.teams.length || person.teams.some((team) => query.teams.includes(team))) &&
+      (!query.programRoles.length || (person.programRole != null && query.programRoles.includes(person.programRole))) &&
+      (!query.cohorts.length || (person.cohort != null && query.cohorts.includes(person.cohort))),
+    )
+    .map(({ person }) => person)
+    .sort((a, b) => compareDirectoryPeople(a, b, query.sort));
+
+  if (query.view === "flat") {
+    const { members, pagination } = paginateDirectoryPeople(people, query);
+    return { view: "flat", members, pagination };
+  }
+
+  const groupNames = query.group
+    ? [query.group]
+    : [...new Set(people.flatMap((person) => person.teams.length ? person.teams : ["Unassigned"]))]
+      .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  const groups: DirectoryGroup[] = groupNames.map((team) => {
+    const members = people.filter((person) => belongsToGroup(person, team));
+    const page = paginateDirectoryPeople(members, query);
+    return { team, ...page };
+  });
+  return { view: "grouped", total: people.length, groups };
+}
+
+/**
+ * Reads only directory-facing columns through the request's RLS-scoped client.
+ * Filtering and cursor pagination stay in memory because the roster is small and
+ * a compound PostgREST cursor would be less reliable than this deterministic path.
+ */
+export async function getDirectory(query: DirectoryQuery): Promise<DirectoryResponse> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("user_roster")
+    .select("id, first_name, last_name, email, cohort, teams, program_role, phone_number, uid");
+  if (error) throw error;
+  return queryDirectoryRows(data ?? [], query);
+}
+
+/** Distinct team/program-role/cohort values for the Directory filter dropdowns. */
+export async function getDirectoryFacets(): Promise<DirectoryFacets> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("user_roster")
+    .select("teams, program_role, cohort");
+  if (error) throw error;
+  const rows = data ?? [];
+  const teams = uniqueNonEmptyStrings(rows.flatMap((row) => (row.teams ?? []).map((team) => team.trim())))
+    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  const programRoles = uniqueNonEmptyStrings(rows.map((row) => (row.program_role ?? "").trim()))
+    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  const cohorts = [...new Set(rows.map((row) => row.cohort).filter((cohort): cohort is number => cohort != null))]
+    .sort((a, b) => b - a);
+  return { teams, programRoles, cohorts };
+}
+
 export function isEnrolled(status: string | null | undefined): boolean {
   return (status ?? "").toLowerCase() === ENROLLED_STATUS;
 }
@@ -49,13 +215,23 @@ export function isGraduated(status: string | null | undefined): boolean {
   return (status ?? "").toLowerCase() === GRADUATED_STATUS;
 }
 
+export function isScholarProgramRole(programRole: string | null | undefined): boolean {
+  return (programRole ?? "").toLowerCase() === "scholar";
+}
+
+/** Scholar roster row whose `user_roster.status` is enrolled. */
+export function isEnrolledScholar(
+  u: Pick<MemoUserRow, "program_role" | "status">,
+): boolean {
+  return isScholarProgramRole(u.program_role) && isEnrolled(u.status);
+}
+
 export function isEligibleScholar(
   u: Pick<MemoUserRow, "program_role" | "cohort" | "status" | "fd_required" | "ss_required">,
 ): boolean {
-  const role = (u.program_role ?? "").toLowerCase();
   const fd = u.fd_required != null ? Number(u.fd_required) : 0;
   const ss = u.ss_required != null ? Number(u.ss_required) : 0;
-  return role === "scholar" && isEnrolled(u.status) && isHourEligibleCohort(u.cohort) && (fd > 0 || ss > 0);
+  return isEnrolledScholar(u) && isHourEligibleCohort(u.cohort) && (fd > 0 || ss > 0);
 }
 
 /** Roster program_role Coordinator only — does not match Program Coordinator. */
@@ -63,12 +239,11 @@ export function isCoordinator(programRole: string | null | undefined): boolean {
   return (programRole ?? "").toLowerCase().trim() === "coordinator";
 }
 
-/** Memo / form-stats TLs: not scholar, not Coordinator, and status is not graduated. */
+/** Memo / form-stats TLs: not scholar, not Coordinator, and `user_roster.status` is enrolled. */
 export function isTeamLeaderForPerformance(
   u: Pick<MemoUserRow, "program_role" | "status">,
 ): boolean {
-  const role = (u.program_role ?? "").toLowerCase();
-  return role !== "scholar" && !isCoordinator(role) && !isGraduated(u.status);
+  return !isScholarProgramRole(u.program_role) && !isCoordinator(u.program_role) && isEnrolled(u.status);
 }
 
 /** Roster app_role is often unset; access control reads profiles.app_role. */
@@ -232,7 +407,7 @@ export async function getUserByUid(uid: string): Promise<MemoUserRow | null> {
   return mapMemoUserRow(data);
 }
 
-/** Non-scholar, non-Coordinator roster rows excluding graduates — feeds Memo team leader performance. */
+/** Non-scholar, non-Coordinator roster rows with enrolled status — feeds Memo team leader compliance. */
 export async function fetchTeamLeaders(): Promise<TeamLeaderRow[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
@@ -257,14 +432,17 @@ export async function fetchTeamLeaders(): Promise<TeamLeaderRow[]> {
   return rows.filter(isTeamLeaderForPerformance);
 }
 
+/** Enrolled scholar UIDs from `user_roster` (`program_role` scholar, `status` enrolled). */
 export async function fetchScholarUids(): Promise<string[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("user_roster")
-    .select("uid")
+    .select("uid, program_role, status")
     .ilike("program_role", "scholar");
   if (error) throw error;
-  return (data ?? []).map((r) => String(r.uid)).filter(Boolean);
+  return (data ?? [])
+    .filter((r) => r.uid != null && isEnrolledScholar({ program_role: r.program_role, status: r.status }))
+    .map((r) => String(r.uid));
 }
 
 export async function getRosterByUid(uid: string): Promise<RosterRow | null> {

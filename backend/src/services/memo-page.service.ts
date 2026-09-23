@@ -27,7 +27,7 @@ import {
 } from "./attendance-week.service.js";
 import type { CampusWeekAttendanceTotals } from "../models/attendance-week.model.js";
 import { EMPTY_WEEKLY_MINUTES } from "../models/weekly-minutes.model.js";
-import { getTrafficEntryCountsForWeeks, getTrafficEntryCountForWeek, getTrafficSessionsForWeek } from "./traffic.service.js";
+import { getTrafficEntryCountsForWeeks, getTrafficEntryCountForWeek, getTrafficEntryCountForWeekThrough, getTrafficSessionsForWeek, comparableLastWeekThroughDate } from "./traffic.service.js";
 import {
   getMcfFormLogsForWeekWithLate,
   getWhafFormLogsForWeekWithLate,
@@ -35,7 +35,7 @@ import {
   buildTeamLeaderFormStatsForWeek,
   countableFormRequired,
 } from "./form-log.service.js";
-import { getTutorReportLogsForWeek } from "./tutor-report-log.service.js";
+import { getTutorReportLogsForWeek, tutoringSessionDayOfWeek } from "./tutor-report-log.service.js";
 import type { FormLogRowWithLate, McfFormLogRow, WahfFormLogRow } from "../models/form-log.model.js";
 import type { MemoUserRow } from "../models/user.model.js";
 import type { ScholarShiftCompliance, ShiftComplianceByKind } from "../models/session-log.model.js";
@@ -105,15 +105,20 @@ function parseGradeEntriesFromWahf(row: FormLogRowWithLate<WahfFormLogRow>): Mem
   return entries;
 }
 
-/** Parse assignment grades from the latest WAHF per scholar so resubmits do not duplicate. */
+/**
+ * Parse assignment grades from the latest WAHF per submitter so resubmits do not
+ * duplicate. Defaults to every WAHF uid for the week (scholars and team leaders).
+ * Pass `submitterIds` only when a caller needs a narrower roster.
+ */
 export function buildGradeBreakdown(
-  wahfRows: FormLogRowWithLate<WahfFormLogRow>[]
+  wahfRows: FormLogRowWithLate<WahfFormLogRow>[],
+  submitterIds?: Set<string>,
 ): MemoGradeBreakdown {
   const breakdown: MemoGradeBreakdown = { high: [], mid: [], low: [] };
-  const scholarIds = new Set(
+  const ids = submitterIds ?? new Set(
     wahfRows.map((row) => row.scholar_uid).filter((uid): uid is string => Boolean(uid))
   );
-  for (const scholarId of scholarIds) {
+  for (const scholarId of ids) {
     const latest = latestScholarWahf(scholarId, wahfRows);
     if (!latest) continue;
     for (const entry of parseGradeEntriesFromWahf(latest)) {
@@ -271,12 +276,13 @@ export function buildMemoScholarAttendanceRows(
  * 1. Resolve the campus week date range and prepare query boundaries.
  * 2. Fetch all data sources in parallel:
  *    - campus-week attendance (tickets + scholar_week_excuses), completed sessions,
- *      trafficWeeklyData, trafficEntryCount, trafficSessions,
+ *      trafficWeeklyData, trafficEntryCount, same-weekday last-week traffic count, trafficSessions,
  *      teamLeaders, mentor_mentee → TL names, mcf/whaf/wpl form logs (with late flags),
  *      tutorReportLogs.
- * 3. Parse assignment grades from the latest WHAF per scholar into a grade
- *    breakdown (high ≥90%, mid 70-89%, low <70%) so resubmits do not duplicate.
- * 4. Compute WHAF submission donut stats (total users, submitted, late).
+ * 3. Parse assignment grades from the latest WHAF per submitter (scholars and
+ *    team leaders) into a grade breakdown (high ≥90%, mid 70-89%, low <70%)
+ *    so resubmits do not duplicate.
+ * 4. Compute WHAF submission donut stats for enrolled eligible scholars (submitted, late).
  * 5. Build team leader form stats (MCF/WHAF/WPL completion per TL).
  * 6. Aggregate form completion totals across all team leaders.
  * 7. Build scholar rows: merge FD/SS compute-on-read minutes + excuses with
@@ -295,11 +301,14 @@ export async function getMemoPageData(weekNum: number) {
 
   const weekPickerMax = Math.max(25, currentCampusWeek ?? 1, weekNum);
   const weekNumbers = Array.from({ length: weekPickerMax }, (_, i) => i + 1);
+  const now = new Date();
+  const lastWeekThrough = comparableLastWeekThroughDate(now, weekNum, currentCampusWeek);
 
   const [
     attendance,
     trafficWeeklyData,
     trafficEntryCountForSelectedWeek,
+    trafficComparableLastWeekCount,
     trafficSessions,
     teamLeadersRaw,
     menteeTeamLeaders,
@@ -311,6 +320,9 @@ export async function getMemoPageData(weekNum: number) {
     getCampusWeekAttendance(weekNum),
     getTrafficEntryCountsForWeeks(weekNumbers),
     getTrafficEntryCountForWeek(weekNum),
+    lastWeekThrough == null
+      ? Promise.resolve(0)
+      : getTrafficEntryCountForWeekThrough(weekNum - 1, lastWeekThrough),
     getTrafficSessionsForWeek(weekNum),
     fetchTeamLeaders(),
     fetchMenteeTeamLeaderNames(),
@@ -321,26 +333,29 @@ export async function getMemoPageData(weekNum: number) {
   ]);
 
   const allUsers = attendance.users;
+  const enrolledScholars = allUsers.filter(isEligibleScholar);
   const completedStudy = attendance.ssSessions;
   const completedFd = attendance.fdSessions;
   const complianceByScholarId = range
     ? await getShiftComplianceForScholars(
-      allUsers.filter(isEligibleScholar).map((user) => user.uid),
+      enrolledScholars.map((user) => user.uid),
       range
     )
     : new Map<string, ScholarShiftCompliance>();
 
   const gradeBreakdown = buildGradeBreakdown(whafRowsWithLate);
 
-  // WHAF submission donut stats — all users, not just scholars with required hours
+  // WAHF census — enrolled eligible scholars only (`user_roster.status` = enrolled)
   const whafSubmitterUids = new Set(
     whafRowsWithLate
       .map((r) => r.scholar_uid)
       .filter((uid): uid is string => Boolean(uid))
   );
-  const totalUsers = allUsers.length;
-  const whafSubmittedCount = allUsers.filter((u) => whafSubmitterUids.has(u.uid)).length;
-  const whafLateCount = whafRowsWithLate.filter((r) => r.isLate).length;
+  const totalUsers = enrolledScholars.length;
+  const whafSubmittedCount = enrolledScholars.filter((u) => whafSubmitterUids.has(u.uid)).length;
+  const whafLateCount = enrolledScholars.filter(
+    (u) => scholarWahfStatus(u.uid, whafRowsWithLate) === "late"
+  ).length;
   const whafPct = totalUsers > 0 ? Math.round((whafSubmittedCount / totalUsers) * 100) : 0;
   const wahfDonut = {
     total: totalUsers,
@@ -424,14 +439,6 @@ export async function getMemoPageData(weekNum: number) {
     allUsers.map(u => [u.uid, [u.first_name, u.last_name].filter(Boolean).join(" ").trim() || u.uid])
   );
   const tutorReports = tutorReportLogs.map(log => {
-    // Derive day of week from created_at in Eastern time
-    let dayOfWeek: string = "—";
-    if (log.created_at) {
-      dayOfWeek = new Date(log.created_at).toLocaleDateString("en-US", {
-        weekday: "short",
-        timeZone: "America/New_York",
-      });
-    }
     return {
       id: log.id,
       scholarId: log.scholar_uid,
@@ -442,7 +449,7 @@ export async function getMemoPageData(weekNum: number) {
       courses: log.courses,
       startTime: log.start_time,
       endTime: log.end_time,
-      dayOfWeek,
+      dayOfWeek: tutoringSessionDayOfWeek(log),
     };
   });
 
@@ -459,6 +466,7 @@ export async function getMemoPageData(weekNum: number) {
     completedFd,
     trafficWeeklyData,
     trafficEntryCountForSelectedWeek,
+    trafficComparableLastWeekCount,
     trafficSessions,
     tutorReports,
     teamLeaderFormStats: teamLeaderFormRows,

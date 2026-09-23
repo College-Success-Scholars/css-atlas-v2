@@ -65,6 +65,13 @@ export interface AttendanceWeekBoard {
   summary: AttendanceWeekBoardSummary;
 }
 
+/** FD + SS rows for specific UIDs in one campus week (mentees page). */
+export interface AttendanceForUids {
+  week_num: number;
+  week_start: string;
+  rows: AttendanceWeekBoardRow[];
+}
+
 /** Per-scholar logged minutes + excuse for one duty kind. */
 export interface CampusWeekAttendanceTotals {
   minutes: WeeklyMinutesByDay;

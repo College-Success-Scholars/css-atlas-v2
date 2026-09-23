@@ -9,6 +9,7 @@
  * ## Responsibilities
  * - Fetch traffic sessions (check-in/out pairs) for a week
  * - Count total entry events for a week
+ * - Count prior-week entries through the same weekday/time for memo KPI trend
  * - Batch-count entries for multiple weeks (for trend charts)
  *
  * ## What belongs here
@@ -19,7 +20,13 @@
  * - HTTP request/response logic
  */
 import { getSupabaseClient } from "../supabase/client.js";
-import { campusWeekToDateRange, dateToCampusWeek, getWeekFetchEnd } from "./time.service.js";
+import {
+  addEasternCalendarDays,
+  campusWeekToDateRange,
+  dateToCampusWeek,
+  getStartOfDayEastern,
+  getWeekFetchEnd,
+} from "./time.service.js";
 import type { TrafficRow, TrafficSession, WeekEntryCount } from "../models/traffic.model.js";
 
 // ---------------------------------------------------------------------------
@@ -129,6 +136,41 @@ export function getEntryCountByWeek(rows: TrafficRow[], weekNumber: number): num
   }).length;
 }
 
+/** Same clock time seven Eastern calendar days earlier (DST-safe). */
+export function sameTimeLastWeek(now: Date): Date {
+  const todayStart = getStartOfDayEastern(now);
+  const lastWeekDayStart = addEasternCalendarDays(now, -7);
+  return new Date(lastWeekDayStart.getTime() + (now.getTime() - todayStart.getTime()));
+}
+
+/**
+ * End of the prior-week window to compare against the selected week's traffic so far.
+ * Current week: same weekday and time last week. Past week: full prior week.
+ */
+export function comparableLastWeekThroughDate(
+  now: Date,
+  selectedWeek: number,
+  currentCampusWeek: number | null,
+): Date | null {
+  if (selectedWeek <= 1) return null;
+  const priorRange = campusWeekToDateRange(selectedWeek - 1);
+  if (!priorRange) return null;
+  const priorEnd = getWeekFetchEnd(priorRange);
+  if (selectedWeek === currentCampusWeek) {
+    const sameTime = sameTimeLastWeek(now);
+    return sameTime.getTime() < priorEnd.getTime() ? sameTime : priorEnd;
+  }
+  return priorEnd;
+}
+
+export function countTrafficEntriesThrough(rows: TrafficRow[], through: Date): number {
+  const throughMs = through.getTime();
+  return rows.filter((row) => {
+    if (!isTrafficEntry(row)) return false;
+    return new Date(row.created_at).getTime() <= throughMs;
+  }).length;
+}
+
 // ---------------------------------------------------------------------------
 // Week-level orchestration
 // ---------------------------------------------------------------------------
@@ -147,6 +189,20 @@ export async function getTrafficEntryCountForWeek(weekNumber: number): Promise<n
   const endDate = getWeekFetchEnd(range);
   const rows = await fetchTrafficLogs({ startDate: range.startDate, endDate });
   return getEntryCountByWeek(rows, weekNumber);
+}
+
+/** Entry count for a campus week, clipped at `through` (same-weekday last-week compare). */
+export async function getTrafficEntryCountForWeekThrough(
+  weekNumber: number,
+  through: Date,
+): Promise<number> {
+  const range = campusWeekToDateRange(weekNumber);
+  if (!range) return 0;
+  const weekEnd = getWeekFetchEnd(range);
+  const endDate = through.getTime() < weekEnd.getTime() ? through : weekEnd;
+  if (endDate.getTime() < range.startDate.getTime()) return 0;
+  const rows = await fetchTrafficLogs({ startDate: range.startDate, endDate });
+  return countTrafficEntriesThrough(rows, endDate);
 }
 
 export async function getTrafficEntryCountsForWeeks(

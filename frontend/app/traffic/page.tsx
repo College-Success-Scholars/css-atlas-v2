@@ -4,24 +4,37 @@ import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { recordTrafficEntry } from "@/lib/server/actions"
+import { useMinuteNow } from "@/hooks/use-minute-now"
 import {
   TrafficCheckInForm,
-  type DurationChoice,
+  type QuickStayMinutes,
 } from "./_components/traffic-check-in-form"
 import { TrafficSuccessScreen } from "./_components/traffic-success-screen"
-import { getCustomTotalMinutes } from "./_components/traffic-format"
+import {
+  leaveAtFromNowPlusMinutes,
+  parseLeaveAtTimeInput,
+  validateLeaveAt,
+} from "./_components/traffic-format"
+
+const DEFAULT_STAY_MINUTES: QuickStayMinutes = 60
 
 export default function TrafficPage() {
+  const now = useMinuteNow()
   const [uid, setUid] = useState("")
   const [uidError, setUidError] = useState("")
-  const [durationChoice, setDurationChoice] = useState<DurationChoice>(60)
-  const [durationMin, setDurationMin] = useState<number>(60)
-  const [customHours, setCustomHours] = useState("")
-  const [customMinutes, setCustomMinutes] = useState("")
+  const [leaveAtError, setLeaveAtError] = useState("")
+  const [quickStay, setQuickStay] = useState<QuickStayMinutes | null>(
+    DEFAULT_STAY_MINUTES
+  )
+  const [leaveAt, setLeaveAt] = useState(() =>
+    leaveAtFromNowPlusMinutes(DEFAULT_STAY_MINUTES)
+  )
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
-  /** Submitted stay length for the success overlay only (form resets `durationMin` after submit). */
-  const [successExitMinutes, setSuccessExitMinutes] = useState<number | null>(null)
+  /** Submitted stay length for the success overlay only. */
+  const [successExitMinutes, setSuccessExitMinutes] = useState<number | null>(
+    null
+  )
 
   const uidInputRef = useRef<HTMLInputElement>(null)
 
@@ -29,12 +42,11 @@ export default function TrafficPage() {
     uidInputRef.current?.focus()
   }, [])
 
+  // Keep chip-based leave-at aligned with a ticking clock so duration stays accurate.
   useEffect(() => {
-    if (durationChoice === "custom") {
-      const totalMinutes = getCustomTotalMinutes(customHours, customMinutes)
-      setDurationMin(totalMinutes)
-    }
-  }, [customHours, customMinutes, durationChoice])
+    if (quickStay == null) return
+    setLeaveAt(leaveAtFromNowPlusMinutes(quickStay, now))
+  }, [now, quickStay])
 
   const validateUid = (): boolean => {
     if (!uid || uid.length !== 9 || !/^\d{9}$/.test(uid)) {
@@ -46,21 +58,17 @@ export default function TrafficPage() {
     return true
   }
 
-  const handleSelectDuration = (choice: DurationChoice) => {
-    setDurationChoice(choice)
-    if (choice !== "custom") {
-      setDurationMin(choice)
-    } else if (durationMin > 0 && customHours === "" && customMinutes === "") {
-      setCustomHours(Math.floor(durationMin / 60).toString())
-      setCustomMinutes((durationMin % 60).toString())
-    }
+  const handleSelectQuickStay = (minutes: QuickStayMinutes) => {
+    setQuickStay(minutes)
+    setLeaveAtError("")
+    setLeaveAt(leaveAtFromNowPlusMinutes(minutes))
   }
 
-  const adjustCustomByMinutes = (delta: number) => {
-    const currentTotal = getCustomTotalMinutes(customHours, customMinutes)
-    const nextTotal = Math.max(0, Math.min(720, currentTotal + delta))
-    setCustomHours(String(Math.floor(nextTotal / 60)))
-    setCustomMinutes(String(nextTotal % 60))
+  const handleLeaveAtTimeChange = (timeHm: string) => {
+    if (!/^\d{2}:\d{2}$/.test(timeHm)) return
+    setQuickStay(null)
+    setLeaveAtError("")
+    setLeaveAt(parseLeaveAtTimeInput(timeHm))
   }
 
   const handleSubmitTraffic = async () => {
@@ -70,8 +78,15 @@ export default function TrafficPage() {
       return
     }
 
-    if (durationMin <= 0 || durationMin > 720) {
-      toast.error("Please select a valid duration between 1 minute and 12 hours.")
+    const submitNow = new Date()
+    const effectiveLeaveAt =
+      quickStay != null
+        ? leaveAtFromNowPlusMinutes(quickStay, submitNow)
+        : leaveAt
+    const validation = validateLeaveAt(effectiveLeaveAt, submitNow)
+    if (!validation.ok) {
+      setLeaveAtError(validation.error)
+      toast.error(validation.error)
       return
     }
 
@@ -79,7 +94,7 @@ export default function TrafficPage() {
     try {
       const result = await recordTrafficEntry({
         uid,
-        duration_min: durationMin,
+        duration_min: validation.durationMin,
       })
 
       if ("error" in result && result.error) {
@@ -87,15 +102,14 @@ export default function TrafficPage() {
         return
       }
 
-      setSuccessExitMinutes(durationMin)
+      setSuccessExitMinutes(validation.durationMin)
       setShowSuccess(true)
 
       setUid("")
       setUidError("")
-      setDurationChoice(60)
-      setDurationMin(60)
-      setCustomHours("")
-      setCustomMinutes("")
+      setLeaveAtError("")
+      setQuickStay(DEFAULT_STAY_MINUTES)
+      setLeaveAt(leaveAtFromNowPlusMinutes(DEFAULT_STAY_MINUTES))
 
       setTimeout(() => {
         setShowSuccess(false)
@@ -120,7 +134,10 @@ export default function TrafficPage() {
       if (e.key === "Enter") {
         const target = e.target as HTMLElement
         if (target.tagName === "INPUT") return
-        if (target.tagName === "BUTTON" && target.textContent?.includes("Record Traffic"))
+        if (
+          target.tagName === "BUTTON" &&
+          target.textContent?.includes("Record Traffic")
+        )
           return
 
         e.preventDefault()
@@ -133,7 +150,7 @@ export default function TrafficPage() {
 
   if (showSuccess) {
     return (
-      <TrafficSuccessScreen exitMinutes={successExitMinutes ?? durationMin} />
+      <TrafficSuccessScreen exitMinutes={successExitMinutes ?? 0} />
     )
   }
 
@@ -142,19 +159,16 @@ export default function TrafficPage() {
       uid={uid}
       uidError={uidError}
       uidInputRef={uidInputRef}
-      durationChoice={durationChoice}
-      durationMin={durationMin}
-      customHours={customHours}
-      customMinutes={customMinutes}
+      quickStay={quickStay}
+      leaveAt={leaveAt}
+      leaveAtError={leaveAtError}
       isSubmitting={isSubmitting}
       onUidChange={(value) => {
         setUid(value)
         setUidError("")
       }}
-      onSelectDuration={handleSelectDuration}
-      onCustomHoursChange={setCustomHours}
-      onCustomMinutesChange={setCustomMinutes}
-      onAdjustCustomByMinutes={adjustCustomByMinutes}
+      onSelectQuickStay={handleSelectQuickStay}
+      onLeaveAtTimeChange={handleLeaveAtTimeChange}
       onSubmit={handleSubmitTraffic}
     />
   )

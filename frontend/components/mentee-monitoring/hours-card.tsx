@@ -27,6 +27,9 @@ interface HoursCardProps {
   color: keyof typeof COLOR_CONFIG
   dailyHours: DailyHoursEntry[]
   todayLabel: string
+  /** Excuse hours for this campus week (same source as Weekly Memo). */
+  excuseHours?: number
+  excuseDescription?: string | null
 }
 
 export function HoursCard({
@@ -36,10 +39,14 @@ export function HoursCard({
   color,
   dailyHours,
   todayLabel,
+  excuseHours = 0,
+  excuseDescription = null,
 }: HoursCardProps) {
-  const remaining = Math.max(0, total - completed)
+  const effective = completed + excuseHours
+  const remaining = Math.max(0, total - effective)
   const percentage =
-    total > 0 ? Math.min(100, Math.round((completed / total) * 100)) : 0
+    total > 0 ? Math.min(100, Math.round((effective / total) * 100)) : 0
+  const hasExcuse = excuseHours > 0 || Boolean(excuseDescription)
   const onTrack = percentage >= 75
   const cfg = COLOR_CONFIG[color]
   const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1))
@@ -66,10 +73,21 @@ export function HoursCard({
           <p className="text-2xl font-semibold tracking-tight">
             {fmt(completed)}&thinsp;/&thinsp;{fmt(total)} hrs
           </p>
-          <Badge variant="warning" className="shrink-0">
-            {fmt(remaining)} hrs left
-          </Badge>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {hasExcuse && (
+              <Badge variant="info" className="shrink-0">
+                {fmt(excuseHours)} hrs excused
+              </Badge>
+            )}
+            <Badge variant="warning" className="shrink-0">
+              {fmt(remaining)} hrs left
+            </Badge>
+          </div>
         </div>
+
+        {excuseDescription ? (
+          <p className="text-sm text-muted-foreground">{excuseDescription}</p>
+        ) : null}
 
         <Progress
           value={percentage}
@@ -83,10 +101,10 @@ export function HoursCard({
 
         <div>
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            This week (UTC)
+            This week
           </p>
           <div
-            className="grid grid-cols-7 gap-1.5 sm:gap-2"
+            className="grid grid-cols-5 gap-1.5 sm:gap-2"
             role="group"
             aria-label={`${title}: actual logged hours and scheduled shift hours by day`}
           >

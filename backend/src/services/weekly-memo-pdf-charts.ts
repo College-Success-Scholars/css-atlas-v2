@@ -15,6 +15,8 @@
  * - Interactive or dark-mode charts
  * - Needs Attention / appendix tables
  */
+import { scholarYearGroupLabel } from "./time.service.js";
+
 export type PrintSubmissionCounts = {
   onTime: number;
   late: number;
@@ -123,12 +125,17 @@ export function cohortFillWidth(completed: number, total: number): number {
   return round1(Math.min(100, Math.max(0, (completed / total) * STACK_WIDTH)));
 }
 
+function cohortHoursName(cohort: number): string {
+  return scholarYearGroupLabel(cohort) ?? `Cohort ${cohort}`;
+}
+
 export function cohortBarSvg(item: PrintCohortHours, id: string): string {
   const fill = cohortFillWidth(item.completed, item.total);
   const fillColor = fill >= 90 ? PRINT_CHART.good : fill >= 60 ? PRINT_CHART.warn : PRINT_CHART.accent;
+  const name = cohortHoursName(item.cohort);
   const label = item.total <= 0
-    ? `Cohort ${item.cohort} has no hours requirement`
-    : `Cohort ${item.cohort} ${item.completed} of ${item.total} complete`;
+    ? `${name} has no hours requirement`
+    : `${name} ${item.completed} of ${item.total} complete`;
   const fillRect = fill > 0
     ? `<rect x="0" y="0" width="${fill}" height="${STACK_HEIGHT}" fill="${fillColor}"/>`
     : "";

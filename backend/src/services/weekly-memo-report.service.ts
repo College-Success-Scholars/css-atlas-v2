@@ -1,4 +1,5 @@
-import { campusWeekToDateRange } from "./time.service.js";
+import { completionPct, effectiveMinutes } from "./attendance-week.service.js";
+import { campusWeekToDateRange, freshmanCohortYear, sophomoreCohortYear } from "./time.service.js";
 import { getMemoPageData } from "./memo-page.service.js";
 import { toPrintTrafficSeries } from "./weekly-memo-pdf-charts.js";
 
@@ -13,6 +14,8 @@ export type WeeklyMemoRosterRow = {
 };
 
 export const WEEKLY_MEMO_ATTENTION_THRESHOLD_PERCENT = 60;
+/** Program Snapshot FD/SS bars count a scholar complete at this percent or higher. */
+export const WEEKLY_MEMO_SNAPSHOT_COMPLETE_PERCENT = 80;
 
 type WeeklyMemoGrade = {
   scholarName: string;
@@ -29,6 +32,7 @@ export type WeeklyMemoReport = {
   printedAtLabel: string;
   printedAtSlug: string;
   attentionThresholdPercent: number;
+  snapshotCompletePercent: number;
   overview: {
     traffic: {
       thisWeek: number;
@@ -96,20 +100,26 @@ export function weeklyMemoPdfFilename(weekNumber: number, printedAtSlug: string)
   return `weekly-memo-week-${weekNumber}-${printedAtSlug}.pdf`;
 }
 
+/** Same hours math as the weekly memo page: logged + excuse, integer %, capped at 100. */
+function rosterCompletionPercent(completedMinutes: number, requiredMinutes: number): number {
+  return Math.max(0, Math.min(100, completionPct(completedMinutes, requiredMinutes) ?? 0));
+}
+
 function toRosterRow(
   scholar: MemoPageData["scholars"][number],
   type: "study" | "frontDesk"
 ): WeeklyMemoRosterRow | null {
   const requiredMinutes = type === "study" ? scholar.ssRequired : scholar.fdRequired;
   if (requiredMinutes == null || requiredMinutes <= 0) return null;
-  const completedMinutes = type === "study" ? scholar.ssTotal : scholar.fdTotal;
-  const completionPercent = type === "study" ? scholar.ssPct : scholar.fdPct;
+  const loggedMinutes = type === "study" ? scholar.ssTotal : scholar.fdTotal;
+  const excuseMinutes = type === "study" ? scholar.ssExcuseMin : scholar.fdExcuseMin;
+  const completedMinutes = effectiveMinutes(loggedMinutes, excuseMinutes);
   return {
     scholarName: scholar.scholarName,
     cohort: scholar.cohort,
     completedMinutes,
     requiredMinutes,
-    completionPercent: Math.round((completionPercent ?? 0) * 10) / 10,
+    completionPercent: rosterCompletionPercent(completedMinutes, requiredMinutes),
   };
 }
 
@@ -120,12 +130,12 @@ function compareRosterCohort(left: number | null, right: number | null): number 
   return right - left;
 }
 
-/** Newer cohort first, then completion descending, then name. */
-export function sortRosterByCompletionDesc(rows: WeeklyMemoRosterRow[]): WeeklyMemoRosterRow[] {
+/** Newer cohort first, then completed minutes descending, then name. */
+export function sortRosterByMinutesDesc(rows: WeeklyMemoRosterRow[]): WeeklyMemoRosterRow[] {
   return [...rows].sort((a, b) => {
     const cohort = compareRosterCohort(a.cohort, b.cohort);
     if (cohort !== 0) return cohort;
-    if (b.completionPercent !== a.completionPercent) return b.completionPercent - a.completionPercent;
+    if (b.completedMinutes !== a.completedMinutes) return b.completedMinutes - a.completedMinutes;
     return a.scholarName.localeCompare(b.scholarName);
   });
 }
@@ -138,6 +148,21 @@ export function groupRosterByCohort(rows: WeeklyMemoRosterRow[]): Array<{ cohort
     else groups.push({ cohort: row.cohort, rows: [row] });
   }
   return groups;
+}
+
+function snapshotHoursOverview(
+  scholars: MemoPageData["scholars"],
+  type: "study" | "frontDesk",
+  cohorts: number[],
+): Array<{ cohort: number; completed: number; total: number }> {
+  return cohorts.map((cohort) => {
+    const inCohort = scholars.filter((scholar) => scholar.cohort === cohort);
+    const completed = inCohort.filter((scholar) => {
+      const row = toRosterRow(scholar, type);
+      return row != null && row.completionPercent >= WEEKLY_MEMO_SNAPSHOT_COMPLETE_PERCENT;
+    }).length;
+    return { cohort, completed, total: inCohort.length };
+  });
 }
 
 function toSubmissionOverview(completed: number, required: number, late: number) {
@@ -201,9 +226,10 @@ function toTlSubmissionAttention(rows: MemoPageData["teamLeaderFormStats"]) {
  * dashboard's client-side PDF adapter.
  */
 export function createWeeklyMemoReport(data: MemoPageData): WeeklyMemoReport {
-  const studyRoster = sortRosterByCompletionDesc(data.scholars.map((scholar) => toRosterRow(scholar, "study")).filter((row): row is WeeklyMemoRosterRow => row != null));
-  const frontDeskRoster = sortRosterByCompletionDesc(data.scholars.map((scholar) => toRosterRow(scholar, "frontDesk")).filter((row): row is WeeklyMemoRosterRow => row != null));
-  const cohorts = [2024, 2025] as const;
+  const studyRoster = sortRosterByMinutesDesc(data.scholars.map((scholar) => toRosterRow(scholar, "study")).filter((row): row is WeeklyMemoRosterRow => row != null));
+  const frontDeskRoster = sortRosterByMinutesDesc(data.scholars.map((scholar) => toRosterRow(scholar, "frontDesk")).filter((row): row is WeeklyMemoRosterRow => row != null));
+  const sophomore = sophomoreCohortYear();
+  const freshman = freshmanCohortYear();
   const allGrades = [...data.gradeBreakdown.high, ...data.gradeBreakdown.mid, ...data.gradeBreakdown.low];
   const tutoringNoShows = data.tutorReports.filter((report) => report.scholarName === "EMPTY SESSION");
   const tutoringByDay = Array.from(
@@ -228,6 +254,7 @@ export function createWeeklyMemoReport(data: MemoPageData): WeeklyMemoReport {
     printedAtLabel: printedAt.label,
     printedAtSlug: printedAt.slug,
     attentionThresholdPercent: WEEKLY_MEMO_ATTENTION_THRESHOLD_PERCENT,
+    snapshotCompletePercent: WEEKLY_MEMO_SNAPSHOT_COMPLETE_PERCENT,
     overview: {
       traffic: {
         thisWeek: data.trafficEntryCountForSelectedWeek,
@@ -235,14 +262,8 @@ export function createWeeklyMemoReport(data: MemoPageData): WeeklyMemoReport {
         weekly: toPrintTrafficSeries(data.trafficWeeklyData, data.selectedWeekNumber),
         sessions: data.trafficSessions.map((session) => ({ entryAt: session.entryAt, exitAt: session.exitAt })),
       },
-      frontDesk: cohorts.map((cohort) => {
-        const dataForCohort = data.pieData[`cohort${cohort}` as const];
-        return { cohort, completed: dataForCohort.fdCompleteCount, total: dataForCohort.total };
-      }),
-      studySession: cohorts.map((cohort) => {
-        const dataForCohort = data.pieData[`cohort${cohort}` as const];
-        return { cohort, completed: dataForCohort.ssCompleteCount, total: dataForCohort.total };
-      }),
+      frontDesk: snapshotHoursOverview(data.scholars, "frontDesk", [sophomore, freshman]),
+      studySession: snapshotHoursOverview(data.scholars, "study", [sophomore, freshman]),
       tutoring: { sessionsLogged: data.tutorReports.length - tutoringNoShows.length, noShowCount: tutoringNoShows.length },
       submissions: {
         wahf: toScholarWahfOverview(data.scholars),

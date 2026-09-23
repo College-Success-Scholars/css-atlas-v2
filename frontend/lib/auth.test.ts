@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  canAccessCoordinatorView,
   canAccessMenteeMonitoring,
   canAccessWeeklyMemo,
   formatUserRoleLabel,
@@ -13,8 +14,24 @@ describe("canAccessWeeklyMemo", () => {
     expect(canAccessWeeklyMemo({ app_role: "developer" })).toBe(true);
   });
 
+  it("does not treat coordinator as team_leader until the shared ladder includes it", () => {
+    expect(canAccessWeeklyMemo({ app_role: "coordinator" })).toBe(false);
+  });
+
   it("denies null app_role scholars", () => {
     expect(canAccessWeeklyMemo({ program_role: "scholar", app_role: null })).toBe(false);
+  });
+});
+
+describe("canAccessCoordinatorView", () => {
+  it("allows developer while coordinator is off the shared ladder", () => {
+    expect(canAccessCoordinatorView({ app_role: "developer" })).toBe(true);
+    expect(canAccessCoordinatorView({ app_role: "coordinator" })).toBe(false);
+  });
+
+  it("denies team_leader and scholars", () => {
+    expect(canAccessCoordinatorView({ app_role: "team_leader" })).toBe(false);
+    expect(canAccessCoordinatorView({ program_role: "scholar", app_role: null })).toBe(false);
   });
 });
 
@@ -33,6 +50,11 @@ describe("resolveUserRole", () => {
     expect(resolveUserRole({ program_role: "developer", app_role: "developer" })).toBe(
       "developer",
     );
+  });
+
+  it("maps coordinator to default until the shared ladder includes it", () => {
+    expect(resolveUserRole({ app_role: "coordinator" })).toBe("default");
+    expect(resolveUserRole({ app_role: "coordinator" })).not.toBe("team-leader");
   });
 
   it("does not treat null app_role as team-leader", () => {

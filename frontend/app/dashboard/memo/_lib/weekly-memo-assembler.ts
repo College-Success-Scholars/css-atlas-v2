@@ -3,17 +3,36 @@ import type { MemoTutorReportRow } from "@/lib/types/tutor-report-log"
 import type {
   FormStatus,
   MemoLivePageData,
+  MemoScholarRow,
   RecognitionBoardSectionData,
   TeamLeaderPerformanceRow,
   TutoringLogRow,
+  WeeklyKpiCard,
   WeeklyMemoViewData,
 } from "../types"
 import { classifyScholarFollowUpRisk } from "./risk-classifier"
-import { scholarYearLabel } from "@/lib/format/time"
+import {
+  EASTERN_TIMEZONE,
+  freshmanCohortYear,
+  scholarYearGroupLabel,
+  scholarYearLabel,
+  sophomoreCohortYear,
+} from "@/lib/format/time"
+
+/** Matches backend WEEKLY_MEMO_SNAPSHOT_COMPLETE_PERCENT in weekly-memo-report.service.ts */
+const SNAPSHOT_COMPLETE_PERCENT = 80
 
 const getFormStatus = (completed: number, required: number, late: boolean): FormStatus => {
   if (required <= 0 || completed >= required) return late ? "late" : "on-time"
   return completed > 0 ? "late" : "missing"
+}
+
+/** MCF is one form per mentee. Some-but-not-all is incomplete, not late. */
+function getMcfStatus(completed: number, required: number, late: boolean): FormStatus {
+  if (required <= 0) return "on-time"
+  if (completed <= 0) return "missing"
+  if (completed < required) return "incomplete"
+  return late ? "late" : "on-time"
 }
 
 const hasNoMenteeAssignment = (mcfRequired: number): boolean => mcfRequired <= 0
@@ -31,7 +50,7 @@ const buildTeamLeaderRows = (data: MemoLivePageData): TeamLeaderPerformanceRow[]
     const hasNoMentee = hasNoMenteeAssignment(row.mcfRequired)
     return {
       leaderName: row.name,
-      mcf: hasNoMentee ? "on-time" : getFormStatus(row.mcfCompleted, row.mcfRequired, row.mcfLate),
+      mcf: hasNoMentee ? "on-time" : getMcfStatus(row.mcfCompleted, row.mcfRequired, row.mcfLate),
       wpl: getFormStatus(row.wplCompleted, row.wplRequired, row.wplLate),
       wahf: getFormStatus(row.wahfCompleted, row.wahfRequired, row.wahfLate),
       menteesOk: row.wahfPct >= 90 && row.wplPct >= 90 && row.mcfPct >= 90 ? ("yes" as const) : ("check" as const),
@@ -94,15 +113,92 @@ const buildTutoringLog = (tutorReports: MemoTutorReportRow[]) => {
   }
 }
 
+function hoursCompletionPercent(completedMinutes: number, requiredMinutes: number): number {
+  return Math.max(0, Math.min(100, Math.round((completedMinutes / requiredMinutes) * 100)))
+}
+
+function scholarHoursComplete(
+  scholar: MemoScholarRow,
+  totalKey: "fdTotal" | "ssTotal",
+  excuseKey: "fdExcuseMin" | "ssExcuseMin",
+  requiredKey: "fdRequired" | "ssRequired",
+): boolean {
+  const requiredMinutes = scholar[requiredKey]
+  if (requiredMinutes == null || requiredMinutes <= 0) return false
+  const completedMinutes = scholar[totalKey] + scholar[excuseKey]
+  return hoursCompletionPercent(completedMinutes, requiredMinutes) >= SNAPSHOT_COMPLETE_PERCENT
+}
+
+/** Print snapshot hours: complete at 80%+, Sophomores then Freshmen, denominator is the class-year roster. */
+function snapshotHoursOverview(
+  scholars: MemoScholarRow[],
+  totalKey: "fdTotal" | "ssTotal",
+  excuseKey: "fdExcuseMin" | "ssExcuseMin",
+  requiredKey: "fdRequired" | "ssRequired",
+): Array<{ label: string; completed: number; total: number }> {
+  return [sophomoreCohortYear(), freshmanCohortYear()].map((cohort) => {
+    const inCohort = scholars.filter((scholar) => scholar.cohort === cohort)
+    const completed = inCohort.filter((scholar) =>
+      scholarHoursComplete(scholar, totalKey, excuseKey, requiredKey)
+    ).length
+    return {
+      label: scholarYearGroupLabel(cohort) ?? `Cohort ${cohort}`,
+      completed,
+      total: inCohort.length,
+    }
+  })
+}
+
+function ratioPct(completed: number, total: number): number {
+  return total === 0 ? 0 : Math.round((completed / total) * 100)
+}
+
+function hoursKpiCard(
+  title: string,
+  overview: Array<{ label: string; completed: number; total: number }>,
+): WeeklyKpiCard {
+  const completed = overview.reduce((sum, row) => sum + row.completed, 0)
+  const total = overview.reduce((sum, row) => sum + row.total, 0)
+  return {
+    title,
+    primaryValue: `${completed} / ${total}`,
+    secondaryText: `${SNAPSHOT_COMPLETE_PERCENT}% or more`,
+    trendText: "",
+    pct: ratioPct(completed, total),
+    subStats: overview.map((row) => {
+      const pct = ratioPct(row.completed, row.total)
+      return { label: row.label, value: `${row.completed} / ${row.total} (${pct}%)`, pct }
+    }),
+  }
+}
+
+function visitsTrendText(
+  thisWeekCount: number,
+  lastComparableCount: number,
+  selectedWeek: number,
+  currentCampusWeek: number | null,
+): string {
+  if (selectedWeek <= 1) return ""
+  if (thisWeekCount === 0 && lastComparableCount === 0) return ""
+  const direction = thisWeekCount >= lastComparableCount ? "up" : "down"
+  if (selectedWeek === currentCampusWeek) {
+    const weekday = new Date().toLocaleDateString("en-US", {
+      weekday: "long",
+      timeZone: EASTERN_TIMEZONE,
+    })
+    return `${direction} vs last ${weekday}`
+  }
+  return `${direction} vs last week`
+}
+
 export const assembleWeeklyMemo = (data: MemoLivePageData): WeeklyMemoViewData => {
   const weekDates = formatWeekDateRange(data.weekLabel)
-  const visitsLastWeek = data.trafficWeeklyData.find((entry) => entry.weekNumber === data.selectedWeekNumber - 1)?.entryCount ?? 0
-  const visitsTrend = data.trafficEntryCountForSelectedWeek - visitsLastWeek
 
   const teamLeaderRows = buildTeamLeaderRows(data)
   const scholarRows = classifyScholarFollowUpRisk(data)
   const tutoringLog = buildTutoringLog(data.tutorReports)
-  const emptySessionCount = tutoringLog.tabs.find((tab) => tab.id === "empty-sessions")?.rows.length ?? 0
+  const noShowCount = tutoringLog.tabs.find((tab) => tab.id === "empty-sessions")?.rows.length ?? 0
+  const sessionsLogged = data.tutorReports.length - noShowCount
 
   const makeAttendanceRows = (
     totalKey: "fdTotal" | "ssTotal",
@@ -128,12 +224,6 @@ export const assembleWeeklyMemo = (data: MemoLivePageData): WeeklyMemoViewData =
         }
       })
 
-  const averageScholarPct = (key: "fdPct" | "ssPct") => {
-    const vals = data.scholars.map((row) => row[key]).filter((pct): pct is number => pct != null)
-    if (vals.length === 0) return 0
-    return Math.round(vals.reduce((acc, pct) => acc + pct, 0) / vals.length)
-  }
-
   return {
     ...data,
     weekStartLabel: weekDates.weekStartLabel,
@@ -144,27 +234,26 @@ export const assembleWeeklyMemo = (data: MemoLivePageData): WeeklyMemoViewData =
         title: "Visits this week",
         primaryValue: String(data.trafficEntryCountForSelectedWeek),
         secondaryText: `${data.trafficSessions.length} traffic sessions`,
-        trendText: visitsLastWeek ? `${visitsTrend >= 0 ? "up" : "down"} vs last week` : "",
+        trendText: visitsTrendText(
+          data.trafficEntryCountForSelectedWeek,
+          data.trafficComparableLastWeekCount,
+          data.selectedWeekNumber,
+          data.currentCampusWeek,
+        ),
         subStats: [],
       },
+      hoursKpiCard(
+        "Front desk hours",
+        snapshotHoursOverview(data.scholars, "fdTotal", "fdExcuseMin", "fdRequired"),
+      ),
+      hoursKpiCard(
+        "Study session hours",
+        snapshotHoursOverview(data.scholars, "ssTotal", "ssExcuseMin", "ssRequired"),
+      ),
       {
-        title: "Front desk completion",
-        primaryValue: `${averageScholarPct("fdPct")}%`,
-        secondaryText: `${data.scholars.filter((row) => (row.fdRequired ?? 0) > 0).length} scholars`,
-        trendText: "",
-        subStats: [],
-      },
-      {
-        title: "Study session completion",
-        primaryValue: `${averageScholarPct("ssPct")}%`,
-        secondaryText: `${data.scholars.filter((row) => (row.ssRequired ?? 0) > 0).length} scholars`,
-        trendText: "",
-        subStats: [],
-      },
-      {
-        title: "Tutoring sessions held",
-        primaryValue: String(data.tutorReports.length),
-        secondaryText: `${emptySessionCount} empty session${emptySessionCount === 1 ? "" : "s"}`,
+        title: "Tutoring sessions",
+        primaryValue: String(sessionsLogged),
+        secondaryText: `${noShowCount} no-show${noShowCount === 1 ? "" : "s"}`,
         trendText: "",
         subStats: [],
       },

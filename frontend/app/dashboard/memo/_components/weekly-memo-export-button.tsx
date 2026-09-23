@@ -4,7 +4,6 @@ import { Download, LoaderCircle } from "lucide-react"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { backendDownload } from "@/lib/client/api-client"
 
 type WeeklyMemoExportButtonProps = {
   weekNumber: number | null
@@ -27,7 +26,11 @@ export function weeklyMemoPdfFilename(weekNumber: number, now = new Date()) {
 }
 
 export async function downloadWeeklyMemoPdf(weekNumber: number) {
-  const response = await backendDownload(`/api/memo/pdf?weekNumber=${weekNumber}`)
+  const response = await fetch(`/api/memo/pdf?weekNumber=${weekNumber}`)
+  const contentType = response.headers.get("content-type") ?? ""
+  if (!response.ok || !contentType.includes("application/pdf")) {
+    throw new Error(`PDF generation failed (${response.status})`)
+  }
   const blob = await response.blob()
   const url = URL.createObjectURL(blob)
   const link = document.createElement("a")

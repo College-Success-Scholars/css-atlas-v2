@@ -5,6 +5,7 @@ import {
   isCollectionYearStarted,
   isHourEligibleCohort,
   parseEasternDate,
+  scholarYearGroupLabel,
   scholarYearLabel,
   sophomoreCohortYear,
 } from "./time.js";
@@ -51,5 +52,12 @@ describe("hour-eligible cohort years", () => {
     expect(scholarYearLabel(sophomore)).toBe("Sophomore");
     expect(scholarYearLabel(freshman - 2)).toBeNull();
     expect(scholarYearLabel(null)).toBeNull();
+  });
+
+  it("labels freshman and sophomore cohort groups in the plural", () => {
+    expect(scholarYearGroupLabel(freshman)).toBe("Freshmen");
+    expect(scholarYearGroupLabel(sophomore)).toBe("Sophomores");
+    expect(scholarYearGroupLabel(freshman - 2)).toBeNull();
+    expect(scholarYearGroupLabel(null)).toBeNull();
   });
 });

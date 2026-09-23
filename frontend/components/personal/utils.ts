@@ -65,7 +65,7 @@ export function computeWeekOptions(
 
 export type FormType = "WAHF" | "WPL" | "MCF"
 
-export type FormStatus = "done" | "pending" | "overdue" | "missed"
+export type FormStatus = "done" | "pending" | "overdue" | "missed" | "incomplete"
 
 export type FormStatusResult = {
   formType: FormType
@@ -232,17 +232,24 @@ export function getFormStatusForWeek(
     const completedCount = countDistinctMcfMentees(mcf, weekNum)
     const isLate = weekLogs.some((row) => isMcfLateForWeek(row.created_at, weekNum))
     const complete = requiredCount <= 0 || completedCount >= requiredCount
-    const incomplete = complete
+    const partial = requiredCount > 1 && completedCount > 0 && completedCount < requiredCount
+    const clock = complete
       ? { status: "done" as const, daysOverdue: 0, hoursLeft: 0 }
       : incompleteStatusForWeek(weekNum, currentCampusWeek, deadline, now)
+    const status =
+      complete
+        ? clock.status
+        : partial && clock.status !== "pending"
+          ? "incomplete"
+          : clock.status
 
     return {
       formType,
-      status: incomplete.status,
+      status,
       submittedAt: submission?.created_at ?? null,
       isLate,
-      daysOverdue: incomplete.daysOverdue,
-      hoursLeft: incomplete.hoursLeft,
+      daysOverdue: clock.daysOverdue,
+      hoursLeft: clock.hoursLeft,
       submission,
       completedCount,
       requiredCount,

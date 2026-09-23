@@ -14,6 +14,7 @@
  * - Ticket → campus-week minute aggregation (via weekly-minutes helpers)
  * - scholar_week_excuses queries keyed by week_start
  * - Shared getCampusWeekAttendance for Memo and teams boards
+ * - Mentee UID slice via getWeekAttendanceForUids
  *
  * ## What does NOT belong here
  * - HTTP request/response logic
@@ -34,6 +35,7 @@ import { fetchAllUsersForMemo, isEligibleScholar } from "./user.service.js";
 import { EMPTY_WEEKLY_MINUTES } from "../models/weekly-minutes.model.js";
 import type { WeeklyMinutesByDay } from "../models/weekly-minutes.model.js";
 import type {
+  AttendanceForUids,
   AttendanceKind,
   AttendanceWeekBoard,
   AttendanceWeekBoardRow,
@@ -101,15 +103,26 @@ function mapExcuseRow(row: {
   };
 }
 
-async function fetchExcusesForWeekStart(weekStart: string): Promise<{
+async function fetchExcusesForWeekStart(
+  weekStart: string,
+  scholarUids?: string[]
+): Promise<{
   front_desk: Map<string, ScholarWeekExcuseRow>;
   study_session: Map<string, ScholarWeekExcuseRow>;
 }> {
+  const empty = {
+    front_desk: new Map<string, ScholarWeekExcuseRow>(),
+    study_session: new Map<string, ScholarWeekExcuseRow>(),
+  };
+  if (scholarUids && scholarUids.length === 0) return empty;
+
   const supabase = getSupabaseClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("scholar_week_excuses")
     .select("*")
     .eq("week_start", weekStart);
+  if (scholarUids?.length) query = query.in("scholar_uid", scholarUids);
+  const { data, error } = await query;
   if (error) throw error;
   const front_desk = new Map<string, ScholarWeekExcuseRow>();
   const study_session = new Map<string, ScholarWeekExcuseRow>();
@@ -157,6 +170,67 @@ function buildTotalsMap(
   return map;
 }
 
+function uniqueUids(uids: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of uids) {
+    const uid = String(raw ?? "").trim();
+    if (!uid || seen.has(uid)) continue;
+    seen.add(uid);
+    out.push(uid);
+  }
+  return out;
+}
+
+function rowFromTotals(
+  uid: string,
+  weekNum: number,
+  kind: AttendanceKind,
+  totals: CampusWeekAttendanceTotals
+): AttendanceWeekBoardRow {
+  return {
+    scholar_uid: uid,
+    scholar_name: null,
+    week_num: weekNum,
+    kind,
+    mon_min: totals.minutes.mon_min,
+    tues_min: totals.minutes.tues_min,
+    wed_min: totals.minutes.wed_min,
+    thurs_min: totals.minutes.thurs_min,
+    fri_min: totals.minutes.fri_min,
+    logged_min: totals.loggedMin,
+    excuse_min: totals.excuseMin,
+    description: totals.description,
+    required_min: null,
+    effective_min: effectiveMinutes(totals.loggedMin, totals.excuseMin),
+    completion_pct: null,
+  };
+}
+
+/** One FD and one SS row per UID, zeros when there are no tickets or excuse. */
+export function attendanceRowsForUids(
+  weekNum: number,
+  uids: string[],
+  fdByUid: Map<string, CampusWeekAttendanceTotals>,
+  ssByUid: Map<string, CampusWeekAttendanceTotals>
+): AttendanceWeekBoardRow[] {
+  const rows: AttendanceWeekBoardRow[] = [];
+  for (const uid of uniqueUids(uids)) {
+    rows.push(
+      rowFromTotals(uid, weekNum, "front_desk", fdByUid.get(uid) ?? ZERO_TOTALS)
+    );
+    rows.push(
+      rowFromTotals(
+        uid,
+        weekNum,
+        "study_session",
+        ssByUid.get(uid) ?? ZERO_TOTALS
+      )
+    );
+  }
+  return rows;
+}
+
 /**
  * Minutes from cleaned tickets + excuses for both duty kinds, one campus week.
  * Callers look up missing UIDs as zeros (empty tickets / no excuse).
@@ -195,6 +269,55 @@ export async function getCampusWeekAttendance(
     ssByUid: buildTotalsMap(ssMinutes, excuses.study_session),
     fdSessions,
     ssSessions,
+  };
+}
+
+/**
+ * Campus-week FD/SS minutes + excuses for specific scholars (mentees page).
+ * Same ticket + scholar_week_excuses math as Memo / week boards.
+ */
+export async function getWeekAttendanceForUids(
+  weekNum: number,
+  uids: string[]
+): Promise<AttendanceForUids> {
+  const range = campusWeekToDateRange(weekNum);
+  if (!range) throw new Error(`Invalid week number: ${weekNum}`);
+  const weekStart = campusWeekStartDate(weekNum);
+  if (!weekStart) throw new Error(`Invalid week number: ${weekNum}`);
+  const scholarUids = uniqueUids(uids);
+  if (scholarUids.length === 0) {
+    return { week_num: weekNum, week_start: weekStart, rows: [] };
+  }
+
+  const fetchEnd = getWeekFetchEnd(range);
+  const weekRange = { startDate: range.startDate, endDate: range.endDate };
+  const [fdSessions, ssSessions, excuses] = await Promise.all([
+    getFrontDeskCompletedSessions({
+      startDate: range.startDate,
+      endDate: fetchEnd,
+      scholarUids,
+    }),
+    getStudySessionCompletedSessions({
+      startDate: range.startDate,
+      endDate: fetchEnd,
+      scholarUids,
+    }),
+    fetchExcusesForWeekStart(weekStart, scholarUids),
+  ]);
+
+  const fdByUid = buildTotalsMap(
+    computeWeeklyMinutesByUid(fdSessions, weekRange),
+    excuses.front_desk
+  );
+  const ssByUid = buildTotalsMap(
+    computeWeeklyMinutesByUid(ssSessions, weekRange),
+    excuses.study_session
+  );
+
+  return {
+    week_num: weekNum,
+    week_start: weekStart,
+    rows: attendanceRowsForUids(weekNum, scholarUids, fdByUid, ssByUid),
   };
 }
 

@@ -11,7 +11,7 @@ function source(weekNumber: number): MemoPageData {
       { scholarId: "zero", scholarName: "Zero Scholar", cohort: 2024, teamLeader: "Unassigned", fdTotal: 0, ssTotal: 0, fdRequired: 60, ssRequired: 120, fdExcuseMin: 0, ssExcuseMin: 0, fdPct: 0, ssPct: 0, wahfStatus: "missing", wahfSubmittedAt: null, fdCompliance: { insideMinutes: 0, outsideMinutes: 0, noShowCount: 0, dates: [] }, ssCompliance: { insideMinutes: 0, outsideMinutes: 0, noShowCount: 0, dates: [] } },
       { scholarId: "complete", scholarName: "Complete Scholar", cohort: 2025, teamLeader: "TL One", fdTotal: 60, ssTotal: 120, fdRequired: 60, ssRequired: 120, fdExcuseMin: 0, ssExcuseMin: 0, fdPct: 100, ssPct: 100, wahfStatus: "on-time", wahfSubmittedAt: "2026-04-03T12:00:00.000Z", fdCompliance: { insideMinutes: 0, outsideMinutes: 0, noShowCount: 0, dates: [] }, ssCompliance: { insideMinutes: 0, outsideMinutes: 0, noShowCount: 0, dates: [] } },
     ],
-    completedStudy: [], completedFd: [], trafficWeeklyData: [], trafficEntryCountForSelectedWeek: 8, trafficSessions: [],
+    completedStudy: [], completedFd: [], trafficWeeklyData: [], trafficEntryCountForSelectedWeek: 8, trafficComparableLastWeekCount: 0, trafficSessions: [],
     tutorReports: [{ id: 1, scholarId: "n/a", scholarName: "EMPTY SESSION", tutorName: "Tutor", courses: ["Math"], startTime: "10:00", endTime: "11:00", dayOfWeek: "Mon" }],
     teamLeaderFormStats: [{ scholarId: "tl", name: "Leader", programRole: "Team Leader", mcfCompleted: 0, mcfRequired: 1, mcfLate: false, mcfPct: 0, mcfLatestAt: "", wahfCompleted: 1, wahfRequired: 1, wahfLate: false, wahfPct: 100, wahfLatestAt: "", wplCompleted: 1, wplRequired: 1, wplLate: false, wplPct: 100, wplLatestAt: "" }],
     gradeBreakdown: { high: [{ scholarName: "Complete Scholar", course: "Math", assessment: "Quiz", grade: "95", percent: 95 }], mid: [{ scholarName: "Complete Scholar", course: "English", assessment: "Essay", grade: "85", percent: 85 }], low: [{ scholarName: "Zero Scholar", course: "History", assessment: "Essay", grade: "77", percent: 77 }] },
@@ -46,31 +46,178 @@ describe("weekly memo print report", () => {
     expect(report.recognition.mid.map((grade) => grade.percent)).toEqual([85]);
     expect(report.printedAtSlug).toMatch(/^\d{4}-\d{2}-\d{2}-\d{4}$/);
     expect(report.printedAtLabel).toContain("ET");
-    expect(renderWeeklyMemoHtml(report)).toContain("1 on-time, 0 late, 1 missing");
-    expect(renderWeeklyMemoHtml(report)).toContain(`Printed ${report.printedAtLabel}`);
+    const html = renderWeeklyMemoHtml(report);
+    expect(html).toContain("1 on-time, 0 late, 1 missing");
+    expect(html).toContain(`Printed ${report.printedAtLabel}`);
+    expect(html).toContain('<div class="overview-row"><span>Sophomores</span>');
+    expect(html).toContain('<div class="overview-row"><span>Freshmen</span>');
+    expect(html.indexOf('<div class="overview-row"><span>Sophomores</span>')).toBeLessThan(
+      html.indexOf('<div class="overview-row"><span>Freshmen</span>'),
+    );
+    expect(html).not.toContain('<div class="overview-row"><span>Cohort ');
   });
 
-  it("sorts SS and FD appendix rosters by completion descending and groups by cohort", () => {
+  it("counts Program Snapshot hours complete at 80% or more, including excused minutes", () => {
+    const freshman = freshmanCohortYear();
+    const sophomore = sophomoreCohortYear();
+    const data = source(7);
+    data.pieData = {
+      cohort2024: { total: 1, fdCompleteCount: 0, ssCompleteCount: 0, fdPercent: 0, ssPercent: 0 },
+      cohort2025: { total: 2, fdCompleteCount: 0, ssCompleteCount: 0, fdPercent: 0, ssPercent: 0 },
+    };
+    data.scholars = [
+      {
+        ...data.scholars[0]!,
+        scholarId: "at80",
+        scholarName: "At Eighty",
+        cohort: freshman,
+        fdTotal: 48,
+        fdRequired: 60,
+        ssTotal: 96,
+        ssRequired: 120,
+        fdExcuseMin: 0,
+        ssExcuseMin: 0,
+        fdPct: 80,
+        ssPct: 80,
+      },
+      {
+        ...data.scholars[0]!,
+        scholarId: "below80",
+        scholarName: "Below Eighty",
+        cohort: freshman,
+        fdTotal: 47,
+        fdRequired: 60,
+        ssTotal: 95,
+        ssRequired: 120,
+        fdExcuseMin: 0,
+        ssExcuseMin: 0,
+        fdPct: 78,
+        ssPct: 79,
+      },
+      {
+        ...data.scholars[1]!,
+        scholarId: "excuse80",
+        scholarName: "Excuse Eighty",
+        cohort: sophomore,
+        fdTotal: 0,
+        fdExcuseMin: 48,
+        fdRequired: 60,
+        ssTotal: 0,
+        ssExcuseMin: 96,
+        ssRequired: 120,
+        fdPct: 0,
+        ssPct: 0,
+      },
+    ];
+    const report = createWeeklyMemoReport(data);
+    expect(report.snapshotCompletePercent).toBe(80);
+    expect(report.overview.frontDesk).toEqual([
+      { cohort: sophomore, completed: 1, total: 1 },
+      { cohort: freshman, completed: 1, total: 2 },
+    ]);
+    expect(report.overview.studySession).toEqual([
+      { cohort: sophomore, completed: 1, total: 1 },
+      { cohort: freshman, completed: 1, total: 2 },
+    ]);
+    const html = renderWeeklyMemoHtml(report);
+    expect(html).toContain("80% or more");
+    expect(html).not.toContain("90% or more");
+    expect(html).toContain("1&nbsp;/&nbsp;1");
+    expect(html).toContain("1&nbsp;/&nbsp;2");
+  });
+
+  it("credits excused minutes in roster completion the same way the weekly memo page does", () => {
+    const data = source(7);
+    data.scholars = [
+      {
+        ...data.scholars[0]!,
+        scholarName: "Excuse Scholar",
+        fdTotal: 30,
+        fdExcuseMin: 30,
+        fdRequired: 60,
+        fdPct: 0,
+        ssTotal: 0,
+        ssExcuseMin: 75,
+        ssRequired: 120,
+        ssPct: 0,
+      },
+      {
+        ...data.scholars[0]!,
+        scholarId: "low",
+        scholarName: "Low Scholar",
+        fdTotal: 10,
+        fdExcuseMin: 5,
+        fdRequired: 60,
+        fdPct: 17,
+        ssTotal: 20,
+        ssExcuseMin: 10,
+        ssRequired: 120,
+        ssPct: 17,
+      },
+      {
+        ...data.scholars[1]!,
+        scholarName: "Over Scholar",
+        fdTotal: 60,
+        fdExcuseMin: 30,
+        fdRequired: 60,
+        fdPct: 150,
+        ssTotal: 70,
+        ssExcuseMin: 5,
+        ssRequired: 120,
+        ssPct: 62.5,
+      },
+    ];
+    const report = createWeeklyMemoReport(data);
+    expect(report.frontDeskRoster).toEqual([
+      expect.objectContaining({ scholarName: "Over Scholar", completedMinutes: 90, requiredMinutes: 60, completionPercent: 100 }),
+      expect.objectContaining({ scholarName: "Excuse Scholar", completedMinutes: 60, requiredMinutes: 60, completionPercent: 100 }),
+      expect.objectContaining({ scholarName: "Low Scholar", completedMinutes: 15, requiredMinutes: 60, completionPercent: 25 }),
+    ]);
+    expect(report.studyRoster).toEqual([
+      expect.objectContaining({ scholarName: "Over Scholar", completedMinutes: 75, requiredMinutes: 120, completionPercent: 63 }),
+      expect.objectContaining({ scholarName: "Excuse Scholar", completedMinutes: 75, requiredMinutes: 120, completionPercent: 63 }),
+      expect.objectContaining({ scholarName: "Low Scholar", completedMinutes: 30, requiredMinutes: 120, completionPercent: 25 }),
+    ]);
+    expect(report.attention.studyCompletion).toEqual([
+      expect.objectContaining({ scholarName: "Low Scholar", completedMinutes: 30, completionPercent: 25 }),
+    ]);
+    expect(report.attention.frontDeskCompletion).toEqual([
+      expect.objectContaining({ scholarName: "Low Scholar", completedMinutes: 15, completionPercent: 25 }),
+    ]);
+    const html = renderWeeklyMemoHtml(report);
+    expect(html).toContain("63%");
+    expect(html).toContain("25%");
+    expect(html).not.toContain("62.5%");
+    expect(html).not.toContain("125.0%");
+    expect(html).not.toContain("150.0%");
+  });
+
+  it("sorts SS and FD appendix rosters by minutes descending and groups by cohort", () => {
     const freshman = freshmanCohortYear();
     const sophomore = sophomoreCohortYear();
     const data = source(7);
     data.scholars = [
-      { ...data.scholars[0]!, scholarId: "ada", scholarName: "Ada Scholar", cohort: freshman, fdPct: 10, ssPct: 10, fdTotal: 6, ssTotal: 12 },
-      { ...data.scholars[0]!, scholarId: "zed", scholarName: "Zed Scholar", cohort: freshman, fdPct: 90, ssPct: 90, fdTotal: 54, ssTotal: 108 },
+      { ...data.scholars[0]!, scholarId: "ada", scholarName: "Ada Scholar", cohort: freshman, fdRequired: 160, ssRequired: 160, fdPct: 50, ssPct: 50, fdTotal: 80, ssTotal: 80 },
+      { ...data.scholars[0]!, scholarId: "zed", scholarName: "Zed Scholar", cohort: freshman, fdRequired: 60, ssRequired: 60, fdPct: 90, ssPct: 90, fdTotal: 54, ssTotal: 54 },
       { ...data.scholars[1]!, scholarId: "bea", scholarName: "Bea Scholar", cohort: sophomore, fdPct: 50, ssPct: 50, fdTotal: 30, ssTotal: 60 },
     ];
     const report = createWeeklyMemoReport(data);
-    expect(report.studyRoster.map((row) => [row.scholarName, row.cohort, row.completionPercent])).toEqual([
-      ["Zed Scholar", freshman, 90],
-      ["Ada Scholar", freshman, 10],
-      ["Bea Scholar", sophomore, 50],
+    expect(report.studyRoster.map((row) => [row.scholarName, row.cohort, row.completedMinutes, row.completionPercent])).toEqual([
+      ["Ada Scholar", freshman, 80, 50],
+      ["Zed Scholar", freshman, 54, 90],
+      ["Bea Scholar", sophomore, 60, 50],
     ]);
-    expect(report.frontDeskRoster.map((row) => row.scholarName)).toEqual(["Zed Scholar", "Ada Scholar", "Bea Scholar"]);
+    expect(report.frontDeskRoster.map((row) => [row.scholarName, row.completedMinutes])).toEqual([
+      ["Ada Scholar", 80],
+      ["Zed Scholar", 54],
+      ["Bea Scholar", 30],
+    ]);
     const html = renderWeeklyMemoHtml(report);
-    expect(html).toContain(`Cohort ${freshman} · Freshman`);
-    expect(html).toContain(`Cohort ${sophomore} · Sophomore`);
-    expect(html.indexOf(`Cohort ${freshman} · Freshman`)).toBeLessThan(html.indexOf(`Cohort ${sophomore} · Sophomore`));
-    expect(html).toContain("Sorted by completion, highest first, and grouped by cohort.");
+    expect(html).toContain("<h4>Freshmen</h4>");
+    expect(html).toContain("<h4>Sophomores</h4>");
+    expect(html.indexOf("<h4>Freshmen</h4>")).toBeLessThan(html.indexOf("<h4>Sophomores</h4>"));
+    expect(html).toContain("Sorted by minutes, highest first, and grouped by cohort.");
+    expect(html).not.toContain("Sorted by completion, highest first");
     expect(html).not.toContain("Sorted by first name");
   });
 
@@ -131,7 +278,7 @@ describe("weekly memo print report", () => {
     expect(html).toContain("03 &mdash; Needs Attention");
     expect(html).not.toContain("02 &mdash; Needs Attention");
     expect(html).not.toContain("mock week trend");
-    expect(html).toContain("Sorted by completion, highest first, and grouped by cohort.");
+    expect(html).toContain("Sorted by minutes, highest first, and grouped by cohort.");
     expect(html).toContain(`Printed ${report.printedAtLabel}`);
     expect(html).toContain("@page{size:letter;margin:.75in}");
     expect(html).toContain("thead{display:table-header-group}");
@@ -162,7 +309,11 @@ describe("weekly memo print report", () => {
       executablePath: "/usr/bin/chromium-browser",
     });
     expect(weeklyMemoBrowserLaunchOptions({})).not.toHaveProperty("executablePath");
-    expect(weeklyMemoBrowserLaunchOptions({}).args).toEqual(expect.arrayContaining(["--no-sandbox"]));
+    expect(weeklyMemoBrowserLaunchOptions({}).args).toEqual(expect.arrayContaining([
+      "--no-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-gpu",
+    ]));
   });
 
   it("recognizes a missing bundled Chrome install", () => {

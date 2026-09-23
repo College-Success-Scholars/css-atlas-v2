@@ -4,7 +4,7 @@
  *
  * Typed wrapper functions for every backend API endpoint.
  * This is the preferred way for Server Components and pages to fetch domain data.
- * Each function calls backendGet/backendPost/backendPatch from api-client.ts
+ * Each function calls backendGet/backendPost/backendPatch/backendDownload from api-client.ts
  * and returns a strongly-typed result.
  *
  * ## Responsibilities
@@ -21,7 +21,7 @@
  * - Client-side data fetching (that's lib/client/api-client.ts)
  */
 import "server-only";
-import { backendGet, backendPost, backendPatch } from "./api-client";
+import { backendGet, backendPost, backendPatch, backendDownload } from "./api-client";
 import { getEffectiveScholarId } from "../../../shared/dist/auth.js";
 import type {
   SessionLogRow,
@@ -35,6 +35,7 @@ import type {
 import type {
   AttendanceKind,
   AttendanceWeekBoard,
+  AttendanceForUids,
   ScholarWeekExcuse,
 } from "@/lib/types/attendance-week";
 import type { RosterRow } from "@/lib/types/roster";
@@ -216,6 +217,16 @@ export async function getAttendanceWeekBoard(
   return backendGet(`/api/attendance/week/${weekNum}?kind=${kind}`);
 }
 
+export async function fetchAttendanceForUids(
+  weekNum: number,
+  uids: string[]
+): Promise<AttendanceForUids> {
+  if (uids.length === 0) {
+    return { week_num: weekNum, week_start: "", rows: [] };
+  }
+  return backendPost<AttendanceForUids>(`/api/attendance/week/${weekNum}/by-uids`, { uids });
+}
+
 export async function upsertAttendanceExcuse(payload: {
   uid: string;
   weekNum: number;
@@ -300,4 +311,8 @@ export async function getTotalMinutesForMenteeWeek(params: {
 }): Promise<number> {
   const { menteeUid, weekNum, logSource } = params;
   return backendGet(`/api/daily-activity/minutes?menteeUid=${encodeURIComponent(menteeUid)}&weekNum=${weekNum}&logSource=${encodeURIComponent(logSource)}`);
+}
+
+export async function getWeeklyMemoPdf(weekNumber: number): Promise<Response> {
+  return backendDownload(`/api/memo/pdf?weekNumber=${weekNumber}`);
 }

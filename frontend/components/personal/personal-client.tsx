@@ -224,9 +224,11 @@ function ThisWeekFormCard({
   const borderClass =
     status === "done"
       ? "border-success/40 bg-success-muted/50"
-      : status === "overdue"
-        ? "border-destructive/40 bg-destructive/10"
-        : ""
+      : status === "incomplete"
+        ? "border-warning/40 bg-warning-muted/50"
+        : status === "overdue"
+          ? "border-destructive/40 bg-destructive/10"
+          : ""
 
   return (
     <Card className={`gap-0 py-0 ${borderClass}`}>
@@ -249,6 +251,8 @@ function ThisWeekFormCard({
           >
             {status === "overdue"
               ? `${progress ? `${progress} · ` : ""}${daysOverdue} ${daysOverdue === 1 ? "day" : "days"} late`
+              : status === "incomplete"
+                ? `${progress} submitted`
               : status === "pending"
                 ? `${progress ? `${progress} · ` : ""}${hoursLeft > 0 ? `${hoursLeft} hrs left` : "Due soon"}`
                 : isMcf && formStatus.requiredCount <= 0
@@ -268,7 +272,7 @@ function ThisWeekFormCard({
                 View <ArrowUpRight className="size-3.5" />
               </Button>
             ) : null}
-            {status === "overdue" ? (
+            {status === "overdue" || status === "incomplete" ? (
               <Button size="sm" className="cursor-pointer" asChild>
                 <a href={FORM_URLS[formType]} target="_blank" rel="noopener noreferrer">
                   Submit now <ArrowUpRight className="size-3.5" />
@@ -330,7 +334,13 @@ function HistoryWeekBlock({
           {statuses.map((s) => (
             <Badge
               key={s.formType}
-              variant={s.status === "missed" || s.isLate || (s.formType === "MCF" && s.status !== "done") ? "destructive" : "secondary"}
+              variant={
+                s.status === "missed" || s.status === "overdue" || (s.isLate && s.status === "done")
+                  ? "destructive"
+                  : s.status === "incomplete"
+                    ? "warning"
+                    : "secondary"
+              }
               className="text-[10px] px-1.5 py-0"
             >
               {s.formType}
@@ -374,7 +384,9 @@ function HistoryFormRow({
       ? "bg-success"
       : status === "done" && isLate
         ? "bg-warning"
-        : "bg-destructive"
+        : status === "incomplete"
+          ? "bg-warning"
+          : "bg-destructive"
 
   let description: string
   if (isMcf && formStatus.requiredCount <= 0) {
@@ -399,11 +411,11 @@ function HistoryFormRow({
         </div>
       </div>
       <div className="flex items-center gap-2">
-        {status === "missed" && (
-          <span className="text-xs font-medium text-destructive">
-            {isMcf && formStatus.completedCount > 0 ? "Incomplete" : "Missed"}
+        {status === "missed" || status === "incomplete" ? (
+          <span className={`text-xs font-medium ${status === "incomplete" ? "text-warning" : "text-destructive"}`}>
+            {status === "incomplete" || (isMcf && formStatus.completedCount > 0) ? "Incomplete" : "Missed"}
           </span>
-        )}
+        ) : null}
         {onView && (
           <Button size="sm" variant="outline" className="cursor-pointer" onClick={onView}>
             View
@@ -428,6 +440,8 @@ function StatusBadge({ status }: { status: FormStatusResult["status"] }) {
       )
     case "overdue":
       return <Badge variant="destructive">Overdue</Badge>
+    case "incomplete":
+      return <Badge variant="warning">Incomplete</Badge>
     case "missed":
       return <Badge variant="destructive">Missed</Badge>
     case "pending":

@@ -178,7 +178,7 @@ All routes under `/api/users` require **requireAuth**.
 ### `GET /api/users/team-leaders`
 
 **Auth:** requireAuth
-**Description:** Returns roster rows whose `program_role` is not scholar or Coordinator and whose `status` is not graduated (team leader performance / form stats). Program Coordinator still appears.
+**Description:** Returns roster rows whose `program_role` is not scholar or Coordinator and whose `user_roster.status` is enrolled (team leader performance / form stats). Inactive and graduated rows are omitted. Program Coordinator still appears.
 **Request:** None
 **Response:**
 ```json
@@ -190,7 +190,7 @@ All routes under `/api/users` require **requireAuth**.
 ### `GET /api/users/scholar-uids`
 
 **Auth:** requireAuth
-**Description:** Returns UIDs for all scholars.
+**Description:** Returns UIDs for scholars whose `user_roster.status` is enrolled. Inactive and graduated roster rows are omitted.
 **Request:** None
 **Response:**
 ```json
@@ -408,7 +408,7 @@ Minutes are computed on read from cleaned session tickets (campus week). Excuses
 **Auth:** requireTeamLeaderOrAbove  
 **Description:** Week board for eligible scholars (enrolled freshman/sophomore with required hours for the kind). Includes Mon–Fri minutes, logged total, excuse, description, and completion %.  
 **Request Params:** `weekNum` (integer, >= 1)  
-**Query:** `kind` = `front_desk` | `study_session` (required)  
+**Query:** `kind` = `front_desk` | `study_session` (required)
 **Response:**
 ```json
 {
@@ -440,6 +440,45 @@ Minutes are computed on read from cleaned session tickets (campus week). Excuses
       "at_or_above_90": 0,
       "below_75": 0
     }
+  }
+}
+```
+
+---
+
+### `POST /api/attendance/week/:weekNum/by-uids`
+
+**Auth:** requireTeamLeaderOrAbove
+**Description:** Campus-week FD and SS minutes for the given scholar UIDs, using the same compute-on-read tickets + `scholar_week_excuses` math as Weekly Memo. Returns one front_desk row and one study_session row per UID (zeros when there are no tickets or excuse). `required_min` and `completion_pct` are null — callers use roster requirements.
+**Request Params:** `weekNum` (integer, >= 1)
+**Request Body:**
+```json
+{ "uids": ["12345", "67890"] }
+```
+**Response:**
+```json
+{
+  "data": {
+    "week_num": 1,
+    "week_start": "2026-08-31",
+    "rows": [
+      {
+        "scholar_uid": "12345",
+        "kind": "front_desk",
+        "logged_min": 75,
+        "excuse_min": 15,
+        "description": "Doctor appointment",
+        "effective_min": 90
+      },
+      {
+        "scholar_uid": "12345",
+        "kind": "study_session",
+        "logged_min": 0,
+        "excuse_min": 0,
+        "description": null,
+        "effective_min": 0
+      }
+    ]
   }
 }
 ```
@@ -962,7 +1001,7 @@ Routes under `/api/memo` require **requireTeamLeaderOrAbove** unless noted other
 ### `GET /api/memo/page-data`
 
 **Auth:** requireTeamLeaderOrAbove
-**Description:** Returns all processed data needed to render the memo page for a given week (aggregated in one call). FD/SS minutes are computed on read from cleaned tickets; excuses come from `scholar_week_excuses` (not `*_records`). Each scholar row includes `wahfStatus` (`on-time` | `late` | `missing`) and `wahfSubmittedAt` (latest weekly WAHF form-log `created_at`, or `null` if none) from that week's WAHF form logs. `teamLeader` is the mentor display name from `mentor_mentee` (`Unassigned` when the scholar has no row). `gradeBreakdown` lists assignment grades parsed from the **latest WAHF per scholar** (high ≥90%, mid 70–89%, low <70%) so resubmits do not duplicate; each band is sorted by percent descending. Scholars owe WAHF only; WPL/MCF stay on team-leader form stats.
+**Description:** Returns all processed data needed to render the memo page for a given week (aggregated in one call). Scholar rows and WAHF census (`wahfDonut`) include only enrolled freshman/sophomore scholars with required hours (`user_roster.status` = enrolled). `gradeBreakdown` is the Recognition board census: assignment grades parsed from the **latest WAHF per submitter that week** (scholars and team leaders; high ≥90%, mid 70–89%, low <70%) so resubmits do not duplicate; each band is sorted by percent descending. Team leader form stats (`teamLeaderFormStats`, `formCompletionOverall`, MCF rows) include only enrolled non-scholar, non-Coordinator roster rows. Inactive and graduated roster rows are omitted from scholar lists and TL form stats. FD/SS minutes are computed on read from cleaned tickets; excuses come from `scholar_week_excuses` (not `*_records`). Each scholar row includes `wahfStatus` (`on-time` | `late` | `missing`) and `wahfSubmittedAt` (latest weekly WAHF form-log `created_at`, or `null` if none) from that week's WAHF form logs. `teamLeader` is the mentor display name from `mentor_mentee` (`Unassigned` when the scholar has no row). Scholars owe WAHF only; WPL/MCF stay on team-leader form stats. `trafficComparableLastWeekCount` is prior-week entries through the same weekday and time when the selected week is the current campus week (not the full prior week).
 **Query Params:**
 - `weekNumber` (integer >= 1; legacy `weekNum` accepted; defaults to current campus week if omitted)
 
@@ -976,7 +1015,7 @@ Routes under `/api/memo` require **requireTeamLeaderOrAbove** unless noted other
 ### `GET /api/memo/pdf`
 
 **Auth:** requireTeamLeaderOrAbove
-**Description:** Renders the weekly memo printout as a PDF. The masthead and footer include an Eastern `Printed` timestamp. `Content-Disposition` uses `weekly-memo-week-{weekNumber}-{YYYY-MM-DD-HHmm}.pdf` in America/New_York. Response has `Cache-Control: no-store`. Returns `503` if Chromium/PDF rendering fails.
+**Description:** Renders the weekly memo printout as a PDF. FD/SS roster and Needs Attention completion match the memo page: logged minutes plus `scholar_week_excuses`, integer percent capped at 100. Program Snapshot FD/SS bars count a scholar complete at 80% or more (same hours math), not the page pie’s 100% threshold. Snapshot FD/SS rows and appendix roster group headings use class-year labels (Sophomore, Freshman), not entering cohort numbers. Study-session and front-desk appendix rosters are grouped by class year and sorted by completed minutes descending. The masthead and footer include an Eastern `Printed` timestamp. `Content-Disposition` uses `weekly-memo-week-{weekNumber}-{YYYY-MM-DD-HHmm}.pdf` in America/New_York. Response has `Cache-Control: no-store`. Returns `503` if Chromium/PDF rendering fails.
 **Query Params:**
 - `weekNumber` (integer >= 1; legacy `weekNum` accepted; defaults to current campus week if omitted)
 

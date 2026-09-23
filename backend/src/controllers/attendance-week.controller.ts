@@ -2,10 +2,11 @@
  * @file attendance-week.controller.ts
  * @module backend/controllers
  *
- * Handlers for /api/attendance/* — campus-week boards and excuse upserts.
+ * Handlers for /api/attendance/* — campus-week boards, mentee UID slices,
+ * and excuse upserts.
  *
  * ## What belongs here
- * - Parse weekNum / kind / excuse body; return { data } or { error }
+ * - Parse weekNum / kind / uids / excuse body; return { data } or { error }
  *
  * ## What does NOT belong here
  * - Ticket aggregation or Supabase queries
@@ -13,6 +14,7 @@
 import type { Response } from "express";
 import type { AuthenticatedRequest } from "../middleware/auth.middleware.js";
 import {
+  getWeekAttendanceForUids,
   getWeekBoard,
   parseAttendanceKind,
   upsertExcuse,
@@ -55,6 +57,42 @@ export async function weekBoard(req: AuthenticatedRequest, res: Response) {
         : e && typeof e === "object" && "message" in e && typeof (e as { message: unknown }).message === "string"
           ? (e as { message: string }).message
           : "Failed to fetch attendance week board";
+    res.status(500).json({ error: message });
+  }
+}
+
+function parseUidList(body: unknown): string[] | null {
+  if (body == null || typeof body !== "object") return null;
+  const uids = (body as { uids?: unknown }).uids;
+  if (!Array.isArray(uids)) return null;
+  return uids.map((uid) => String(uid ?? "").trim()).filter(Boolean);
+}
+
+// POST /api/attendance/week/:weekNum/by-uids
+export async function weekAttendanceByUids(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const weekNum = parseWeekNum(req.params.weekNum);
+    if (!weekNum) {
+      res.status(400).json({ error: "Invalid weekNum parameter" });
+      return;
+    }
+    const uids = parseUidList(req.body);
+    if (!uids) {
+      res.status(400).json({ error: "uids must be an array of scholar UIDs" });
+      return;
+    }
+    const data = await getWeekAttendanceForUids(weekNum, uids);
+    res.json({ data });
+  } catch (e) {
+    const message =
+      e instanceof Error
+        ? e.message
+        : e && typeof e === "object" && "message" in e && typeof (e as { message: unknown }).message === "string"
+          ? (e as { message: string }).message
+          : "Failed to fetch attendance for UIDs";
     res.status(500).json({ error: message });
   }
 }

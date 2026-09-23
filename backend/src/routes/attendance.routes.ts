@@ -5,6 +5,7 @@
  * Express Router for /api/attendance/* endpoints.
  * Campus-week minutes from tickets + excuses from scholar_week_excuses
  * (keyed by scholar_uid, week_start, kind).
+ * GET week board, POST by-uids (mentees), PATCH excuse.
  * Requires team leader or above.
  */
 import { Router } from "express";
@@ -16,6 +17,7 @@ const router = Router();
 router.use(requireTeamLeaderOrAbove);
 
 router.get("/week/:weekNum", attendanceController.weekBoard);
+router.post("/week/:weekNum/by-uids", attendanceController.weekAttendanceByUids);
 router.patch("/excuse", attendanceController.patchExcuse);
 
 export default router;

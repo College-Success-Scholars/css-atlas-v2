@@ -12,6 +12,7 @@ import {
   trafficHeatmapSvg,
   trafficScaleMax,
 } from "../services/weekly-memo-pdf-charts.js";
+import { freshmanCohortYear, sophomoreCohortYear } from "../services/time.service.js";
 
 describe("weekly memo print charts", () => {
   it("sizes submission segments as percentages of the bar", () => {
@@ -46,16 +47,18 @@ describe("weekly memo print charts", () => {
   });
 
   it("fills cohort bars from completion and uses print status colors", () => {
+    const sophomore = sophomoreCohortYear();
+    const freshman = freshmanCohortYear();
     expect(cohortFillWidth(3, 10)).toBe(30);
     expect(cohortFillWidth(0, 0)).toBe(0);
-    const low = cohortBarSvg({ cohort: 2024, completed: 2, total: 10 }, "fd-2024");
+    const low = cohortBarSvg({ cohort: sophomore, completed: 2, total: 10 }, "fd-soph");
     expect(low).toContain('data-print-chart="cohort-bar"');
-    expect(low).toContain('data-cohort="2024"');
+    expect(low).toContain(`data-cohort="${sophomore}"`);
     expect(low).toContain(`fill="${PRINT_CHART.accent}"`);
-    expect(low).toContain("2 of 10 complete");
-    const high = cohortBarSvg({ cohort: 2025, completed: 10, total: 10 }, "fd-2025");
+    expect(low).toContain("Sophomores 2 of 10 complete");
+    const high = cohortBarSvg({ cohort: freshman, completed: 10, total: 10 }, "fd-fresh");
     expect(high).toContain(`fill="${PRINT_CHART.good}"`);
-    expect(high).toContain("10 of 10 complete");
+    expect(high).toContain("Freshmen 10 of 10 complete");
   });
 
   it("draws weekly traffic as bars plus a rolling-average line", () => {

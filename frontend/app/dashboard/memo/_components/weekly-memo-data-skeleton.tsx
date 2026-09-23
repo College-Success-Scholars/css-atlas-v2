@@ -47,6 +47,15 @@ export function WeeklyMemoDataSkeleton() {
             <CardContent className="space-y-2 px-4 pb-4">
               <Skeleton className="h-9 w-20" />
               <Skeleton className="h-3 w-32" />
+              {(title === "Front desk hours" || title === "Study session hours") && (
+                <>
+                  <Skeleton className="h-2.5 w-full rounded-full" />
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-2.5 w-full rounded-full" />
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-2.5 w-full rounded-full" />
+                </>
+              )}
             </CardContent>
           </Card>
         ))}

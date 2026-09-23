@@ -58,9 +58,10 @@
 | **WAHF deadline** | Thursday at 11:59 PM America/New_York each campus week. | End-of-week form deadline |
 | **WPL deadline** | Friday at 5:00 PM America/New_York each campus week. | Team leader form deadline |
 | **MCF deadline** | Friday at 5:00 PM America/New_York each campus week. | Check-in deadline |
-| **On-time** | A valid submission received by the form's weekly deadline. | Complete |
-| **Late** | A valid submission received after deadline but before the next campus week begins. | Delayed |
-| **Missing** | No valid submission received by the campus-week rollover or report cutoff. | Not submitted |
+| **On-time** | A valid submission received by the form's weekly deadline. For **MCF**, every assigned mentee has a check-in by Friday 5:00 PM ET. | Complete |
+| **Late** | A valid submission received after deadline but before the next campus week begins. For **MCF**, every assigned mentee has a check-in, and at least one arrived after Friday 5:00 PM ET. | Delayed |
+| **Incomplete** | **MCF** only: at least one mentee check-in is in, but not every assigned mentee. Used instead of late/missing while mentees remain. | Partial, in progress |
+| **Missing** | No valid submission received by the campus-week rollover or report cutoff. For **MCF**, no mentee check-ins at all. | Not submitted |
 
 ## Relationships
 
@@ -71,7 +72,7 @@
 - Every **Program member** must submit **WAHF** each **Campus Week**.
 - Every **Team Leader** must submit one weekly **WPL** and one **MCF** per assigned mentee each **Campus Week**.
 - **Front desk completion** and **Study session completion** apply to non-Team-Leader freshmen and sophomores.
-- **WAHF** form-log status uses timezone-aware ET deadlines; **WPL** and **MCF** status is shown on **Team leader performance**, not as scholar requirements.
+- **WAHF** form-log status uses timezone-aware ET deadlines; **WPL** and **MCF** status is shown on **Team leader performance**, not as scholar requirements. **MCF** with some-but-not-all mentee check-ins is **incomplete**, not late.
 - If multiple MCFs exist for one scholar in one week, the latest submitted MCF is canonical for current status.
 - Missing **MCF** is always a Team Leader compliance issue and is not by itself automatic **Scholar follow-up risk**.
 - Missing or late **WAHF** is a scholar **Issue** on **Scholar follow-up** (**What's missing** is WAHF; **How it's missing** is submitted-at from the form log, or no-submission time). The export PDF still lists those names under **Scholar WAHF**.
@@ -93,6 +94,10 @@
 > **Dev:** "And if two MCFs exist this week?"
 >
 > **Domain expert:** "Use the latest valid submission as canonical and keep history for audit."
+>
+> **Dev:** "A team leader submitted **MCF** for one of three mentees before Friday 5:00 PM ET. Late?"
+>
+> **Domain expert:** "**Incomplete.** Late is only when every assigned mentee has a check-in and at least one arrived after the deadline."
 
 ## Flagged ambiguities
 

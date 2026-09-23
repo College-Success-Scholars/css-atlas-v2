@@ -17,32 +17,12 @@
 "use client"
 
 import * as React from "react"
-import { 
-  BookOpen,
-  Bot,
-  Building,
-  Command,
-  Frame,
-  LifeBuoy,
-  Map,
-  PieChart,
-  Send,
-  Settings2,
-  SquareTerminal,
-  Users,
-  FileText,
-  GraduationCap,
-  UserCheck,
-  Briefcase,
-  Calendar,
-  User,
-  Home,
-} from "lucide-react"
+import { Command, Compass, CompassIcon } from "lucide-react"
 
 import { NavMain } from "@/components/layout/nav-main"
-import { NavProjects } from "@/components/layout/nav-projects"
-import { NavSecondary } from "@/components/layout/nav-secondary"
+import { NavTeams } from "@/components/layout/nav-teams"
 import { NavUser } from "@/components/layout/nav-user"
+import { getRoleBasedTeams } from "@/components/layout/sidebar-teams"
 import { ProfileSwitcher } from "@/components/dev/profile-switcher"
 import { DevActingBanner } from "@/components/dev/dev-acting-banner"
 import type { DevTestProfileListItem } from "@/lib/server/queries"
@@ -56,258 +36,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { UserRole, resolveUserRole, canAccessWeeklyMemo, canAccessMenteeMonitoring, formatUserRoleLabel } from "@/lib/auth"
-
-const defaultData = {
-  user: {
-    name: "CSS",
-    email: "m@example.com",
-    avatar: "",
-  },
-  navMain: [
-    {
-      title: "Playground",
-      url: "#",
-      icon: SquareTerminal,
-      isActive: true,
-      items: [
-        {
-          title: "History",
-          url: "#",
-        },
-        {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Models",
-      url: "#",
-      icon: Bot,
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Documentation",
-      url: "#",
-      icon: BookOpen,
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Support",
-      url: "#",
-      icon: LifeBuoy,
-    },
-    {
-      title: "Feedback",
-      url: "#",
-      icon: Send,
-    },
-  ],
-  projects: [
-    {
-      name: "Internship Board",
-      url: "#",
-      icon: Briefcase, // Internship Board: Briefcase icon
-    },
-    {
-      name: "Events",
-      url: "#",
-      icon: Calendar, // Events: Calendar icon
-    },
-  ],
-}
-
-// Role-specific navigation data
-const getRoleBasedNav = (role: UserRole, showMemo: boolean, showMentees: boolean) => {
-  switch (role) {
-    case 'scholar':
-      return [
-        {
-          title: "Home",
-          url: "/dashboard",
-          icon: GraduationCap,
-          isActive: true,
-        },
-        {
-          title: "Directory",
-          url: "/dashboard/directory",
-          icon: User,
-          isActive: false,
-        },
-      ]
-    
-    case 'team-leader':
-    case 'developer':
-      return [
-        {
-          title: "Home",
-          url: "/dashboard",
-          icon: Home,
-          isActive: true,
-        },
-        {
-          title: "Personal",
-          url: "/dashboard/personal",
-          icon: User,
-        },
-        {
-          title: "Room",
-          url: "/dashboard/room",
-          icon: Building,
-        },
-        ...(showMentees
-          ? [
-              {
-                title: "Mentees",
-                url: "/dashboard/mentee",
-                icon: Users,
-              },
-            ]
-          : []),
-        ...(showMemo
-          ? [
-              {
-                title: "Memo",
-                url: "/dashboard/memo",
-                icon: FileText,
-              },
-            ]
-          : []),
-        {
-          title: "Teams",
-          url: "/dashboard/teams/front-desk",
-          icon: Users,
-          items: [
-            {
-              title: "Front Desk",
-              url: "/dashboard/teams/front-desk",
-            },
-            {
-              title: "Study Sessions",
-              url: "/dashboard/teams/study",
-            },
-          ],
-        },
-      ]
-    
-    default:
-      return defaultData.navMain
-  }
-}
-
-const getRoleBasedResources = (role: UserRole) => {
-  switch (role) {
-    case 'scholar':
-      return [
-        {
-          name: "Internship Board",
-          url: "/dashboard/internship-board",
-          icon: Briefcase,
-        },
-        {
-          name: "Events",
-          url: "/dashboard/events",
-          icon: Calendar,
-        },
-      ]
-    
-    case 'team-leader':
-    case 'developer':
-      return [
-        {
-          name: "Internship Board",
-          url: "/dashboard/internship-board",
-          icon: Briefcase,
-        },
-        {
-          name: "Events",
-          url: "/dashboard/events",
-          icon: Calendar,
-        }
-      ]
-    
-    default:
-      return defaultData.projects
-  }
-}
-
-const getRoleBasedSecondaryNav = (role: UserRole) => {
-  switch (role) {
-    case 'scholar':
-    case 'team-leader':
-    case 'developer':
-      return [
-        {
-          title: "Support",
-          url: "#",
-          icon: LifeBuoy,
-        },
-      ]
-    
-    default:
-      return defaultData.navSecondary
-  }
-}
+import { resolveUserRole, canAccessWeeklyMemo, canAccessMenteeMonitoring, formatUserRoleLabel, type UserRole } from "@/lib/auth"
+import { getRoleBasedNav } from "@/components/layout/sidebar-nav"
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   profile: Record<string, unknown>;
@@ -338,8 +68,7 @@ export function AppSidebar({
   const showMemo = canAccessWeeklyMemo(roleFields);
   const showMentees = canAccessMenteeMonitoring(profile);
   const roleNavMain = getRoleBasedNav(userRole, showMemo, showMentees)
-  const roleNavSecondary = getRoleBasedSecondaryNav(userRole)
-  const roleNavResources = getRoleBasedResources(userRole)
+  const roleNavTeams = getRoleBasedTeams(userRole)
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -349,7 +78,7 @@ export function AppSidebar({
             <SidebarMenuButton size="lg" asChild>
               <a href="#">
                 <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <Command className="size-4" />
+                  <CompassIcon className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">CSS Atlas</span>
@@ -367,8 +96,7 @@ export function AppSidebar({
           </div>
         )}
         <NavMain items={roleNavMain} />
-        <NavProjects projects={roleNavResources} />
-        <NavSecondary items={roleNavSecondary} className="mt-auto" />
+        {roleNavTeams.length > 0 && <NavTeams teams={roleNavTeams} />}
       </SidebarContent>
       <SidebarFooter>
         {isDeveloper && testProfiles.length > 0 && (
