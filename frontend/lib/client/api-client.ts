@@ -52,39 +52,56 @@ export async function backendFetch<T>(
   options?: { method?: string; body?: unknown }
 ): Promise<{ data: T; ok: true } | { error: string; ok: false; status: number }> {
   const method = options?.method ?? "GET";
-  const requestUrl = buildBackendRequestUrl(BACKEND_URL, path);
   const start = Date.now();
+
+  let requestUrl: string;
+  try {
+    requestUrl = buildBackendRequestUrl(BACKEND_URL, path);
+  } catch (e) {
+    const error = e instanceof Error ? e.message : "Invalid backend URL";
+    logApiError("client", method, path, 0, error, Date.now() - start);
+    return { error, ok: false, status: 0 };
+  }
   logApiRequest("client", method, requestUrl);
 
-  const token = await getAccessToken();
-  const res = await fetch(requestUrl, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    ...(options?.body !== undefined
-      ? { body: JSON.stringify(options.body) }
-      : {}),
-  });
-  const durationMs = Date.now() - start;
-  const json = await res.json().catch(() => ({ error: res.statusText }));
+  // A thrown fetch (network failure, CORS rejection, DNS/connection error) must still
+  // resolve to { ok: false } — callers rely on this never rejecting to clear loading state.
+  try {
+    const token = await getAccessToken();
+    const res = await fetch(requestUrl, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      ...(options?.body !== undefined
+        ? { body: JSON.stringify(options.body) }
+        : {}),
+    });
+    const durationMs = Date.now() - start;
+    const json = await res.json().catch(() => ({ error: res.statusText }));
 
-  if (!res.ok) {
-    const error =
-      (json as { error?: string }).error ?? `Backend error: ${res.status}`;
-    logApiError("client", method, requestUrl, res.status, error, durationMs);
-    return {
-      error,
-      ok: false,
-      status: res.status,
-    };
+    if (!res.ok) {
+      const error =
+        (json as { error?: string }).error ?? `Backend error: ${res.status}`;
+      logApiError("client", method, requestUrl, res.status, error, durationMs);
+      return {
+        error,
+        ok: false,
+        status: res.status,
+      };
+    }
+
+    logApiResponse("client", method, requestUrl, res.status, durationMs);
+    // Unwrap { data: ... } — returns { ok, data } | { ok: false, error, status } (unlike server client which throws)
+    const payload = json != null && typeof json === "object" && "data" in json ? json.data : json;
+    return { data: payload as T, ok: true };
+  } catch (e) {
+    const durationMs = Date.now() - start;
+    const error = e instanceof Error ? e.message : "Network request failed";
+    logApiError("client", method, requestUrl, 0, error, durationMs);
+    return { error, ok: false, status: 0 };
   }
-
-  logApiResponse("client", method, requestUrl, res.status, durationMs);
-  // Unwrap { data: ... } — returns { ok, data } | { ok: false, error, status } (unlike server client which throws)
-  const payload = json != null && typeof json === "object" && "data" in json ? json.data : json;
-  return { data: payload as T, ok: true };
 }
 
 export async function backendGet<T>(path: string) {
