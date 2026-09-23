@@ -33,7 +33,7 @@ const nextConfig: NextConfig = {
   // Browser code can only ever see NEXT_PUBLIC_-prefixed vars inlined at build time, so alias
   // it here — this is a name bridge for one existing var, not a hardcoded default/fallback value.
   env: {
-    NEXT_PUBLIC_BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL ?? process.env.BACKEND_URL,
+    NEXT_PUBLIC_BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_URL,
   },
 };
 

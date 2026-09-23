@@ -52,11 +52,27 @@ function paletteIndex(value: string, size: number): number {
 }
 
 const TEAM_BADGE_STYLES = [
-  "border-info/40 bg-info-muted text-info-muted-foreground",
-  "border-success/40 bg-success-muted text-success-muted-foreground",
-  "border-warning/40 bg-warning-muted text-warning-muted-foreground",
-  "border-violet-400/40 bg-violet-500/10 text-violet-700 dark:text-violet-300",
-];
+    "border-blue-400/40 bg-blue-500/10 text-blue-700 dark:text-blue-300",
+    "border-cyan-400/40 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300",
+    "border-teal-400/40 bg-teal-500/10 text-teal-700 dark:text-teal-300",
+    "border-emerald-400/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    "border-green-400/40 bg-green-500/10 text-green-700 dark:text-green-300",
+    "border-lime-400/40 bg-lime-500/10 text-lime-700 dark:text-lime-300",
+    "border-yellow-400/40 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300",
+    "border-amber-400/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+    "border-orange-400/40 bg-orange-500/10 text-orange-700 dark:text-orange-300",
+    "border-red-400/40 bg-red-500/10 text-red-700 dark:text-red-300",
+    "border-rose-400/40 bg-rose-500/10 text-rose-700 dark:text-rose-300",
+    "border-pink-400/40 bg-pink-500/10 text-pink-700 dark:text-pink-300",
+    "border-fuchsia-400/40 bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300",
+    "border-purple-400/40 bg-purple-500/10 text-purple-700 dark:text-purple-300",
+    "border-violet-400/40 bg-violet-500/10 text-violet-700 dark:text-violet-300",
+    "border-indigo-400/40 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
+    "border-sky-400/40 bg-sky-500/10 text-sky-700 dark:text-sky-300",
+    "border-fuchsia-300/40 bg-fuchsia-400/10 text-fuchsia-700 dark:text-fuchsia-300",
+    "border-purple-300/40 bg-purple-400/10 text-purple-700 dark:text-purple-300",
+    "border-rose-300/40 bg-rose-400/10 text-rose-700 dark:text-rose-300",
+  ];
 
 function teamBadgeClassName(team: string): string {
   return TEAM_BADGE_STYLES[paletteIndex(team, TEAM_BADGE_STYLES.length)]!;
@@ -98,7 +114,11 @@ function TeamAndRole({ person }: { person: DirectoryPerson }) {
       {person.teams.length ? (
         <div className="flex flex-wrap gap-1">
           {person.teams.map((team) => (
-            <Badge key={team} variant="outline" className={teamBadgeClassName(team)}>{team}</Badge>
+            <Badge key={team} variant="outline" className={teamBadgeClassName(team)}>
+                {team == 'study' ? 'Study Session' :
+                team == 'developer' ? 'Database' :
+                team == 'front_desk' ? 'Front Desk' : 'Unassigned'}
+            </Badge>
           ))}
         </div>
       ) : (
@@ -412,7 +432,7 @@ export function DirectoryDashboard() {
             <DirectoryFiltersForm filters={filters} facets={facets} onChange={(next) => updateState({ ...state, ...next })} layout="inline" />
             <div className="hidden overflow-hidden rounded-md border md:inline-flex">
               <Button
-                className="min-h-11 rounded-none"
+                className="min-h-8 rounded-none"
                 size="sm"
                 variant={state.view === "flat" ? "default" : "ghost"}
                 onClick={() => updateState({ ...state, view: "flat" })}
@@ -420,7 +440,7 @@ export function DirectoryDashboard() {
                 Flat list
               </Button>
               <Button
-                className="min-h-11 rounded-none border-l"
+                className="min-h-8 rounded-none border-l"
                 size="sm"
                 variant={state.view === "grouped" ? "default" : "ghost"}
                 onClick={() => updateState({ ...state, view: "grouped" })}
@@ -493,7 +513,10 @@ export function DirectoryDashboard() {
                   onClick={() => toggleGroup(group.team)}
                   aria-expanded={isExpanded}
                 >
-                  <span>{group.team}</span>
+                  <span>{group.team == 'developer' ? 'Database Team' : 
+                         group.team == 'study' ? 'Study Session Team' :
+                         group.team == 'front_desk' ? 'Front Desk Team' :
+                         group.team == 'study' ? 'Study' : 'Unassigned' }</span>
                   <span className="flex items-center gap-2 text-sm font-normal text-muted-foreground">
                     {group.pagination.total} {group.pagination.total === 1 ? "person" : "people"}
                     <ChevronRight className={`size-4 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
