@@ -87,7 +87,7 @@ export async function runSigninDetector(now = new Date()): Promise<void> {
   });
 }
 
-if (process.argv[1]?.endsWith("signin-detector.js")) {
+if (/signin-detector\.(js|ts)$/.test(process.argv[1] ?? "")) {
   runSigninDetector().catch((error) => {
     console.error("[signin-detector] failed", { error });
     process.exitCode = 1;
