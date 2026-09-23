@@ -13,26 +13,27 @@
  * - Scholar-only content (that's scholar-dashboard.tsx)
  */
 import Link from "next/link"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { UserCheck } from "lucide-react"
+import { FileText, Monitor, User, Users } from "lucide-react"
 
 const baseOverviewLinks = [
   {
     title: "Personal",
     href: "/dashboard/personal",
+    icon: User,
     description:
-      "Track your WPL, MCF, and WAHF submission status, plus view your activity log.",
+      "Track your WPL, MCF, and WAHF submission status.",
   },
   {
     title: "Room Monitoring",
     href: "/dashboard/room",
+    icon: Monitor,
     description:
       "View real-time room occupancy and scholar presence for study sessions and front desk duty.",
   },
   {
     title: "Weekly Memo",
     href: "/dashboard/memo",
+    icon: FileText,
     description:
       "Review the weekly memo: scholar follow-up, team leader form compliance, and attendance.",
   },
@@ -41,57 +42,54 @@ const baseOverviewLinks = [
 const menteesOverviewLink = {
   title: "Mentees",
   href: "/dashboard/mentee",
+  icon: Users,
   description:
     "Monitor your mentees' study sessions, front desk hours, tutoring, and WAHF status.",
 } as const
 
 type TeamLeaderDashboardProps = {
+  firstName?: string | null;
   /** When false, hide the Mentees quick link (same gate as sidebar / mentee page). */
   showMentees?: boolean;
 };
 
-export function TeamLeaderDashboard({ showMentees = false }: TeamLeaderDashboardProps) {
+export function TeamLeaderDashboard({ firstName, showMentees = false }: TeamLeaderDashboardProps) {
   const overviewLinks = showMentees
     ? [baseOverviewLinks[0], menteesOverviewLink, ...baseOverviewLinks.slice(1)]
     : [...baseOverviewLinks];
+  const trimmedFirstName = firstName?.trim()
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Team Leader Dashboard</h1>
-          <p className="text-muted-foreground">
-            Welcome to your team leader dashboard. Use the sidebar to navigate between different monitoring sections.
-          </p>
-        </div>
-        <Badge variant="secondary" className="flex items-center gap-2">
-          <UserCheck className="h-4 w-4" />
-          Team Leader
-        </Badge>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {trimmedFirstName ? `Welcome back, ${trimmedFirstName}` : "Home"}
+        </h1>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Overview</CardTitle>
-          <CardDescription>
+      <section className="space-y-4" aria-labelledby="quick-overview-heading">
+        <div>
+          <h2 id="quick-overview-heading" className="text-lg font-medium">Quick Overview</h2>
+          <p className="text-sm text-muted-foreground">
             Get started with monitoring your team and personal progress
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {overviewLinks.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="block rounded-lg border p-4 transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <h3 className="mb-2 font-medium">{item.title}</h3>
-                <p className="text-sm text-muted-foreground">{item.description}</p>
-              </Link>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {overviewLinks.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="block cursor-pointer rounded-lg border p-4 transition-colors hover:bg-accent hover:text-accent-foreground active:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <div className="mb-2 flex items-center gap-2">
+                <item.icon className="size-5 shrink-0 text-muted-foreground" />
+                <h3 className="font-medium">{item.title}</h3>
+              </div>
+              <p className="text-sm text-muted-foreground">{item.description}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
     </div>
   )
 }

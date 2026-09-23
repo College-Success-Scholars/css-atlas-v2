@@ -13,6 +13,8 @@
  *   GET  /api/users/memo-users        → memoUsers
  *   GET  /api/users/team-leaders      → teamLeaders
  *   GET  /api/users/scholar-uids      → scholarUids
+ *   GET  /api/users/directory         → directory
+ *   GET  /api/users/directory/facets  → directoryFacets
  *   GET  /api/users/:uid              → getByUid
  *
  * ## What belongs here
@@ -36,6 +38,8 @@ router.get("/all-uids", userController.allUids);
 router.get("/memo-users", userController.memoUsers);
 router.get("/team-leaders", userController.teamLeaders);
 router.get("/scholar-uids", userController.scholarUids);
+router.get("/directory/facets", userController.directoryFacets);
+router.get("/directory", userController.directory);
 router.get("/:uid", userController.getByUid);
 
 export default router;

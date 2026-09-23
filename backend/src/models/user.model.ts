@@ -86,3 +86,64 @@ export type RosterPatch = {
   teams?: string[] | null;
   mentee_uids?: string[] | null;
 };
+
+export type DirectoryView = "flat" | "grouped";
+export type DirectorySort = "asc" | "desc";
+
+/** The only person fields exposed by the directory endpoint. */
+export type DirectoryPerson = {
+  id: string;
+  name: string;
+  cohort: number | null;
+  email: string | null;
+  phoneNumber: string | null;
+  teams: string[];
+  programRole: string | null;
+};
+
+/** Distinct filter-facet values for the Directory page's team/role/cohort dropdowns. */
+export type DirectoryFacets = {
+  teams: string[];
+  programRoles: string[];
+  cohorts: number[];
+};
+
+export type DirectoryQuery = {
+  view: DirectoryView;
+  search: string;
+  sort: DirectorySort;
+  teams: string[];
+  programRoles: string[];
+  cohorts: number[];
+  limit: number;
+  cursor: string | null;
+  /** A single team group to page after it has been expanded. */
+  group: string | null;
+};
+
+export type DirectoryPagination = {
+  total: number;
+  range: { start: number; end: number };
+  hasNext: boolean;
+  nextCursor: string | null;
+};
+
+export type DirectoryFlatResponse = {
+  view: "flat";
+  members: DirectoryPerson[];
+  pagination: DirectoryPagination;
+};
+
+export type DirectoryGroup = {
+  team: string;
+  members: DirectoryPerson[];
+  pagination: DirectoryPagination;
+};
+
+export type DirectoryGroupedResponse = {
+  view: "grouped";
+  total: number;
+  groups: DirectoryGroup[];
+};
+
+export type DirectoryResponse = DirectoryFlatResponse | DirectoryGroupedResponse;

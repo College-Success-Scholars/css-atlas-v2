@@ -27,7 +27,8 @@ export function ThemeToggle() {
           variant="ghost"
           size="icon"
           className="size-8"
-          aria-label="Toggle theme"
+          aria-label="Toggle light/dark mode"
+          title="Toggle light/dark mode"
         >
           {mounted && theme === "dark" ? (
             <Moon className="size-4" />
