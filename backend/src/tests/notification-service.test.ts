@@ -33,11 +33,11 @@ describe("emitNotificationEvent", () => {
   it("does not redeliver an already-sent event", async () => {
     mocks.resolveRecipient.mockResolvedValue({ id: "leader-1", slackUserId: "U123", name: "Leader" });
     mocks.from.mockReturnValue({
-      select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ maybeSingle: vi.fn().mockResolvedValue({ data: { status: "sent" }, error: null }) }) }) }),
+      select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ maybeSingle: vi.fn().mockResolvedValue({ data: { id: "log-1", status: "sent", attempt_count: 1 }, error: null }) }) }),
     });
     const channel = { name: "slack", send: vi.fn() };
 
-    await expect(emitNotificationEvent(event, channel)).resolves.toEqual({ status: "sent", error: null, attemptCount: 0 });
+    await expect(emitNotificationEvent(event, channel)).resolves.toEqual({ status: "skipped_duplicate", error: null, attemptCount: 0 });
     expect(channel.send).not.toHaveBeenCalled();
   });
 
@@ -47,7 +47,7 @@ describe("emitNotificationEvent", () => {
     mocks.from.mockImplementation((table: string) => {
       if (table === "notification_log") {
         return {
-          select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }) }) }),
+          select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }) }),
           insert,
         };
       }
@@ -66,7 +66,7 @@ describe("emitNotificationEvent", () => {
     mocks.from.mockImplementation((table: string) => {
       if (table === "notification_log") {
         return {
-          select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }) }) }),
+          select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }) }),
           insert,
         };
       }

@@ -3,9 +3,10 @@ import { addEasternCalendarDays, getStartOfDayEastern } from "../../../services/
 import { findShiftOccurrenceMatch } from "../../../services/shift-occurrence.service.js";
 import { getSupabaseServiceRoleClient } from "../../../supabase/client.js";
 import { emitNotificationEvent, NotificationEventType } from "../index.js";
-import { dayRange, easternDateKey, fetchAssignmentsForDate, fetchLogsForRange, kindLogs } from "./detector-data.js";
+import { dayRange, easternDateKey, fetchAssignmentsForDate, fetchLogsForRange, firstEntryAt, kindLogs, parseNonNegativeInt } from "./detector-data.js";
 
-const RECONCILIATION_DAYS = Number(process.env.SIGNIN_NOTIFICATION_RECONCILIATION_DAYS ?? 7);
+const RECONCILIATION_DAYS = parseNonNegativeInt(process.env.SIGNIN_NOTIFICATION_RECONCILIATION_DAYS, 3);
+const MISSED_TYPES = [NotificationEventType.MISSED_FRONT_DESK, NotificationEventType.MISSED_STUDY_SESSION];
 
 function launchDate(): Date {
   const value = process.env.NOTIFICATIONS_LAUNCH_DATE;
@@ -13,15 +14,15 @@ function launchDate(): Date {
   return getStartOfDayEastern(new Date(`${value}T12:00:00Z`));
 }
 
-async function missingNotificationExists(occurrenceRef: string): Promise<boolean> {
+async function loadMissedNotifications(refs: string[]): Promise<{ any: Set<string>; sent: Set<string> }> {
+  const result = { any: new Set<string>(), sent: new Set<string>() };
+  if (refs.length === 0) return result;
   const { data, error } = await getSupabaseServiceRoleClient()
     .from("notification_log")
-    .select("id")
-    .eq("event_ref_id", occurrenceRef)
-    .in("event_type", [NotificationEventType.MISSED_FRONT_DESK, NotificationEventType.MISSED_STUDY_SESSION])
-    .limit(1);
+    .select("event_ref_id, status").in("event_ref_id", refs).in("event_type", MISSED_TYPES);
   if (error) throw error;
-  return (data?.length ?? 0) > 0;
+  for (const row of data ?? []) { const ref = String(row.event_ref_id); result.any.add(ref); if (row.status === "sent") result.sent.add(ref); }
+  return result;
 }
 
 export async function runReconciliationDetector(now = new Date()): Promise<void> {
@@ -49,6 +50,8 @@ export async function runReconciliationDetector(now = new Date()): Promise<void>
     const assignments = await fetchAssignmentsForDate(day);
     const { start, end } = dayRange(day);
     const logs = await fetchLogsForRange(start, end, assignments.map((assignment) => assignment.scholar_id));
+    const refFor = (assignment: (typeof assignments)[number]) => `${assignment.id ?? assignment.scholar_id}:${occurrenceDate}`;
+    const missed = await loadMissedNotifications(assignments.map(refFor));
 
     console.info("[reconciliation-detector] loaded data", {
       occurrenceDate,
@@ -57,8 +60,9 @@ export async function runReconciliationDetector(now = new Date()): Promise<void>
     });
 
     for (const assignment of assignments) {
-      const match = findShiftOccurrenceMatch(assignment, day, kindLogs(assignment, logs.get(assignment.scholar_id) ?? []));
-      const occurrenceRef = `${assignment.id ?? assignment.scholar_id}:${occurrenceDate}`;
+      const rows = logs.get(assignment.scholar_id) ?? [];
+      const match = findShiftOccurrenceMatch(assignment, day, kindLogs(assignment, rows));
+      const occurrenceRef = refFor(assignment);
       assignmentsEvaluated += 1;
 
       console.info("[reconciliation-detector] evaluated occurrence", {
@@ -75,14 +79,19 @@ export async function runReconciliationDetector(now = new Date()): Promise<void>
         console.info("[reconciliation-detector] skipped occurrence", { occurrenceRef, reason: "complete_session" });
         continue;
       }
-      if (match.entry && await missingNotificationExists(occurrenceRef)) {
+      if (match.entry && missed.any.has(occurrenceRef)) {
         console.info("[reconciliation-detector] skipped occurrence", { occurrenceRef, reason: "missing_notification_exists" });
+        continue;
+      }
+      if (!match.entry && missed.sent.has(occurrenceRef)) {
+        console.info("[reconciliation-detector] skipped occurrence", { occurrenceRef, reason: "already_notified" });
         continue;
       }
 
       const type = match.entry
         ? assignment.session_kind === "front_desk" ? NotificationEventType.INCOMPLETE_FRONT_DESK : NotificationEventType.INCOMPLETE_STUDY_SESSION
         : assignment.session_kind === "front_desk" ? NotificationEventType.MISSED_FRONT_DESK : NotificationEventType.MISSED_STUDY_SESSION;
+      const extra = match.entry ? { entryAt: match.entry.created_at } : { phase: "ended" as const, unmatchedEntryAt: firstEntryAt(assignment, rows) };
       const outcome = await emitNotificationEvent({
         type,
         occurrenceRef,
@@ -91,6 +100,7 @@ export async function runReconciliationDetector(now = new Date()): Promise<void>
         occurrenceDate,
         scheduledStart: match.scheduledStart.toISOString(),
         scheduledEnd: match.scheduledEnd.toISOString(),
+        ...extra,
       });
 
       if (!outcome) outcomes.noRecipient += 1;
