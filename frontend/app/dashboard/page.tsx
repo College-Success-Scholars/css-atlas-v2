@@ -27,6 +27,7 @@ export default async function Page() {
     program_role?: string | null;
     mentee_count?: number | null;
     mentee_uids?: string[] | null;
+    first_name?: string | null;
   } | null;
   const role = resolveUserRole(profile);
 
@@ -38,7 +39,12 @@ export default async function Page() {
   }
 
   if (role === "team-leader" || role === "developer") {
-    return <TeamLeaderDashboard showMentees={canAccessMenteeMonitoring(profile)} />;
+    return (
+      <TeamLeaderDashboard
+        firstName={profile?.first_name}
+        showMentees={canAccessMenteeMonitoring(profile)}
+      />
+    );
   }
 
   return <DefaultDashboard />;

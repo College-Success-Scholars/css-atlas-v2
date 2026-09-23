@@ -8,6 +8,11 @@ describe("User routes — auth gating", () => {
     expect(res.status).toBe(401);
   });
 
+  it("GET /api/users/directory returns 401 without token", async () => {
+    const res = await request(app).get("/api/users/directory");
+    expect(res.status).toBe(401);
+  });
+
   it("GET /api/daily-activity returns 401 without token", async () => {
     const res = await request(app).get("/api/daily-activity");
     expect(res.status).toBe(401);

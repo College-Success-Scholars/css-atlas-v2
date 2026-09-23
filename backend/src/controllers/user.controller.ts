@@ -26,8 +26,81 @@ import {
   fetchAllUsersForMemo,
   fetchTeamLeaders,
   fetchScholarUids,
+  getDirectory,
+  getDirectoryFacets,
+  DirectoryCursorError,
   getUserByUid,
 } from "../services/user.service.js";
+import type { DirectoryQuery } from "../models/user.model.js";
+
+const DIRECTORY_PAGE_SIZE = 24;
+
+type QueryValue = unknown;
+type DirectoryQueryParams = Record<string, QueryValue>;
+
+function singleValue(value: QueryValue): string | null | undefined {
+  if (Array.isArray(value)) return undefined;
+  if (value === undefined) return null;
+  return typeof value === "string" ? value : undefined;
+}
+
+function parseFacet(value: QueryValue, maxLength: number): string[] | null {
+  const values = Array.isArray(value) ? value : value == null ? [] : [value];
+  if (values.length > DIRECTORY_PAGE_SIZE || values.some((item) => typeof item !== "string")) return null;
+  const facet = (values as string[]).flatMap((item) => item.split(",")).map((item) => item.trim());
+  if (facet.some((item) => !item || item.length > maxLength)) return null;
+  return [...new Set(facet)];
+}
+
+/** Parses the deliberately small public query contract for GET /api/users/directory. */
+export function parseDirectoryQuery(query: unknown): DirectoryQuery | null {
+  if (query == null || typeof query !== "object") return null;
+  const q = query as DirectoryQueryParams;
+  const allowedKeys = new Set(["view", "search", "sort", "team", "programRole", "cohort", "limit", "cursor", "group"]);
+  if (Object.keys(q).some((key) => !allowedKeys.has(key))) return null;
+
+  const rawView = singleValue(q.view);
+  const rawSearch = singleValue(q.search);
+  const rawSort = singleValue(q.sort);
+  const rawLimit = singleValue(q.limit);
+  const cursor = singleValue(q.cursor);
+  const group = singleValue(q.group);
+  if (rawView === undefined || rawSearch === undefined || rawSort === undefined || rawLimit === undefined || cursor === undefined || group === undefined) return null;
+  const view = rawView ?? "flat";
+  const search = rawSearch ?? "";
+  const sort = rawSort ?? "asc";
+  const limitValue = rawLimit ?? String(DIRECTORY_PAGE_SIZE);
+  if (
+    (view !== "flat" && view !== "grouped") ||
+    (sort !== "asc" && sort !== "desc") ||
+    search.length > 100 ||
+    !Number.isInteger(Number(limitValue)) ||
+    Number(limitValue) < 1 ||
+    Number(limitValue) > DIRECTORY_PAGE_SIZE ||
+    (cursor !== null && (!cursor || cursor.length > 500)) ||
+    (group !== null && (!group.trim() || group.length > 100))
+  ) return null;
+
+  const teams = parseFacet(q.team, 100);
+  const programRoles = parseFacet(q.programRole, 100);
+  const cohortValues = parseFacet(q.cohort, 4);
+  if (!teams || !programRoles || !cohortValues) return null;
+  const cohorts = cohortValues.map((value) => Number(value));
+  if (cohorts.some((cohort) => !Number.isInteger(cohort) || cohort < 1900 || cohort > 3000)) return null;
+  if ((view === "flat" && group !== null) || (view === "grouped" && cursor !== null && group === null)) return null;
+
+  return {
+    view,
+    search: search.trim(),
+    sort,
+    teams,
+    programRoles,
+    cohorts,
+    limit: Number(limitValue),
+    cursor,
+    group: group?.trim() ?? null,
+  };
+}
 
 // POST /api/users/scholar-names
 export async function scholarNames(req: AuthenticatedRequest, res: Response) {
@@ -102,6 +175,30 @@ export async function scholarUids(req: AuthenticatedRequest, res: Response) {
     res.json({ data });
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : "Failed to fetch scholar uids" });
+  }
+}
+
+// GET /api/users/directory
+export async function directory(req: AuthenticatedRequest, res: Response) {
+  const query = parseDirectoryQuery(req.query);
+  if (!query) { res.status(400).json({ error: "Invalid directory query" }); return; }
+  try {
+    res.json({ data: await getDirectory(query) });
+  } catch (e) {
+    if (e instanceof DirectoryCursorError) {
+      res.status(400).json({ error: "Invalid directory cursor" });
+      return;
+    }
+    res.status(500).json({ error: e instanceof Error ? e.message : "Failed to fetch directory" });
+  }
+}
+
+// GET /api/users/directory/facets
+export async function directoryFacets(req: AuthenticatedRequest, res: Response) {
+  try {
+    res.json({ data: await getDirectoryFacets() });
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : "Failed to fetch directory facets" });
   }
 }
 
