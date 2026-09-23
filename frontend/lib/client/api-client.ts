@@ -27,13 +27,28 @@
 import { createClient } from "@/lib/supabase/client";
 import {
   buildBackendRequestUrl,
+  DEFAULT_LOCAL_BACKEND_URL,
   logApiError,
   logApiRequest,
   logApiResponse,
   resolveBackendBaseUrl,
 } from "@/lib/api-log";
 
-const BACKEND_URL = resolveBackendBaseUrl(process.env.NEXT_PUBLIC_BACKEND_URL);
+/**
+ * Same-origin default for any deployed environment (matches vercel.json's
+ * `backend.routePrefix: "/_/backend"`) — this also sidesteps CORS entirely, since a
+ * same-origin request needs no CORS_ORIGIN allowlisting. Only localhost falls back to
+ * the separate backend dev server; every other host defaults to `<origin>/_/backend`
+ * unless NEXT_PUBLIC_BACKEND_URL explicitly overrides it.
+ */
+function defaultBackendBaseUrl(): string {
+  if (typeof window === "undefined") return DEFAULT_LOCAL_BACKEND_URL;
+  const { hostname, origin } = window.location;
+  if (hostname === "localhost" || hostname === "127.0.0.1") return DEFAULT_LOCAL_BACKEND_URL;
+  return `${origin}/_/backend`;
+}
+
+const BACKEND_URL = resolveBackendBaseUrl(process.env.NEXT_PUBLIC_BACKEND_URL, defaultBackendBaseUrl());
 
 async function getAccessToken(): Promise<string | null> {
   try {
