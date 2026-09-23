@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { activeFilterCount, directoryPath, initialDirectoryState, type DirectoryFilters, type DirectoryState } from "./directory-state";
+import { directoryTeamFilterOptions, directoryTeamPresentationFor } from "./directory-team-presentation";
 
 const PAGE_SIZE = 10;
 const ALL_VALUE = "all";
@@ -115,9 +116,7 @@ function TeamAndRole({ person }: { person: DirectoryPerson }) {
         <div className="flex flex-wrap gap-1">
           {person.teams.map((team) => (
             <Badge key={team} variant="outline" className={teamBadgeClassName(team)}>
-                {team == 'study' ? 'Study Session' :
-                team == 'developer' ? 'Database' :
-                team == 'front_desk' ? 'Front Desk' : 'Unassigned'}
+                {directoryTeamPresentationFor(team).label}
             </Badge>
           ))}
         </div>
@@ -149,7 +148,7 @@ function FacetSelect({
   label: string;
   placeholder: string;
   value: string;
-  options: string[];
+  options: { value: string; label: string }[];
   onChange: (value: string) => void;
   triggerClassName: string;
 }) {
@@ -163,7 +162,7 @@ function FacetSelect({
         <SelectContent>
           <SelectItem value={ALL_VALUE}>{placeholder}</SelectItem>
           {options.map((option) => (
-            <SelectItem key={option} value={option}>{option}</SelectItem>
+            <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
           ))}
         </SelectContent>
       </Select>
@@ -195,7 +194,7 @@ function DirectoryFiltersForm({
         label="Team"
         placeholder="All teams"
         value={filters.team}
-        options={facets.teams}
+        options={directoryTeamFilterOptions(facets.teams)}
         onChange={(team) => onChange({ ...filters, team })}
         triggerClassName={triggerClassName}
       />
@@ -203,7 +202,7 @@ function DirectoryFiltersForm({
         label="Program role"
         placeholder="All program roles"
         value={filters.programRole}
-        options={facets.programRoles}
+        options={facets.programRoles.map((value) => ({ value, label: value }))}
         onChange={(programRole) => onChange({ ...filters, programRole })}
         triggerClassName={triggerClassName}
       />
@@ -211,7 +210,7 @@ function DirectoryFiltersForm({
         label="Cohort"
         placeholder="All cohorts"
         value={filters.cohort}
-        options={facets.cohorts.map(String)}
+        options={facets.cohorts.map(String).map((value) => ({ value, label: value }))}
         onChange={(cohort) => onChange({ ...filters, cohort })}
         triggerClassName={triggerClassName}
       />
@@ -409,13 +408,11 @@ export function DirectoryDashboard() {
         />
       </label>
 
-      <div className="flex flex-col gap-3">
-        {/* Row 1: filter controls (left) and sort (right) — visible together at every width. */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
+      <div className="flex min-w-0 flex-nowrap items-center gap-1 md:justify-between md:gap-3">
+          <div className="flex min-w-0 flex-nowrap items-center gap-1 md:gap-2">
             <Sheet>
               <SheetTrigger asChild>
-                <Button className="min-h-11 md:hidden" variant="outline">
+                <Button className="h-11 shrink-0 px-2 md:hidden" variant="outline">
                   <Filter /> Filters{filterCount ? ` (${filterCount})` : ""}
                 </Button>
               </SheetTrigger>
@@ -430,9 +427,9 @@ export function DirectoryDashboard() {
               </SheetContent>
             </Sheet>
             <DirectoryFiltersForm filters={filters} facets={facets} onChange={(next) => updateState({ ...state, ...next })} layout="inline" />
-            <div className="hidden overflow-hidden rounded-md border md:inline-flex">
+            <div className="inline-flex h-11 shrink-0 overflow-hidden rounded-md border">
               <Button
-                className="min-h-8 rounded-none"
+                className="h-11 rounded-none px-2 text-xs sm:px-3 sm:text-sm"
                 size="sm"
                 variant={state.view === "flat" ? "default" : "ghost"}
                 onClick={() => updateState({ ...state, view: "flat" })}
@@ -440,7 +437,7 @@ export function DirectoryDashboard() {
                 Flat list
               </Button>
               <Button
-                className="min-h-8 rounded-none border-l"
+                className="h-11 rounded-none border-l px-2 text-xs sm:px-3 sm:text-sm"
                 size="sm"
                 variant={state.view === "grouped" ? "default" : "ghost"}
                 onClick={() => updateState({ ...state, view: "grouped" })}
@@ -451,7 +448,7 @@ export function DirectoryDashboard() {
           </div>
 
           <Select value={state.sort} onValueChange={(sort) => updateState({ ...state, sort: sort as DirectoryState["sort"] })}>
-            <SelectTrigger className="h-11 w-auto">
+            <SelectTrigger className="h-11 min-w-0 flex-1 px-2 text-xs sm:w-auto sm:flex-none sm:px-3 sm:text-sm [&>span]:truncate">
               <span className="text-muted-foreground">Sort:</span>
               <SelectValue />
             </SelectTrigger>
@@ -460,21 +457,6 @@ export function DirectoryDashboard() {
               <SelectItem value="desc">Name Z–A</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-
-        {/* Row 2: view toggle — segmented buttons on desktop (row 1 above), a full-width dropdown on mobile. */}
-        <Select
-          value={state.view}
-          onValueChange={(view) => updateState({ ...state, view: view as DirectoryState["view"] })}
-        >
-          <SelectTrigger className="h-11 w-full md:hidden">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="flat">Flat list</SelectItem>
-            <SelectItem value="grouped">By team</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       {error && <p className="rounded-md border border-destructive/50 p-3 text-sm text-destructive">{error}</p>}
@@ -513,10 +495,7 @@ export function DirectoryDashboard() {
                   onClick={() => toggleGroup(group.team)}
                   aria-expanded={isExpanded}
                 >
-                  <span>{group.team == 'developer' ? 'Database Team' : 
-                         group.team == 'study' ? 'Study Session Team' :
-                         group.team == 'front_desk' ? 'Front Desk Team' :
-                         group.team == 'study' ? 'Study' : 'Unassigned' }</span>
+                  <span>{directoryTeamPresentationFor(group.team).label}</span>
                   <span className="flex items-center gap-2 text-sm font-normal text-muted-foreground">
                     {group.pagination.total} {group.pagination.total === 1 ? "person" : "people"}
                     <ChevronRight className={`size-4 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
