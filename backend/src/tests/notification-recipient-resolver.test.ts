@@ -25,7 +25,7 @@ describe("resolveTeamLeaderRecipient", () => {
     ]));
 
     await expect(resolveTeamLeaderRecipient("scholar-1")).resolves.toEqual({
-      id: "leader-1", slackUserId: "U123", name: "Team Leader",
+      id: "leader-1", slackUserId: "U123", name: "Team Leader", reason: "mentor",
     });
   });
 
