@@ -7,6 +7,7 @@ import { dayRange, easternDateKey, fetchAssignmentsForDate, fetchLogsForRange, f
 
 const RECONCILIATION_DAYS = parseNonNegativeInt(process.env.SIGNIN_NOTIFICATION_RECONCILIATION_DAYS, 3);
 const MISSED_TYPES = [NotificationEventType.MISSED_FRONT_DESK, NotificationEventType.MISSED_STUDY_SESSION];
+const MAX_ISSUE_SAMPLES = 10;
 
 function launchDate(): Date {
   const value = process.env.NOTIFICATIONS_LAUNCH_DATE;
@@ -30,6 +31,8 @@ export async function runReconciliationDetector(now = new Date()): Promise<void>
   const today = getStartOfDayEastern(now);
   const earliest = launchDate();
   const outcomes = { sent: 0, skipped: 0, failed: 0, noRecipient: 0 };
+  const skips = { completeSession: 0, missingNotificationExists: 0, alreadyNotified: 0 };
+  const issueSamples: Array<{ occurrenceRef: string; eventType: NotificationEventType; outcome: string; error: string | null }> = [];
   let assignmentsEvaluated = 0;
 
   console.info("[reconciliation-detector] started", {
@@ -43,7 +46,6 @@ export async function runReconciliationDetector(now = new Date()): Promise<void>
     const day = addEasternCalendarDays(today, -offset);
     const occurrenceDate = easternDateKey(day);
     if (day.getTime() < earliest.getTime()) {
-      console.info("[reconciliation-detector] skipped date", { occurrenceDate, reason: "before_launch_date" });
       continue;
     }
 
@@ -65,26 +67,16 @@ export async function runReconciliationDetector(now = new Date()): Promise<void>
       const occurrenceRef = refFor(assignment);
       assignmentsEvaluated += 1;
 
-      console.info("[reconciliation-detector] evaluated occurrence", {
-        occurrenceRef,
-        scholarId: assignment.scholar_id,
-        sessionKind: assignment.session_kind,
-        scheduledStart: match.scheduledStart.toISOString(),
-        scheduledEnd: match.scheduledEnd.toISOString(),
-        entryFound: Boolean(match.entry),
-        exitFound: Boolean(match.exit),
-      });
-
       if (match.entry && match.exit) {
-        console.info("[reconciliation-detector] skipped occurrence", { occurrenceRef, reason: "complete_session" });
+        skips.completeSession += 1;
         continue;
       }
       if (match.entry && missed.any.has(occurrenceRef)) {
-        console.info("[reconciliation-detector] skipped occurrence", { occurrenceRef, reason: "missing_notification_exists" });
+        skips.missingNotificationExists += 1;
         continue;
       }
       if (!match.entry && missed.sent.has(occurrenceRef)) {
-        console.info("[reconciliation-detector] skipped occurrence", { occurrenceRef, reason: "already_notified" });
+        skips.alreadyNotified += 1;
         continue;
       }
 
@@ -105,23 +97,22 @@ export async function runReconciliationDetector(now = new Date()): Promise<void>
 
       if (!outcome) outcomes.noRecipient += 1;
       else if (outcome.status === "sent") outcomes.sent += 1;
-      else if (outcome.status === "failed") outcomes.failed += 1;
+      else if (outcome.status === "failed") {
+        outcomes.failed += 1;
+        if (issueSamples.length < MAX_ISSUE_SAMPLES) {
+          issueSamples.push({ occurrenceRef, eventType: type, outcome: outcome.status, error: outcome.error });
+        }
+      }
       else outcomes.skipped += 1;
-
-      console.info("[reconciliation-detector] notification result", {
-        occurrenceRef,
-        eventType: type,
-        outcome: outcome?.status ?? "skipped_no_unique_recipient",
-        attemptCount: outcome?.attemptCount ?? 0,
-        error: outcome?.error ?? null,
-      });
     }
   }
 
   console.info("[reconciliation-detector] completed", {
     daysChecked: RECONCILIATION_DAYS,
     assignmentsEvaluated,
+    evaluationSkips: skips,
     outcomes,
+    issueSamples,
     durationMs: Date.now() - startedAt,
   });
 }
