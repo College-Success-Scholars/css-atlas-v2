@@ -32,10 +32,9 @@ export function fallbackNote(reason: RecipientReason | undefined, first: string)
   if (reason === "fallback_no_slack_id") return `_You're getting this because ${first}'s mentor isn't linked to Slack yet._`;
   return undefined;
 }
-export function toNotification(message: { headline: string; facts: string[]; ask: string; draft: string; note?: string; url?: string }, text: string): RenderedNotification {
+export function toNotification(message: { headline: string; facts: string[]; ask: string; note?: string; url?: string }, text: string): RenderedNotification {
   return { text, blocks: [
     { type: "section", text: { type: "mrkdwn", text: [`*${message.headline}*`, message.facts.join(" · "), message.ask].filter(Boolean).join("\n") } },
-    { type: "section", text: { type: "mrkdwn", text: `> ${message.draft}` } },
     ...(message.note ? [{ type: "context", elements: [{ type: "mrkdwn", text: message.note }] }] : []),
     ...(message.url ? [{ type: "actions", elements: [{ type: "button", text: { type: "plain_text", text: "Open in Atlas" }, url: message.url }] }] : []),
   ] };

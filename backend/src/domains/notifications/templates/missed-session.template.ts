@@ -9,16 +9,15 @@ export function renderMissedSessionMessage(event: NotificationEvent, scholarName
   if (event.phase !== "ended") {
     const late = Math.round((event.minutesLate ?? 0) / 5) * 5;
     return toNotification({ 
-        headline: `${pick(OPENERS, event.occurrenceRef)}: ${first} isn't at ${place} yet`, 
-        facts: [when, ...(late > 0 ? [`started about ${late} min ago`] : [])], 
-        ask: outside || "Reach out and see what they are up to.", 
-        draft: `Hey ${first}, you're on the schedule for ${place} right now. Everything okay? Still time to swing by.` }, `${first} isn't at ${place} yet (${when})`);
+        headline: `${first} hasn't shown up to ${place} yet`, 
+        facts: [when, ...(late > 0 ? [`about ${late} in`] : [])], 
+        ask: outside || "Worth a quick check-in." }, `${first} isn't at ${place} yet (${when})`);
   }
   const day = dayLabel(event.scheduledStart), email = teamEmail(event.sessionKind);
   return toNotification({ 
-    headline: `${first}'s ${shift} came and went without a sign-in`, 
+    headline: `${first} missed ${shift} today`, 
     facts: [day, when], 
     ask: outside ? `${outside} It may just need an hours fix. Ask them to email ${email}.` : `If there's a reason, ask them to email ${email} so it can be excused.`, 
-    draft: `Hey ${first}, I noticed you weren't at your ${shift} on ${day} (${when}). Everything okay? If something came up, email ${email} so the team can sort it out.`, 
-    note: fallbackNote(reason, first), url: scholarUrl(event.scholarId) }, `${first}'s ${shift} on ${day} (${when}) has no sign-in`);
+    note: fallbackNote(reason, first), 
+    url: scholarUrl(event.scholarId) }, `${first}'s ${shift} on ${day} (${when}) has no sign-in`);
 }
