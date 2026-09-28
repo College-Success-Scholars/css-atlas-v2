@@ -3,7 +3,7 @@ import { canAccessWeeklyMemo } from "@/lib/auth";
 import { getCurrentProfile } from "@/lib/server/queries";
 
 /**
- * Temporary FD/SS teams boards are team_leader+ (same gate as Weekly Memo).
+ * FD/SS/Tutoring teams pages are team_leader+ (same gate as Weekly Memo).
  */
 export default async function TeamsLayout({
   children,

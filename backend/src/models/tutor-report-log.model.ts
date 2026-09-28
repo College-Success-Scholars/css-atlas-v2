@@ -25,3 +25,9 @@ export interface TutorReportLogRow {
   start_time: string;
   courses: string[];
 }
+
+/** Week read row: `scholar_name` is EMPTY SESSION for `n/a` / `111111111`. */
+export interface TutorReportWeekRow extends TutorReportLogRow {
+  scholar_name: string;
+  day_of_week: string;
+}

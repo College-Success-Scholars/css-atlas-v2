@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { BookOpen, ConciergeBell } from "lucide-react"
+import { BookOpen, ClipboardList, ConciergeBell } from "lucide-react"
 import { getRoleBasedNav } from "./sidebar-nav"
 import { getRoleBasedTeams } from "./sidebar-teams"
 
@@ -9,6 +9,7 @@ describe("sidebar role navigation", () => {
       expect(getRoleBasedTeams(role)).toEqual([
         { name: "Front Desk", url: "/dashboard/teams/front-desk", icon: ConciergeBell },
         { name: "Study Session", url: "/dashboard/teams/study", icon: BookOpen },
+        { name: "Tutoring", url: "/dashboard/teams/tutoring", icon: ClipboardList },
       ])
     }
   })

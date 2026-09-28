@@ -54,12 +54,8 @@ export default async function DashboardMemoPage({ searchParams }: PageProps) {
   return (
     <main className="space-y-4 pb-4">
       <WeeklyMemoHeader
-        weekStartLabel={data.weekStartLabel}
-        weekEndLabel={data.weekEndLabel}
         weekNumber={data.weekNumber}
         availableWeeks={navigation.availableWeeks}
-        prevWeek={navigation.prevWeek}
-        nextWeek={navigation.nextWeek}
         currentCampusWeek={memoData.currentCampusWeek}
         basePath="/dashboard/memo-legacy"
       />

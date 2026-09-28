@@ -35,7 +35,7 @@ import {
   buildTeamLeaderFormStatsForWeek,
   countableFormRequired,
 } from "./form-log.service.js";
-import { getTutorReportLogsForWeek, tutoringSessionDayOfWeek } from "./tutor-report-log.service.js";
+import { getTutorReportLogsForWeek, tutorReportScholarName, tutoringSessionDayOfWeek } from "./tutor-report-log.service.js";
 import type { FormLogRowWithLate, McfFormLogRow, WahfFormLogRow } from "../models/form-log.model.js";
 import type { MemoUserRow } from "../models/user.model.js";
 import type { ScholarShiftCompliance, ShiftComplianceByKind } from "../models/session-log.model.js";
@@ -291,7 +291,7 @@ export function buildMemoScholarAttendanceRows(
  *    from mentor_mentee (or "Unassigned"), and track cohort-level stats for
  *    pie charts (2024 vs 2025).
  * 8. Build team leader MCF rows: per-TL MCF count, late flag, latest date.
- * 9. Resolve tutor report scholar names and derive day-of-week.
+ * 9. Resolve tutor report scholar names (`n/a` and `111111111` are empty sessions) and derive day-of-week. Probe uid `test` is already omitted by the tutor-report read.
  * 10. Return everything as a single object for the frontend to render.
  */
 export async function getMemoPageData(weekNum: number) {
@@ -442,9 +442,7 @@ export async function getMemoPageData(weekNum: number) {
     return {
       id: log.id,
       scholarId: log.scholar_uid,
-      scholarName: (!log.scholar_uid || log.scholar_uid.toLowerCase() === "n/a")
-        ? "EMPTY SESSION"
-        : (userNameByUid.get(log.scholar_uid) ?? log.scholar_uid),
+      scholarName: tutorReportScholarName(log.scholar_uid, userNameByUid),
       tutorName: log.tutor_name,
       courses: log.courses,
       startTime: log.start_time,

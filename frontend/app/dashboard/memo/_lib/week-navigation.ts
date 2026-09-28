@@ -10,11 +10,7 @@ export type WeekNavigation = {
   nextWeek: number | null
 }
 
-export function parseWeekParam(weekParam?: string): number | null {
-  if (!weekParam || !/^\d+$/.test(weekParam)) return null
-  const weekNumber = Number(weekParam)
-  return weekNumber > 0 ? weekNumber : null
-}
+export { parseWeekParam } from "@/lib/format/campus-week"
 
 export function computeWeekNavigation(input: WeekNavigationInput): WeekNavigation {
   const availableWeeks = Array.from(

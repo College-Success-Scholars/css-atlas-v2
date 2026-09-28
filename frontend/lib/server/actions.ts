@@ -10,6 +10,7 @@
  * - Handle profile update mutations (basic info, etc.)
  * - Public `/traffic` kiosk check-in (`recordTrafficEntry`) — no auth, Zod-validated write
  * - Teams board excuse upsert (`upsertAttendanceExcuseAction`) via backend `BACKEND_URL`
+ * - Teams tutoring single-row delete (`deleteTutorReportAction`) via backend `BACKEND_URL`
  * - Validate inputs with Zod before writing to Supabase or calling the backend
  * - Revalidate Next.js cache paths after mutations
  *
@@ -26,7 +27,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { backendPost } from "@/lib/server/api-client"
-import { upsertAttendanceExcuse } from "@/lib/server/data"
+import { deleteTutorReport, upsertAttendanceExcuse } from "@/lib/server/data"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
@@ -144,6 +145,28 @@ export async function upsertAttendanceExcuseAction(input: unknown) {
   } catch (e) {
     return {
       error: e instanceof Error ? e.message : "Failed to save excuse",
+    }
+  }
+}
+
+const tutorReportIdSchema = z.number().int().positive()
+
+/** Delete one tutor report from the teams tutoring page (TL+; RLS enforced by the backend JWT client). */
+export async function deleteTutorReportAction(id: unknown) {
+  const parsed = tutorReportIdSchema.safeParse(id)
+  if (!parsed.success) {
+    return { error: "Invalid input" }
+  }
+
+  try {
+    await deleteTutorReport(parsed.data)
+    revalidatePath("/dashboard/teams/tutoring")
+    revalidatePath("/dashboard/memo")
+    revalidatePath("/dashboard/mentee")
+    return { success: true as const }
+  } catch (e) {
+    return {
+      error: e instanceof Error ? e.message : "Failed to remove tutoring session",
     }
   }
 }

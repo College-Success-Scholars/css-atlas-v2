@@ -1,25 +1,18 @@
 import { Suspense } from "react"
 
-import { WeeklyMemoWeekNav } from "./weekly-memo-week-nav"
+import { CampusWeekUrlNav, CAMPUS_WEEK_NAV_WIDTH_CLASS } from "@/components/data-display/campus-week-nav"
+import { Skeleton } from "@/components/ui/skeleton"
 
 type WeeklyMemoHeaderProps = {
-  weekStartLabel: string
-  weekEndLabel: string
   weekNumber: number
   availableWeeks: number[]
-  prevWeek: number | null
-  nextWeek: number | null
   currentCampusWeek: number | null
   basePath?: string
 }
 
 export function WeeklyMemoHeader({
-  weekStartLabel,
-  weekEndLabel,
   weekNumber,
   availableWeeks,
-  prevWeek,
-  nextWeek,
   currentCampusWeek,
   basePath = "/dashboard/memo",
 }: WeeklyMemoHeaderProps) {
@@ -27,16 +20,11 @@ export function WeeklyMemoHeader({
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Weekly memo</h1>
-        <p className="text-muted-foreground text-sm">
-          {weekStartLabel} - {weekEndLabel}
-        </p>
       </div>
-      <Suspense fallback={<div className="h-9 w-[calc(5rem+190px)]" />}>
-        <WeeklyMemoWeekNav
+      <Suspense fallback={<Skeleton className={`h-9 ${CAMPUS_WEEK_NAV_WIDTH_CLASS}`} />}>
+        <CampusWeekUrlNav
           selectedWeek={weekNumber}
-          availableWeeks={availableWeeks}
-          prevWeek={prevWeek}
-          nextWeek={nextWeek}
+          weeks={availableWeeks}
           currentCampusWeek={currentCampusWeek}
           basePath={basePath}
         />

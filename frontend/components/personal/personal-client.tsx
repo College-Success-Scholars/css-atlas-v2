@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { CampusWeekNav } from "@/components/data-display/campus-week-nav"
 import {
   Dialog,
   DialogContent,
@@ -24,7 +25,6 @@ import {
 import type { PersonalClientProps, WahfRow, McfRow, WplRow, MenteeRow } from "@/lib/types/supabase"
 import {
   findSubmissionForCampusWeek,
-  formatCampusWeekRangeWithYear,
   computeWeekOptions,
   getFormStatusForWeek,
   getGreeting,
@@ -478,30 +478,7 @@ function FormDetailDialog({
   onClose: () => void
   onNavigateWeek: (campusWeek: number) => void
 }) {
-  const dialogCampusWeek = state?.campusWeek
-  const weekIndex = useMemo(() => {
-    if (dialogCampusWeek == null) return -1
-    return weekOptions.findIndex((w) => w.weekNum === dialogCampusWeek)
-  }, [dialogCampusWeek, weekOptions])
-
-  const canPrev = state !== null && weekIndex >= 0 && weekIndex < weekOptions.length - 1
-  const canNext = state !== null && weekIndex > 0
-
-  const goPrevWeek = () => {
-    if (!state || !canPrev) return
-    const next = weekOptions[weekIndex + 1]
-    if (next) onNavigateWeek(next.weekNum)
-  }
-
-  const goNextWeek = () => {
-    if (!state || !canNext) return
-    const next = weekOptions[weekIndex - 1]
-    if (next) onNavigateWeek(next.weekNum)
-  }
-
-  const dateSubtitle = state
-    ? formatCampusWeekRangeWithYear(state.campusWeek)
-    : ""
+  const weeks = weekOptions.map((week) => week.weekNum)
 
   return (
     <Dialog
@@ -515,11 +492,8 @@ function FormDetailDialog({
           key={state.sessionKey}
           campusWeek={state.campusWeek}
           initialFormType={state.initialFormType}
-          dateSubtitle={dateSubtitle}
-          canPrev={canPrev}
-          canNext={canNext}
-          goPrevWeek={goPrevWeek}
-          goNextWeek={goNextWeek}
+          weeks={weeks}
+          onNavigateWeek={onNavigateWeek}
           wahf={wahf}
           mcf={mcf}
           wpl={wpl}
@@ -535,11 +509,8 @@ function FormDetailDialog({
 function FormDetailDialogContent({
   campusWeek,
   initialFormType,
-  dateSubtitle,
-  canPrev,
-  canNext,
-  goPrevWeek,
-  goNextWeek,
+  weeks,
+  onNavigateWeek,
   wahf,
   mcf,
   wpl,
@@ -549,11 +520,8 @@ function FormDetailDialogContent({
 }: {
   campusWeek: number
   initialFormType: FormType
-  dateSubtitle: string
-  canPrev: boolean
-  canNext: boolean
-  goPrevWeek: () => void
-  goNextWeek: () => void
+  weeks: number[]
+  onNavigateWeek: (campusWeek: number) => void
   wahf: WahfRow[]
   mcf: McfRow[]
   wpl: WplRow[]
@@ -585,12 +553,20 @@ function FormDetailDialogContent({
       <div className="shrink-0 space-y-4 border-b px-6 pb-4 pt-6">
         <DialogHeader className="space-y-1 p-0 text-left">
           <DialogTitle className="text-xl font-semibold tracking-tight">
-            Week {campusWeek} submission
+            Form submission
           </DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground">
-            {dateSubtitle}
+          <DialogDescription className="sr-only">
+            Weekly form answers for the selected campus week.
           </DialogDescription>
         </DialogHeader>
+
+        <CampusWeekNav
+          weeks={weeks}
+          selectedWeek={campusWeek}
+          currentCampusWeek={currentCampusWeek}
+          onWeekChange={onNavigateWeek}
+          className="w-full sm:w-full"
+        />
 
         <div
           role="tablist"
@@ -638,31 +614,7 @@ function FormDetailDialogContent({
       </div>
 
       <div className="shrink-0 border-t px-6 py-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="order-2 cursor-pointer sm:order-1"
-            disabled={!canPrev}
-            onClick={goPrevWeek}
-          >
-            ← Prev week
-          </Button>
-          <p className="order-1 text-center text-xs text-muted-foreground sm:order-2 sm:flex-1">
-            {footerStatus}
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="order-3 cursor-pointer sm:order-3"
-            disabled={!canNext}
-            onClick={goNextWeek}
-          >
-            Next week →
-          </Button>
-        </div>
+        <p className="text-center text-xs text-muted-foreground">{footerStatus}</p>
       </div>
     </DialogContent>
   )

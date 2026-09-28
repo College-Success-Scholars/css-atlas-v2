@@ -4,7 +4,7 @@
  *
  * Generic reusable sortable and filterable data table component.
  * Built on TanStack Table (react-table) with shadcn/ui table primitives.
- * Supports column sorting, text filtering, expandable rows, and pagination.
+ * Supports column sorting, text filtering, expandable rows, pagination, and optional row activation.
  *
  * ## What belongs here
  * - Generic data table logic applicable across multiple domains
@@ -101,6 +101,10 @@ interface DataTableProps<T> {
   defaultSortDirection?: "asc" | "desc";
   /** Optional data attributes to render on each <tr>. */
   rowDataAttributes?: (row: T) => Record<string, string>;
+  /** When set, rows are focusable and open on click, Enter, or Space. */
+  onRowActivate?: (row: T) => void;
+  /** Accessible label for an activatable row. */
+  getRowLabel?: (row: T) => string;
 }
 
 function toColumn<T>(
@@ -157,6 +161,8 @@ export function DataTable<T>({
   defaultSortColumnId,
   defaultSortDirection = "asc",
   rowDataAttributes,
+  onRowActivate,
+  getRowLabel,
 }: DataTableProps<T>) {
   const [sortState, setSortState] = useState<SortState>({
     columnId: defaultSortColumnId ?? null,
@@ -349,7 +355,25 @@ export function DataTable<T>({
           {sortedData.map((row, i) => (
             <tr
               key={`${String(row[rowKeyField])}-${i}`}
-              className="even:bg-muted/40 dark:even:bg-muted/25"
+              className={`even:bg-muted/40 dark:even:bg-muted/25 ${
+                onRowActivate
+                  ? "cursor-pointer hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                  : ""
+              }`}
+              {...(onRowActivate
+                ? {
+                  role: "button",
+                  tabIndex: 0,
+                  "aria-label": getRowLabel?.(row),
+                  onClick: () => onRowActivate(row),
+                  onKeyDown: (e: React.KeyboardEvent<HTMLTableRowElement>) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onRowActivate(row);
+                    }
+                  },
+                }
+                : {})}
               {...(rowDataAttributes?.(row) ?? {})}
             >
               {resolvedColumns.map((col) => (

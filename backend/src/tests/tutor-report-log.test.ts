@@ -13,6 +13,10 @@ import {
   didScholarAttendTutoring,
   filterTutorReportsForCampusWeek,
   getTutorReportLogsForWeek,
+  getTutorReportWeekRows,
+  isEmptyTutoringSessionUid,
+  isProbeTutorReportUid,
+  tutorReportScholarName,
   tutoringSessionDayOfWeek,
 } from "../services/tutor-report-log.service.js";
 import type { TutorReportLogRow } from "../models/tutor-report-log.model.js";
@@ -47,6 +51,32 @@ function row(overrides: Partial<TutorReportLogRow> & Pick<TutorReportLogRow, "id
     ...overrides,
   };
 }
+
+describe("tutor report scholar uid rules", () => {
+  it("treats only n/a and 111111111 as empty sessions", () => {
+    expect(isEmptyTutoringSessionUid("n/a")).toBe(true);
+    expect(isEmptyTutoringSessionUid("N/A")).toBe(true);
+    expect(isEmptyTutoringSessionUid(" 111111111 ")).toBe(true);
+    expect(isEmptyTutoringSessionUid("test")).toBe(false);
+    expect(isEmptyTutoringSessionUid("1001")).toBe(false);
+    expect(isEmptyTutoringSessionUid(null)).toBe(false);
+  });
+
+  it("treats test as a probe uid that is not collected", () => {
+    expect(isProbeTutorReportUid("test")).toBe(true);
+    expect(isProbeTutorReportUid("Test")).toBe(true);
+    expect(isProbeTutorReportUid("n/a")).toBe(false);
+    expect(isProbeTutorReportUid("111111111")).toBe(false);
+  });
+
+  it("labels empty sessions and resolves real scholar names", () => {
+    const names = new Map([["1001", "Ada Lovelace"]]);
+    expect(tutorReportScholarName("N/A", names)).toBe("EMPTY SESSION");
+    expect(tutorReportScholarName("111111111", names)).toBe("EMPTY SESSION");
+    expect(tutorReportScholarName("1001", names)).toBe("Ada Lovelace");
+    expect(tutorReportScholarName("1002", names)).toBe("1002");
+  });
+});
 
 describe("campusWeekForTutoringRow", () => {
   it("uses session date, not form created_at", () => {
@@ -156,6 +186,69 @@ describe("getTutorReportLogsForWeek", () => {
     expect(data).toHaveLength(1);
     expect(data[0]?.id).toBe(1);
   });
+
+  it("omits test uids and keeps n/a and 111111111", async () => {
+    const week = 2;
+    const inWeek = dayInCampusWeek(week, 1);
+    const builder: Record<string, ReturnType<typeof vi.fn>> = {};
+    builder.select = vi.fn(() => builder);
+    builder.or = vi.fn(() => builder);
+    builder.order = vi.fn().mockResolvedValue({
+      data: [
+        row({ id: 1, date: inWeek, scholar_uid: "1001" }),
+        row({ id: 2, date: inWeek, scholar_uid: "test" }),
+        row({ id: 3, date: inWeek, scholar_uid: "TEST" }),
+        row({ id: 4, date: inWeek, scholar_uid: "n/a" }),
+        row({ id: 5, date: inWeek, scholar_uid: "111111111" }),
+      ],
+      error: null,
+    });
+    mocks.getSupabaseClient.mockReturnValue({
+      from: vi.fn().mockReturnValue(builder),
+    });
+
+    const data = await getTutorReportLogsForWeek(week);
+
+    expect(data.map((entry) => entry.id)).toEqual([1, 4, 5]);
+  });
+});
+
+describe("getTutorReportWeekRows", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("adds roster names, EMPTY SESSION, and session weekday", async () => {
+    const week = 2;
+    const monday = mondayOfCampusWeek(week);
+    const tutorBuilder: Record<string, ReturnType<typeof vi.fn>> = {};
+    tutorBuilder.select = vi.fn(() => tutorBuilder);
+    tutorBuilder.or = vi.fn(() => tutorBuilder);
+    tutorBuilder.order = vi.fn().mockResolvedValue({
+      data: [
+        row({ id: 1, date: monday, scholar_uid: "1001" }),
+        row({ id: 2, date: monday, scholar_uid: "n/a" }),
+      ],
+      error: null,
+    });
+    const rosterBuilder: Record<string, ReturnType<typeof vi.fn>> = {};
+    rosterBuilder.select = vi.fn(() => rosterBuilder);
+    rosterBuilder.in = vi.fn().mockResolvedValue({
+      data: [{ uid: "1001", first_name: "Ada", last_name: "Lovelace" }],
+      error: null,
+    });
+    mocks.getSupabaseClient.mockReturnValue({
+      from: vi.fn((table: string) => (table === "user_roster" ? rosterBuilder : tutorBuilder)),
+    });
+
+    const data = await getTutorReportWeekRows(week);
+
+    expect(rosterBuilder.in).toHaveBeenCalledWith("uid", ["1001"]);
+    expect(data.map((r) => [r.id, r.scholar_name, r.day_of_week])).toEqual([
+      [1, "Ada Lovelace", "Mon"],
+      [2, "EMPTY SESSION", "Mon"],
+    ]);
+  });
 });
 
 describe("didScholarAttendTutoring", () => {
@@ -187,5 +280,13 @@ describe("didScholarAttendTutoring", () => {
     });
 
     await expect(didScholarAttendTutoring("1001", week)).resolves.toBe(true);
+  });
+
+  it("is false for probe and empty-session uids", async () => {
+    const week = 2;
+    await expect(didScholarAttendTutoring("test", week)).resolves.toBe(false);
+    await expect(didScholarAttendTutoring("N/A", week)).resolves.toBe(false);
+    await expect(didScholarAttendTutoring("111111111", week)).resolves.toBe(false);
+    expect(mocks.getSupabaseClient).not.toHaveBeenCalled();
   });
 });

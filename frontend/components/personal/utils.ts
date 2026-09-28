@@ -316,11 +316,7 @@ export function getGreeting(): string {
 // Date formatting helpers
 // ---------------------------------------------------------------------------
 
-export function formatCampusWeekDateRange(weekNum: number): string {
-  const range = campusWeekToDateRange(weekNum)
-  if (!range) return `Week ${weekNum}`
-  return `${format(range.startDate, "MMM d")}\u2013${format(range.endDate, "MMM d")}`
-}
+export { formatCampusWeekDateRange } from "@/lib/format/campus-week"
 
 export function formatSubmittedDay(createdAt: string): string {
   const d = new Date(createdAt)

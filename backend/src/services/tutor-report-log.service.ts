@@ -9,9 +9,15 @@
  * Week assignment matches the mentee page: session `date` (YYYY-MM-DD),
  * then a parseable `start_time` timestamp. Form `created_at` is not used.
  *
+ * Probe rows (`scholar_uid` "test", any case) stay in Supabase and are omitted
+ * from every read. Empty sessions are `n/a` (any case) and `111111111` only.
+ *
  * ## Responsibilities
  * - Fetch tutor report logs by weekNum, by uid, or by uid+weekNum
  * - Check if a specific scholar attended tutoring for a given week
+ * - Drop probe uids and label empty-session uids
+ * - Resolve week rows to scholar names for the teams tutoring table
+ * - Delete one row with the caller JWT (RLS: `is_team_leader_or_above()`)
  *
  * ## What belongs here
  * - All Supabase queries on tutor_report_logs table
@@ -29,9 +35,35 @@ import {
   getEasternDateParts,
   parseEasternDate,
 } from "./time.service.js";
-import type { TutorReportLogRow } from "../models/tutor-report-log.model.js";
+import { fetchScholarNamesByUids } from "./user.service.js";
+import type { TutorReportLogRow, TutorReportWeekRow } from "../models/tutor-report-log.model.js";
 
 const YMD = /^\d{4}-\d{2}-\d{2}$/;
+const EMPTY_SESSION_NAME = "EMPTY SESSION";
+
+/** Form practice rows. They remain in Supabase and are not collected. */
+export function isProbeTutorReportUid(uid: string | null | undefined): boolean {
+  return (uid ?? "").trim().toLowerCase() === "test";
+}
+
+/** No scholar attended. `n/a` is case-insensitive; `111111111` is exact. */
+export function isEmptyTutoringSessionUid(uid: string | null | undefined): boolean {
+  const trimmed = (uid ?? "").trim();
+  return trimmed.toLowerCase() === "n/a" || trimmed === "111111111";
+}
+
+export function tutorReportScholarName(
+  uid: string | null | undefined,
+  nameByUid: ReadonlyMap<string, string>,
+): string {
+  if (isEmptyTutoringSessionUid(uid)) return EMPTY_SESSION_NAME;
+  if (!uid?.trim()) return "";
+  return nameByUid.get(uid) ?? uid;
+}
+
+function withoutProbeTutorReports(rows: TutorReportLogRow[]): TutorReportLogRow[] {
+  return rows.filter((row) => !isProbeTutorReportUid(row.scholar_uid));
+}
 
 function easternYmd(date: Date): string {
   const { year, month, day } = getEasternDateParts(date);
@@ -114,11 +146,39 @@ async function fetchTutorReportsForCampusWeek(
     .or(`and(date.gte.${bounds.startYmd},date.lt.${bounds.nextYmd}),date.is.null`)
     .order("date", { ascending: true });
   if (error) throw error;
-  return filterTutorReportsForCampusWeek((data ?? []) as TutorReportLogRow[], weekNum);
+  return withoutProbeTutorReports(
+    filterTutorReportsForCampusWeek((data ?? []) as TutorReportLogRow[], weekNum),
+  );
 }
 
 export async function getTutorReportLogsForWeek(weekNum: number): Promise<TutorReportLogRow[]> {
   return fetchTutorReportsForCampusWeek(weekNum);
+}
+
+/** Week rows with roster names and session weekday for the teams table. */
+export async function getTutorReportWeekRows(weekNum: number): Promise<TutorReportWeekRow[]> {
+  const rows = await fetchTutorReportsForCampusWeek(weekNum);
+  const scholarUids = rows
+    .map((row) => row.scholar_uid)
+    .filter((uid): uid is string => Boolean(uid) && !isEmptyTutoringSessionUid(uid));
+  const nameByUid = await fetchScholarNamesByUids(scholarUids);
+  return rows.map((row) => ({
+    ...row,
+    scholar_name: tutorReportScholarName(row.scholar_uid, nameByUid),
+    day_of_week: tutoringSessionDayOfWeek(row),
+  }));
+}
+
+/** Deletes one row under the caller JWT. Returns false when no row was removed. */
+export async function deleteTutorReportLog(id: number): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("tutor_report_logs")
+    .delete()
+    .eq("id", id)
+    .select("id");
+  if (error) throw error;
+  return (data ?? []).length > 0;
 }
 
 export async function getTutorReportLogsByUid(uid: string): Promise<TutorReportLogRow[]> {
@@ -129,7 +189,7 @@ export async function getTutorReportLogsByUid(uid: string): Promise<TutorReportL
     .eq("scholar_uid", uid)
     .order("created_at", { ascending: true });
   if (error) throw error;
-  return (data ?? []) as TutorReportLogRow[];
+  return withoutProbeTutorReports((data ?? []) as TutorReportLogRow[]);
 }
 
 export async function getTutorReportLogsByUidAndWeek(
@@ -147,14 +207,14 @@ export async function getTutorReportLogsByUids(uids: string[]): Promise<TutorRep
     .select("*")
     .in("scholar_uid", uids);
   if (error) throw error;
-  return (data ?? []) as TutorReportLogRow[];
+  return withoutProbeTutorReports((data ?? []) as TutorReportLogRow[]);
 }
 
 export async function didScholarAttendTutoring(
   uid: string,
   weekNum: number
 ): Promise<boolean> {
-  if (!uid || uid.toLowerCase() === "n/a") return false;
+  if (!uid || isProbeTutorReportUid(uid) || isEmptyTutoringSessionUid(uid)) return false;
   const rows = await fetchTutorReportsForCampusWeek(weekNum, uid);
   return rows.length > 0;
 }
