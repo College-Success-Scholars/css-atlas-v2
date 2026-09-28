@@ -4,7 +4,7 @@
  *
  * Typed wrapper functions for every backend API endpoint.
  * This is the preferred way for Server Components and pages to fetch domain data.
- * Each function calls backendGet/backendPost/backendPatch/backendDownload from api-client.ts
+ * Each function calls backendGet/backendPost/backendPatch/backendDelete/backendDownload from api-client.ts
  * and returns a strongly-typed result.
  *
  * ## Responsibilities
@@ -21,7 +21,7 @@
  * - Client-side data fetching (that's lib/client/api-client.ts)
  */
 import "server-only";
-import { backendGet, backendPost, backendPatch, backendDownload } from "./api-client";
+import { backendGet, backendPost, backendPatch, backendDelete, backendDownload } from "./api-client";
 import { getEffectiveScholarId } from "../../../shared/dist/auth.js";
 import type {
   SessionLogRow,
@@ -52,6 +52,7 @@ import type {
   RecentFormSubmission,
   TeamLeaderFormStatsRow,
 } from "@/lib/types/form-log";
+import type { TutorReportWeekRow } from "@/lib/types/tutor-report-log";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -235,6 +236,18 @@ export async function upsertAttendanceExcuse(payload: {
   description: string | null;
 }): Promise<ScholarWeekExcuse> {
   return backendPatch("/api/attendance/excuse", payload);
+}
+
+// ---------------------------------------------------------------------------
+// Tutor reports (campus week — session `date`, then `start_time`)
+// ---------------------------------------------------------------------------
+
+export async function getTutorReportWeekRows(weekNum: number): Promise<TutorReportWeekRow[]> {
+  return backendGet(`/api/tutor-reports/week/${weekNum}`);
+}
+
+export async function deleteTutorReport(id: number): Promise<{ id: number }> {
+  return backendDelete(`/api/tutor-reports/${id}`);
 }
 
 // ---------------------------------------------------------------------------

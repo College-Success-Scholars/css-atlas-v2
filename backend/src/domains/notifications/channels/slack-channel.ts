@@ -19,22 +19,28 @@ export class SlackChannel implements NotificationChannel {
     private readonly fetcher: typeof fetch = fetch
   ) {}
 
+  private async post(target: string, message: RenderedNotification, withBlocks: boolean): Promise<string | null> {
+    const response = await this.fetcher(SLACK_POST_MESSAGE_URL, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${this.token}`, "Content-Type": "application/json; charset=utf-8" },
+      body: JSON.stringify({ channel: target, text: message.text, ...(withBlocks && message.blocks ? { blocks: message.blocks } : {}) }),
+    });
+    if (response.status === 429) {
+      const seconds = Number(response.headers.get("Retry-After") ?? 0);
+      throw new SlackRateLimitError(Math.max(0, seconds) * 1000);
+    }
+    const body = await response.json().catch(() => ({})) as { ok?: boolean; error?: string };
+    return response.ok && body.ok ? null : body.error ?? `Slack returned HTTP ${response.status}`;
+  }
+
   async send(target: string, message: RenderedNotification): Promise<ChannelDeliveryResult> {
     if (!this.token) return { ok: false, attempts: 0, error: "SLACK_BOT_TOKEN is not configured" };
     try {
       const { attempts } = await retryWithBackoff(
         async () => {
-          const response = await this.fetcher(SLACK_POST_MESSAGE_URL, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${this.token}`, "Content-Type": "application/json; charset=utf-8" },
-            body: JSON.stringify({ channel: target, text: message.text }),
-          });
-          if (response.status === 429) {
-            const seconds = Number(response.headers.get("Retry-After") ?? 0);
-            throw new SlackRateLimitError(Math.max(0, seconds) * 1000);
-          }
-          const body = await response.json().catch(() => ({})) as { ok?: boolean; error?: string };
-          if (!response.ok || !body.ok) throw new Error(body.error ?? `Slack returned HTTP ${response.status}`);
+          let error = await this.post(target, message, true);
+          if (error === "invalid_blocks" && message.blocks) error = await this.post(target, message, false);
+          if (error) throw new Error(error);
         },
         {
           maxAttempts: Math.max(1, this.maxAttempts),

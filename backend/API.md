@@ -507,6 +507,29 @@ Minutes are computed on read from cleaned session tickets (campus week). Excuses
 
 ---
 
+## Tutor reports
+
+All routes under `/api/tutor-reports` require **requireTeamLeaderOrAbove**. Week assignment uses session `date`, then a parseable `start_time` (not form `created_at`). Probe uid `test` is omitted from reads; `n/a` and `111111111` are empty sessions.
+
+### `GET /api/tutor-reports/week/:weekNum`
+
+**Auth:** requireTeamLeaderOrAbove  
+**Description:** Tutor report rows for a campus week, with `scholar_name` resolved from `user_roster` (`EMPTY SESSION` for empty-session uids; raw uid when no roster name) and `day_of_week` from the session date. Used by `/dashboard/teams/tutoring`.  
+**Request Params:** `weekNum` (integer, >= 1)  
+**Response:**
+```json
+{ "data": [ { "id": 1, "scholar_uid": "123", "scholar_name": "Ada Lovelace", "day_of_week": "Tue", "tutor_name": "…", "courses": [], "date": "2026-09-08", "start_time": "14:00", "end_time": "15:00", "created_at": "…" } ] }
+```
+
+### `DELETE /api/tutor-reports/:id`
+
+**Auth:** requireTeamLeaderOrAbove (blocked while acting as a test profile)  
+**Description:** Deletes one `tutor_report_logs` row with the caller JWT. RLS policy `team_leader_delete_tutor_logs` (`is_team_leader_or_above()`) must be applied; admin/staff keep `admin_delete_tutor_logs`. A Google Forms resubmit can re-insert the row.  
+**Request Params:** `id` (positive integer)  
+**Response:** `200 { "data": { "id": 1 } }`, `400` invalid id, `404` no row deleted.
+
+---
+
 ## Traffic
 
 All routes under `/api/traffic` require **requireAuth**.

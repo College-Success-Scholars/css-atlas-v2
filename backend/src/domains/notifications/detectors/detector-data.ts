@@ -13,13 +13,36 @@ export function dayRange(date: Date): { start: Date; end: Date } {
 }
 
 export async function fetchAssignmentsForDate(date: Date): Promise<ScholarShiftAssignment[]> {
-  const { data, error } = await getSupabaseServiceRoleClient()
+  const supabase = getSupabaseServiceRoleClient();
+  const dateKey = easternDateKey(date);
+  const { data: semesterRows, error: semesterError } = await supabase
+    .from("semesters").select("id, start_date, end_date").eq("is_active", true)
+    .order("start_date", { ascending: false }).limit(1);
+  if (semesterError) throw semesterError;
+  const semester = (semesterRows?.[0] ?? null) as { id: number; start_date: string; end_date: string } | null;
+  if (!semester || dateKey < semester.start_date || dateKey > semester.end_date) return [];
+  const { data: breaks, error: breakError } = await supabase.from("semester_breaks").select("id")
+    .eq("semester_id", semester.id).lte("start_date", dateKey).gte("end_date", dateKey).limit(1);
+  if (breakError) throw breakError;
+  if ((breaks?.length ?? 0) > 0) return [];
+  const { data, error } = await supabase
     .from("scholar_shift_assignments")
     .select("id, scholar_id, semester_id, session_kind, day_of_week, start_time, end_time, is_active")
     .eq("is_active", true)
+    .eq("semester_id", semester.id)
     .eq("day_of_week", getEasternDayOfWeek(date));
   if (error) throw error;
   return (data ?? []) as unknown as ScholarShiftAssignment[];
+}
+
+export function parseNonNegativeInt(raw: string | undefined, fallback: number): number {
+  const value = Number.parseInt(raw ?? "", 10);
+  return Number.isFinite(value) && value >= 0 ? value : fallback;
+}
+
+export function firstEntryAt(assignment: ScholarShiftAssignment, rows: SessionLogRow[]): string | undefined {
+  return kindLogs(assignment, rows).filter((row) => row.action_type === "Entry")
+    .map((row) => row.created_at).filter((value): value is string => Boolean(value)).sort()[0];
 }
 
 export async function fetchLogsForRange(start: Date, end: Date, scholarIds: string[]): Promise<Map<string, SessionLogRow[]>> {

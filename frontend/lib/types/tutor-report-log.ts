@@ -11,6 +11,12 @@ export interface TutorReportLogRow {
   courses: string[];
 }
 
+/** `GET /api/tutor-reports/week/:weekNum` row: `scholar_name` is EMPTY SESSION for `n/a` / `111111111`. */
+export interface TutorReportWeekRow extends TutorReportLogRow {
+  scholar_name: string;
+  day_of_week: string;
+}
+
 /** Display-ready row with scholar name resolved. */
 export interface MemoTutorReportRow {
   id: number;

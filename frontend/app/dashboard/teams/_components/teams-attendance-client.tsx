@@ -19,8 +19,8 @@ import {
 import { ProgressCell } from "@/components/data-display/progress-cell";
 import { ExcuseDialog } from "@/components/attendance/excuse-dialog";
 import { YearNotStartedState } from "@/components/dashboard/widgets/year-not-started-state";
-import { WeeklyMemoWeekNav } from "@/app/dashboard/memo/_components/weekly-memo-week-nav";
-import { formatCampusWeekRangeWithYear } from "@/components/personal/utils";
+import { CampusWeekUrlNav, CAMPUS_WEEK_NAV_WIDTH_CLASS } from "@/components/data-display/campus-week-nav";
+import { campusWeekNumbers } from "@/lib/format/campus-week";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,7 +72,7 @@ export function TeamsPageFallback() {
           <Skeleton className="h-8 w-40" />
           <Skeleton className="mt-2 h-4 w-56" />
         </div>
-        <Skeleton className="h-9 w-[calc(5rem+190px)]" />
+        <Skeleton className={`h-9 ${CAMPUS_WEEK_NAV_WIDTH_CLASS}`} />
       </div>
       <Skeleton className="h-9 w-64" />
       <Skeleton className="h-64 w-full" />
@@ -91,22 +91,10 @@ export function TeamsAttendanceClient({
 }: TeamsAttendanceClientProps) {
   const router = useRouter();
   const yearStarted = currentCampusWeek != null;
-
-  const availableWeeks = useMemo(() => {
-    if (currentCampusWeek == null || currentCampusWeek < 1) return [];
-    return Array.from({ length: currentCampusWeek }, (_, i) => i + 1);
-  }, [currentCampusWeek]);
-
-  const weekIndex = availableWeeks.indexOf(weekNum);
-  const prevWeek = weekIndex > 0 ? availableWeeks[weekIndex - 1] : null;
-  const nextWeek =
-    weekIndex >= 0 && weekIndex < availableWeeks.length - 1
-      ? availableWeeks[weekIndex + 1]
-      : null;
-
-  const weekRangeLabel = yearStarted
-    ? formatCampusWeekRangeWithYear(weekNum)
-    : null;
+  const weeks = useMemo(
+    () => campusWeekNumbers(currentCampusWeek),
+    [currentCampusWeek],
+  );
 
   const [excuseRow, setExcuseRow] = useState<AttendanceWeekBoardRow | null>(
     null
@@ -233,22 +221,14 @@ export function TeamsAttendanceClient({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-          {yearStarted && weekRangeLabel ? (
-            <p className="text-muted-foreground text-sm">
-              Week {weekNum} · {weekRangeLabel}
-            </p>
-          ) : (
-            <p className="text-muted-foreground text-sm">
-              Scholar completion and excuses for this duty week
-            </p>
-          )}
+          <p className="text-muted-foreground text-sm">
+            Scholar completion and excuses for this duty week
+          </p>
         </div>
         {yearStarted ? (
-          <WeeklyMemoWeekNav
+          <CampusWeekUrlNav
             selectedWeek={weekNum}
-            availableWeeks={availableWeeks}
-            prevWeek={prevWeek}
-            nextWeek={nextWeek}
+            weeks={weeks}
             currentCampusWeek={currentCampusWeek}
             basePath={basePath}
           />

@@ -13,6 +13,7 @@
  * - backendGet<T>(path): GET shorthand
  * - backendPost<T>(path, body): POST shorthand
  * - backendPatch<T>(path, body): PATCH shorthand
+ * - backendDelete<T>(path): DELETE shorthand
  * - backendDownload(path): authenticated binary GET (no JSON unwrap)
  *
  * ## What belongs here
@@ -173,6 +174,10 @@ export async function backendPost<T>(path: string, body: unknown): Promise<T> {
 
 export async function backendPatch<T>(path: string, body: unknown): Promise<T> {
   return backendFetch<T>(path, { method: "PATCH", body });
+}
+
+export async function backendDelete<T>(path: string): Promise<T> {
+  return backendFetch<T>(path, { method: "DELETE" });
 }
 
 /** Authenticated binary GET. Forwards non-OK responses so callers can proxy status. */

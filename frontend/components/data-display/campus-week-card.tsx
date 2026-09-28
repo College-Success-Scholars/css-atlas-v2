@@ -1,5 +1,6 @@
-import Link from "next/link";
+import { Suspense } from "react";
 import { dateToCampusWeek } from "@/lib/format/time";
+import { campusWeekNumbers } from "@/lib/format/campus-week";
 import {
   Card,
   CardContent,
@@ -8,10 +9,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { YearNotStartedState } from "@/components/dashboard/widgets/year-not-started-state";
+import { CampusWeekUrlNav, CAMPUS_WEEK_NAV_WIDTH_CLASS } from "@/components/data-display/campus-week-nav";
 
 const DESCRIPTION =
-  "Campus week from lib/time. Links through current plus one.";
+  "Campus week from lib/time. Weeks run through the current week plus one.";
 
 export type CampusWeekCardProps = {
   /** Base path for week links, e.g. "/dev/traffic" or "/dev/session-records". */
@@ -22,21 +25,6 @@ export type CampusWeekCardProps = {
   selectedWeek?: number | null;
 };
 
-function buildWeekHref(
-  basePath: string,
-  week: number,
-  additional?: Record<string, string>
-): string {
-  const params = new URLSearchParams({ week: String(week) });
-  if (additional) {
-    for (const [k, v] of Object.entries(additional)) {
-      params.set(k, v);
-    }
-  }
-  const q = params.toString();
-  return q ? `${basePath}?${q}` : `${basePath}`;
-}
-
 export function CampusWeekCard({
   basePath,
   additionalSearchParams,
@@ -44,10 +32,7 @@ export function CampusWeekCard({
 }: CampusWeekCardProps) {
   const currentCampusWeek = dateToCampusWeek(new Date());
   const yearStarted = currentCampusWeek != null;
-  const maxWeek = yearStarted ? currentCampusWeek + 1 : 0;
-  const weekNumbers = yearStarted
-    ? Array.from({ length: maxWeek }, (_, i) => i + 1)
-    : [];
+  const weeks = campusWeekNumbers(yearStarted ? currentCampusWeek + 1 : null);
 
   return (
     <Card className="relative">
@@ -63,28 +48,15 @@ export function CampusWeekCard({
         {!yearStarted ? (
           <YearNotStartedState variant="compact" />
         ) : (
-          <div>
-            <p className="text-muted-foreground text-sm mb-2">Quick week links:</p>
-            <div className="flex flex-wrap gap-1">
-              {weekNumbers.map((w) => {
-                const href = buildWeekHref(basePath, w, additionalSearchParams);
-                const isSelected = selectedWeek != null && selectedWeek === w;
-                return (
-                  <Link
-                    key={w}
-                    href={href}
-                    className={`inline-flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-sm font-medium transition-colors ${
-                      isSelected
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-                    }`}
-                  >
-                    {w}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
+          <Suspense fallback={<Skeleton className={`h-9 ${CAMPUS_WEEK_NAV_WIDTH_CLASS}`} />}>
+            <CampusWeekUrlNav
+              basePath={basePath}
+              searchParams={additionalSearchParams}
+              weeks={weeks}
+              selectedWeek={selectedWeek ?? null}
+              currentCampusWeek={currentCampusWeek}
+            />
+          </Suspense>
         )}
       </CardContent>
     </Card>

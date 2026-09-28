@@ -79,7 +79,7 @@ Operational form and session-log rows (WAHF, WPL, MCF, tutoring, front desk, stu
 | `/dashboard/internship-board` | UI exists; not the operational core of this review |
 | `/dashboard/memo-legacy` | Kept for reference |
 | `/dev/*` | Scratchpad — not production UI |
-| `/dashboard/teams/front-desk`, `/dashboard/teams/study` | Temporary team pages |
+| `/dashboard/teams/front-desk`, `/dashboard/teams/study`, `/dashboard/teams/tutoring` | Temporary team pages (tutoring: week forms table, detail, TL+ single-row remove) |
 
 ### Data flow
 

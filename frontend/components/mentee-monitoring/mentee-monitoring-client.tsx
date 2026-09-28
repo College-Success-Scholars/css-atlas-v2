@@ -2,8 +2,9 @@
 
 import { useMemo, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronLeft, ChevronRight, AlertCircle, User, Users } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { AlertCircle, User, Users } from "lucide-react"
+import { CampusWeekNav, CAMPUS_WEEK_NAV_WIDTH_CLASS } from "@/components/data-display/campus-week-nav"
+import { campusWeekNumbers } from "@/lib/format/campus-week"
 import {
   Select,
   SelectContent,
@@ -11,10 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { cn } from "@/lib/utils"
 import type { MenteeMonitoringClientProps } from "@/lib/types/supabase"
 import {
-  computeWeekOptions,
   addComplianceToDailyHours,
   attendanceRowForKind,
   dailyHoursFromAttendance,
@@ -57,13 +56,10 @@ export function MenteeMonitoringClient({
 
   const selectedUid = selectedUidProp ?? validMentees[0]?.scholar_uid ?? ""
   const weekNum = selectedWeek ?? currentCampusWeek ?? 0
-
-  const weekOptions = useMemo(
-    () => computeWeekOptions(currentCampusWeek),
+  const weeks = useMemo(
+    () => campusWeekNumbers(currentCampusWeek),
     [currentCampusWeek],
   )
-
-  const weekIndex = weekOptions.findIndex((w) => w.weekNum === weekNum)
 
   const selectedMentee = validMentees.find((m) => m.scholar_uid === selectedUid)
   const name = selectedMentee ? menteeName(selectedMentee) : "Unknown"
@@ -145,40 +141,19 @@ export function MenteeMonitoringClient({
     )
   }
 
-  const canGoBack = weekIndex < weekOptions.length - 1
-  const canGoForward = weekIndex > 0
-
-  function goBack() {
-    if (canGoBack) navigate(weekOptions[weekIndex + 1].weekNum, selectedUid)
-  }
-  function goForward() {
-    if (canGoForward) navigate(weekOptions[weekIndex - 1].weekNum, selectedUid)
-  }
-
-  const currentWeekOption = weekOptions[weekIndex]
-
   const showAlert =
     wahfStatus != null && !wahfStatus.submitted && wahfStatus.daysOverdue > 0
 
   return (
     <div className="space-y-4 max-w-2xl mx-auto">
       {/* ---- Header ---- */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{name}</h1>
-          <p className="text-sm text-muted-foreground">
-            UID {selectedUid}
-            {yearStarted ? (
-              <>
-                {" "}
-                &middot; {currentWeekOption?.label ?? `Week ${weekNum}`}
-              </>
-            ) : null}
-          </p>
+          <p className="text-sm text-muted-foreground">UID {selectedUid}</p>
         </div>
 
-        {/* Width = two h-9 icon buttons + gap-1 + former week dropdown (190px) */}
-        <div className="flex w-full flex-col gap-2 sm:ml-auto sm:w-[calc(5rem+190px)] sm:shrink-0">
+        <div className={`flex flex-col gap-2 sm:ml-auto sm:shrink-0 ${CAMPUS_WEEK_NAV_WIDTH_CLASS}`}>
           {/* Mentee selector — same width as week row below */}
           <Select
             value={selectedUid}
@@ -198,48 +173,14 @@ export function MenteeMonitoringClient({
           </Select>
 
           {yearStarted && (
-            <div className={cn("flex w-full items-center gap-1", isPending && "opacity-60")}>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-9 w-9 shrink-0 cursor-pointer"
-                disabled={!canGoBack || isPending}
-                onClick={goBack}
-                aria-label="Previous week"
-              >
-                <ChevronLeft className="size-4" />
-              </Button>
-
-              <div className="min-w-0 flex-1">
-                <Select
-                  value={String(weekNum)}
-                  onValueChange={(v) => navigate(Number(v), selectedUid)}
-                  disabled={isPending}
-                >
-                  <SelectTrigger className="w-full min-w-0 cursor-pointer">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {weekOptions.map((w) => (
-                      <SelectItem key={w.weekNum} value={String(w.weekNum)}>
-                        {w.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-9 w-9 shrink-0 cursor-pointer"
-                disabled={!canGoForward || isPending}
-                onClick={goForward}
-                aria-label="Next week"
-              >
-                <ChevronRight className="size-4" />
-              </Button>
-            </div>
+            <CampusWeekNav
+              weeks={weeks}
+              selectedWeek={weekNum > 0 ? weekNum : null}
+              currentCampusWeek={currentCampusWeek}
+              pending={isPending}
+              onWeekChange={(week) => navigate(week, selectedUid)}
+              className="w-full sm:w-full"
+            />
           )}
         </div>
       </div>

@@ -6,7 +6,7 @@
  * Tutor reports track whether scholars attended tutoring sessions each week.
  *
  * ## Responsibilities
- * - Parse weekNum and uid from route params
+ * - Parse weekNum, uid, and id from route params
  * - Delegate to tutor-report-log.service.ts
  * - Return { data } or { error } JSON
  *
@@ -19,10 +19,11 @@
 import type { Response } from "express";
 import type { AuthenticatedRequest } from "../middleware/auth.middleware.js";
 import {
-  getTutorReportLogsForWeek,
+  getTutorReportWeekRows,
   getTutorReportLogsByUid,
   getTutorReportLogsByUidAndWeek,
   didScholarAttendTutoring,
+  deleteTutorReportLog,
 } from "../services/tutor-report-log.service.js";
 
 function paramStr(val: string | string[] | undefined): string {
@@ -36,7 +37,7 @@ export async function forWeek(req: AuthenticatedRequest, res: Response) {
     if (Number.isNaN(weekNum) || weekNum < 1) {
       res.status(400).json({ error: "weekNum must be a number >= 1" }); return;
     }
-    const data = await getTutorReportLogsForWeek(weekNum);
+    const data = await getTutorReportWeekRows(weekNum);
     res.json({ data });
   } catch (e) {
     console.error(e);
@@ -88,5 +89,22 @@ export async function attended(req: AuthenticatedRequest, res: Response) {
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: e instanceof Error ? e.message : "Failed to check tutoring attendance" });
+  }
+}
+
+// DELETE /api/tutor-reports/:id
+export async function remove(req: AuthenticatedRequest, res: Response) {
+  try {
+    const raw = paramStr(req.params.id);
+    const id = /^\d+$/.test(raw) ? Number(raw) : NaN;
+    if (!Number.isSafeInteger(id) || id < 1) {
+      res.status(400).json({ error: "id must be a positive integer" }); return;
+    }
+    const deleted = await deleteTutorReportLog(id);
+    if (!deleted) { res.status(404).json({ error: "Tutor report not found" }); return; }
+    res.json({ data: { id } });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e instanceof Error ? e.message : "Failed to delete tutor report" });
   }
 }
