@@ -100,9 +100,9 @@ export function weeklyMemoPdfFilename(weekNumber: number, printedAtSlug: string)
   return `weekly-memo-week-${weekNumber}-${printedAtSlug}.pdf`;
 }
 
-/** Same hours math as the weekly memo page: logged + excuse, integer %, capped at 100. */
+/** Print roster hours: logged + excuse, integer %. Values above 100 stay visible. */
 function rosterCompletionPercent(completedMinutes: number, requiredMinutes: number): number {
-  return Math.max(0, Math.min(100, completionPct(completedMinutes, requiredMinutes) ?? 0));
+  return Math.max(0, completionPct(completedMinutes, requiredMinutes) ?? 0);
 }
 
 function toRosterRow(

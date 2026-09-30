@@ -32,6 +32,8 @@ Shell scripts for deployment validation and operational tasks. These run outside
 | `backfill-user-roster-defaults.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/backfill-user-roster-defaults.sh) | Ops: fill blank `cohort` and role/cohort-based `fd_required` / `ss_required` on `public.user_roster` |
 | `sync-mentee-count-from-mentor-mentee.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/sync-mentee-count-from-mentor-mentee.sh) | Ops: set TL `mentee_count` from `mentor_mentee` (`-1` if no relationship yet) |
 | `backfill-form-logs.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/backfill-form-logs.sh) | Ops: insert Google Form CSV dumps into `public.wpl_form_logs` / `public.mcf_form_logs` |
+| `update-scholar-schedule.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/update-scholar-schedule.sh) | Ops: replace one scholar's signed-up front-desk and study-session shifts for the active semester |
+| `remove-scholar.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/remove-scholar.sh) | Ops: after confirmation, remove one uid from `user_roster` and `mentor_mentee` (and the linked profile / auth user) |
 | `supabase-env.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/supabase-env.sh) | Sourced helper: resolves `SUPABASE_URL` and prompts for the service role key. Not executable on its own |
 
 ---
@@ -140,6 +142,16 @@ SUPABASE_ACCESS_TOKEN=... SUPABASE_PROJECT_REF=... ./scripts/configure-supabase-
 
 # Form CSV dumps → form log tables (prompts for service role key)
 ./scripts/backfill-form-logs.sh
+
+# Replace one scholar's signed-up FD / SS shifts (prompts for the list)
+./scripts/update-scholar-schedule.sh --dry-run 123456789
+./scripts/update-scholar-schedule.sh 123456789
+
+# Remove a scholar (prompts for the UID, then asks you to type yes)
+./scripts/remove-scholar.sh
+
+# Preview a scholar removal (reads Supabase, writes nothing)
+./scripts/remove-scholar.sh --dry-run 123456789
 ```
 
 ### `ingest-user-roster.sh`
@@ -161,7 +173,7 @@ Ops script for bulk-loading a sheet export into `public.user_roster`. Companion 
 
 `--dry-run` skips the prompt and does not POST. Stdout includes TSV reports for bad university emails (with contact fields) and null UIDs.
 
-Credential resolution is shared with `backfill-user-roster-defaults.sh`, `sync-mentee-count-from-mentor-mentee.sh`, and `backfill-form-logs.sh` via [`scripts/supabase-env.sh`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/supabase-env.sh) (`require_supabase_url`, `require_supabase_service_role`). Source that helper in any new Supabase ops script instead of re-implementing the `.env` walk or the hidden prompt.
+Credential resolution is shared with `backfill-user-roster-defaults.sh`, `sync-mentee-count-from-mentor-mentee.sh`, `backfill-form-logs.sh`, `update-scholar-schedule.sh`, and `remove-scholar.sh` via [`scripts/supabase-env.sh`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/supabase-env.sh) (`require_supabase_url`, `require_supabase_service_role`). Source that helper in any new Supabase ops script instead of re-implementing the `.env` walk or the hidden prompt.
 
 ### `backfill-user-roster-defaults.sh`
 
@@ -249,4 +261,60 @@ Default source directory: `tmp/back fill form data/` (`wpl.csv`, `mcf.csv`). Fil
 # One form type, explicit files
 ./scripts/backfill-form-logs.sh --only wpl --wpl "tmp/back fill form data/wpl.csv"
 ./scripts/backfill-form-logs.sh --only mcf --mcf "tmp/back fill form data/mcf.csv"
+```
+
+### `update-scholar-schedule.sh`
+
+Ops script that replaces one scholar's signed-up front-desk and study-session shifts on `public.scholar_shift_assignments` for the active semester (`is_active = true`). Companion helper: [`scripts/update-scholar-schedule.py`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/update-scholar-schedule.py).
+
+This is the standing weekly schedule compliance is checked against. It does **not** change `user_roster.fd_required` / `ss_required` (those are weekly minute totals).
+
+**Behavior**
+
+- Prompts for the UID unless it is passed as the first argument. The roster row must exist. Exactly one active semester is required.
+- Prints the scholar's current active shifts, then reads a replacement list from the terminal. One shift per line; a blank line finishes.
+- Accepted lines: `fd mon 09:00 11:00`, `ss Tuesday 2:00pm 4:00pm`, `front_desk wed 14:00-16:00`. Days are `sun`–`sat` (or the full name) and are stored with Sunday = 0.
+- The new list is the whole schedule. Previous active rows for that scholar and semester are set `is_active = false`, then the new rows are inserted. A blank list clears the schedule after an explicit confirm. Older semesters are left alone.
+- Front desk and study session share one timeline: overlapping blocks are rejected before any write. A shift that starts when another ends is allowed.
+- If the insert fails after the old rows were turned off, those rows are set active again.
+- `--dry-run` still prompts and prints the plan, then writes nothing. It **still needs credentials** because it reads the roster and current shifts.
+
+**Credentials** — same sources as `ingest-user-roster.sh` above (URL from the shell or `backend/.env`; service role via hidden prompt only).
+
+```bash
+./scripts/update-scholar-schedule.sh --dry-run 123456789
+./scripts/update-scholar-schedule.sh
+./scripts/update-scholar-schedule.sh 123456789
+```
+
+### `remove-scholar.sh`
+
+Ops script that removes one person from `public.user_roster` and drops their `mentor_mentee` assignment. Companion helper: [`scripts/remove-scholar.py`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/remove-scholar.py).
+
+Run it with no arguments. It prompts for the UID, then prints a card (name, email, role, status, cohort, teams, profile, mentor, and how many notification / shift rows go with them) before any write. You can still pass the UID on the command line. If `program_role` is not scholar, the card says so and still asks for confirmation.
+
+**Delete order**
+
+Foreign keys require this sequence. `mentor_mentee.mentee_uid` and `profiles.student_id` both reference `user_roster.uid` with no `ON DELETE`, so the roster row cannot go first.
+
+1. `mentor_mentee` where `mentee_uid` is this uid. The sync trigger rewrites that team leader's `mentee_count` / `mentee_uids` while the mentor profile still exists.
+2. `notification_log` for the profile. That foreign key does not cascade, so a leftover row blocks the profile delete. Skipped when there is no profile.
+3. `profiles` where `student_id` is this uid. `mentor_mentee.mentor_id` cascades, which unassigns anyone this person mentored.
+4. The auth user (`DELETE /auth/v1/admin/users/{profile.id}`). `profiles.id` is the auth user id, and the migrations do not cascade from `auth.users`. A 404 is treated as already gone.
+5. `user_roster` for this uid. `scholar_shift_assignments` cascade with that row.
+
+**Left in place**
+
+Form logs, front-desk logs, study-session logs, excuses, and weekly stats have no foreign key to the roster. They stay.
+
+**Confirmation**
+
+A real run asks `Remove this scholar? Type yes to confirm:`. Any other answer aborts with no writes. `--yes` skips the prompt and is required when stdin is not a terminal. `--dry-run` prints the card and writes nothing, but **still needs credentials** because it reads first.
+
+**Credentials** — same sources as `ingest-user-roster.sh` above (URL from the shell or `backend/.env`; service role via hidden prompt only).
+
+```bash
+./scripts/remove-scholar.sh
+./scripts/remove-scholar.sh 123456789
+./scripts/remove-scholar.sh --dry-run 123456789
 ```

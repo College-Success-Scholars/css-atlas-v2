@@ -169,7 +169,7 @@ describe("weekly memo print report", () => {
     ];
     const report = createWeeklyMemoReport(data);
     expect(report.frontDeskRoster).toEqual([
-      expect.objectContaining({ scholarName: "Over Scholar", completedMinutes: 90, requiredMinutes: 60, completionPercent: 100 }),
+      expect.objectContaining({ scholarName: "Over Scholar", completedMinutes: 90, requiredMinutes: 60, completionPercent: 150 }),
       expect.objectContaining({ scholarName: "Excuse Scholar", completedMinutes: 60, requiredMinutes: 60, completionPercent: 100 }),
       expect.objectContaining({ scholarName: "Low Scholar", completedMinutes: 15, requiredMinutes: 60, completionPercent: 25 }),
     ]);
@@ -185,6 +185,7 @@ describe("weekly memo print report", () => {
       expect.objectContaining({ scholarName: "Low Scholar", completedMinutes: 15, completionPercent: 25 }),
     ]);
     const html = renderWeeklyMemoHtml(report);
+    expect(html).toContain("150%");
     expect(html).toContain("63%");
     expect(html).toContain("25%");
     expect(html).not.toContain("62.5%");

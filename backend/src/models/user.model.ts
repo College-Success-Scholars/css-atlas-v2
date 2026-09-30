@@ -94,6 +94,7 @@ export type DirectorySort = "asc" | "desc";
 export type DirectoryPerson = {
   id: string;
   name: string;
+  uid: string | null;
   cohort: number | null;
   email: string | null;
   phoneNumber: string | null;

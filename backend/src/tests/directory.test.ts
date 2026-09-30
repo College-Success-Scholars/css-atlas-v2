@@ -30,30 +30,29 @@ function query(overrides: Partial<DirectoryQuery> = {}): DirectoryQuery {
 }
 
 describe("directory query contract", () => {
-  it("uses a stable directory id, maps phone, and never maps UID or app role", () => {
+  it("uses a stable directory id and maps phone and UID, not app role", () => {
     const person = mapDirectoryPerson(rows[0]!);
 
     expect(person).toEqual({
       id: "1",
       name: "Ada Lovelace",
+      uid: "uid-ada",
       cohort: 2024,
       email: "ada@example.test",
       phoneNumber: "555-0100",
       teams: ["Blue"],
       programRole: "Scholar",
     });
-    expect(person).not.toHaveProperty("uid");
     expect(person).not.toHaveProperty("phone_number");
     expect(person).not.toHaveProperty("app_role");
   });
 
-  it("searches by name, email, or UID without exposing UID on the result", () => {
+  it("searches by name, email, or UID and returns the matching UID", () => {
     const byEmail = queryDirectoryRows(rows, query({ search: "grace@example" }));
-    expect(byEmail).toMatchObject({ view: "flat", members: [{ id: "2" }] });
+    expect(byEmail).toMatchObject({ view: "flat", members: [{ id: "2", uid: "uid-grace" }] });
 
     const byUid = queryDirectoryRows(rows, query({ search: "uid-alan" }));
-    expect(byUid).toMatchObject({ view: "flat", members: [{ id: "3" }] });
-    expect(byUid.view === "flat" && byUid.members[0]).not.toHaveProperty("uid");
+    expect(byUid).toMatchObject({ view: "flat", members: [{ id: "3", uid: "uid-alan" }] });
   });
 
   it("intersects independent team, program-role, and cohort facets", () => {

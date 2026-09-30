@@ -55,11 +55,8 @@ export const GRADUATED_STATUS = "graduated";
 
 type DirectorySourceRow = Pick<
   Database["public"]["Tables"]["user_roster"]["Row"],
-  "id" | "first_name" | "last_name" | "email" | "cohort" | "teams" | "program_role" | "phone_number"
-> & {
-  /** Search-only: never copied onto the mapped DirectoryPerson returned to clients. */
-  uid?: string | null;
-};
+  "id" | "first_name" | "last_name" | "email" | "cohort" | "teams" | "program_role" | "phone_number" | "uid"
+>;
 
 type DirectoryCursor = { name: string; id: string };
 
@@ -73,6 +70,7 @@ export function mapDirectoryPerson(row: DirectorySourceRow): DirectoryPerson {
   return {
     id: String(row.id),
     name: directoryName(row),
+    uid: row.uid ?? null,
     cohort: row.cohort == null ? null : Number(row.cohort),
     email: row.email ?? null,
     phoneNumber: row.phone_number ?? null,
@@ -138,10 +136,10 @@ function belongsToGroup(person: DirectoryPerson, group: string): boolean {
   return group === "Unassigned" ? person.teams.length === 0 : person.teams.includes(group);
 }
 
-/** Matches the directory search box's "name, email, or UID" contract without exposing UID on the mapped person. */
-function matchesDirectorySearch(row: DirectorySourceRow, person: DirectoryPerson, search: string): boolean {
+/** Matches the directory search box's "name, email, or UID" contract. */
+function matchesDirectorySearch(person: DirectoryPerson, search: string): boolean {
   if (!search) return true;
-  const haystack = `${person.name} ${person.email ?? ""} ${row.uid ?? ""}`.toLocaleLowerCase();
+  const haystack = `${person.name} ${person.email ?? ""} ${person.uid ?? ""}`.toLocaleLowerCase();
   return haystack.includes(search);
 }
 
@@ -149,14 +147,13 @@ function matchesDirectorySearch(row: DirectorySourceRow, person: DirectoryPerson
 export function queryDirectoryRows(rows: DirectorySourceRow[], query: DirectoryQuery): DirectoryResponse {
   const search = query.search.toLocaleLowerCase();
   const people = rows
-    .map((row) => ({ row, person: mapDirectoryPerson(row) }))
-    .filter(({ row, person }) =>
-      matchesDirectorySearch(row, person, search) &&
+    .map((row) => mapDirectoryPerson(row))
+    .filter((person) =>
+      matchesDirectorySearch(person, search) &&
       (!query.teams.length || person.teams.some((team) => query.teams.includes(team))) &&
       (!query.programRoles.length || (person.programRole != null && query.programRoles.includes(person.programRole))) &&
       (!query.cohorts.length || (person.cohort != null && query.cohorts.includes(person.cohort))),
     )
-    .map(({ person }) => person)
     .sort((a, b) => compareDirectoryPeople(a, b, query.sort));
 
   if (query.view === "flat") {
