@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { ChevronRight, Filter, Search } from "lucide-react";
 import { backendGet } from "@/lib/client/api-client";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ const ALL_VALUE = "all";
 type DirectoryPerson = {
   id: string;
   name: string;
+  uid: string | null;
   cohort: number | null;
   email: string | null;
   phoneNumber: string | null;
@@ -109,9 +110,21 @@ function Avatar({ name }: { name: string }) {
   );
 }
 
+/** Long enough that a double-click can select a UID before the row opens the profile. */
+const ROW_OPEN_DELAY_MS = 300;
+
+function textIsSelected(): boolean {
+  const selection = window.getSelection();
+  return Boolean(selection && !selection.isCollapsed && selection.toString().length > 0);
+}
+
+function rowClickOpensProfile(event: MouseEvent): boolean {
+  return event.detail === 1 && !textIsSelected();
+}
+
 function TeamAndRole({ person }: { person: DirectoryPerson }) {
   return (
-    <div className="min-w-0">
+    <div className="min-w-0 cursor-text">
       {person.teams.length ? (
         <div className="flex flex-wrap gap-1">
           {person.teams.map((team) => (
@@ -223,24 +236,47 @@ function DirectoryFiltersForm({
 }
 
 function DirectoryRow({ person, onOpen }: { person: DirectoryPerson; onOpen: (person: DirectoryPerson) => void }) {
+  const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (openTimer.current) clearTimeout(openTimer.current);
+  }, []);
+
   return (
-    <button
-      type="button"
-      className={`group grid min-h-11 w-full items-center gap-4 border-b border-l-4 border-l-transparent px-3 py-3 text-left transition-colors hover:border-l-primary hover:bg-muted/60 focus-visible:border-l-primary focus-visible:bg-muted/60 focus-visible:outline-none ${DIRECTORY_GRID_COLS}`}
-      onClick={() => onOpen(person)}
+    <div
+      role="button"
+      tabIndex={0}
+      className={`group grid min-h-11 w-full cursor-pointer select-text items-center gap-4 border-b border-l-4 border-l-transparent px-3 py-3 text-left transition-colors hover:border-l-primary hover:bg-muted/60 focus-visible:border-l-primary focus-visible:bg-muted/60 focus-visible:outline-none ${DIRECTORY_GRID_COLS}`}
+      onClick={(event) => {
+        if (openTimer.current) clearTimeout(openTimer.current);
+        if (!rowClickOpensProfile(event)) return;
+        openTimer.current = setTimeout(() => {
+          openTimer.current = null;
+          if (!textIsSelected()) onOpen(person);
+        }, ROW_OPEN_DELAY_MS);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onOpen(person);
+        }
+      }}
     >
       <span className="flex min-w-0 items-center gap-3">
         <Avatar name={person.name} />
-        <span className="truncate font-medium">{person.name}</span>
+        <span className="min-w-0 cursor-text">
+          <span className="block truncate font-medium">{person.name}</span>
+          <span className="block truncate text-xs text-muted-foreground">{person.uid ?? "—"}</span>
+        </span>
       </span>
-      <span className="text-sm text-muted-foreground">{person.cohort ?? "—"}</span>
-      <span className="min-w-0">
+      <span className="cursor-text text-sm text-muted-foreground">{person.cohort ?? "—"}</span>
+      <span className="min-w-0 cursor-text">
         <span className="block truncate text-sm text-muted-foreground">{person.email ?? "No contact listed"}</span>
         {person.phoneNumber && <span className="block truncate text-xs text-muted-foreground">{person.phoneNumber}</span>}
       </span>
       <TeamAndRole person={person} />
       <ChevronRight className="size-4 shrink-0 justify-self-end text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
-    </button>
+    </div>
   );
 }
 
