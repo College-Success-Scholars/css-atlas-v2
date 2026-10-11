@@ -36,6 +36,11 @@ jobs:
         working-directory: shared
       - run: npm ci
         working-directory: backend
+      # shared's test script borrows backend's vitest via --prefix ../backend,
+      # so it can only run after backend's install.
+      - name: Test shared
+        run: npm test
+        working-directory: shared
       - run: npm test
         working-directory: backend
       - run: npm run build
