@@ -8,7 +8,6 @@
  */
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatMinutesToHoursAndMinutes } from "@/lib/format/time";
@@ -20,12 +19,12 @@ import { ProgressCell } from "@/components/data-display/progress-cell";
 import { ExcuseDialog } from "@/components/attendance/excuse-dialog";
 import { YearNotStartedState } from "@/components/dashboard/widgets/year-not-started-state";
 import { CampusWeekUrlNav, CAMPUS_WEEK_NAV_WIDTH_CLASS } from "@/components/data-display/campus-week-nav";
+import { TeamsViewTabs } from "./teams-view-tabs";
 import { campusWeekNumbers } from "@/lib/format/campus-week";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
 import { upsertAttendanceExcuseAction } from "@/lib/server/actions";
 import type {
   AttendanceKind,
@@ -42,19 +41,6 @@ export type TeamsAttendanceClientProps = {
   board: AttendanceWeekBoard | null;
   error: string | null;
 };
-
-const KIND_TABS: { kind: AttendanceKind; label: string; href: string }[] = [
-  {
-    kind: "front_desk",
-    label: "Front desk",
-    href: "/dashboard/teams/front-desk",
-  },
-  {
-    kind: "study_session",
-    label: "Study sessions",
-    href: "/dashboard/teams/study",
-  },
-];
 
 function dayCell(mins: number) {
   return (
@@ -81,7 +67,6 @@ export function TeamsPageFallback() {
 }
 
 export function TeamsAttendanceClient({
-  kind,
   title,
   basePath,
   weekNum,
@@ -239,22 +224,7 @@ export function TeamsAttendanceClient({
         <YearNotStartedState />
       ) : (
         <>
-          <div className="flex items-center gap-1.5 rounded-md bg-muted/40 p-1 w-fit">
-            {KIND_TABS.map((tab) => (
-              <Link
-                key={tab.kind}
-                href={`${tab.href}?week=${weekNum}`}
-                className={cn(
-                  "rounded-sm px-3 py-1.5 text-sm transition-colors",
-                  tab.kind === kind
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {tab.label}
-              </Link>
-            ))}
-          </div>
+          <TeamsViewTabs activeHref={basePath} weekNum={weekNum} />
 
           {summary ? (
             <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
