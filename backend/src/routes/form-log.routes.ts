@@ -3,7 +3,7 @@
  * @module backend/routes
  *
  * Express Router for /api/form-logs/* endpoints.
- * Covers MCF, WHAF, and WPL form log queries (30+ endpoints).
+ * Covers MCF, WHAF, WPL, and Front Desk AM/PM checklist queries (30+ endpoints).
  *
  * Auth (after requireAuth):
  * - Week-wide, batch-by-uids, team-leader stats, generic id lookup → requireTeamLeaderRole
@@ -53,7 +53,11 @@ router.get("/wpl/week/:weekNum/with-late", requireTeamLeaderRole, formLogControl
 router.get("/wpl/uid/:uid/with-late", requireSelfOrTeamLeader, formLogController.wplByUidWithLate);
 router.get("/wpl/uid/:uid/week/:weekNum/with-late", requireSelfOrTeamLeader, formLogController.wplByUidAndWeekWithLate);
 
+// AM/PM checklist (Front Desk). Read-only; intake stays Google Forms.
+router.get("/am-pm/week/:weekNum", requireTeamLeaderRole, formLogController.amPmForWeek);
+
 // Batch by UIDs
+router.post("/am-pm/by-uids", requireTeamLeaderRole, formLogController.amPmByUids);
 router.post("/whaf/by-uids", requireTeamLeaderRole, formLogController.whafByUids);
 router.post("/wahf/by-uids", requireTeamLeaderRole, formLogController.whafByUids);
 router.post("/mcf/by-uids", requireTeamLeaderRole, formLogController.mcfByUids);

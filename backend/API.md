@@ -583,6 +583,59 @@ All routes under `/api/form-logs` require **requireAuth**, then a second gate:
 
 Scholars may read their own submissions (dashboard Activity Log). Program-wide form data is team_leader+.
 
+### AM/PM Checklist (Front Desk)
+
+Reads `am_pm_form_logs` (Google Forms intake — no write path here) and enriches each row
+with shift integrity, a reminder flag, the scholar's name, and the form's free-text
+`leader_name` fuzzy-matched against `user_roster`.
+
+`shiftValid` is the only timing verdict: the submission landed between the claimed shift's
+start and its end plus the configured grace (default 60 min), in America/New_York. A null
+shift, an unrecognised shift label, or a null `created_at` is `false`. `reminderOwed` is
+its inverse. The rule lives in `shared/front-desk-ampm-config.ts` so the frontend applies
+exactly the same one. There is deliberately no comparison against front-desk Entry/Exit
+pairing — see `docs/agents/ubiquitous_language.md`.
+
+### `GET /api/form-logs/am-pm/week/:weekNum`
+
+**Auth:** requireAuth, requireTeamLeaderRole
+**Description:** Returns every AM/PM checklist submission in a campus week, enriched.
+**Request Params:** `weekNum` (integer, >= 1)
+**Response:**
+```json
+{
+  "data": [
+    {
+      "id": 12,
+      "scholarUid": "12345",
+      "scholarName": "Amara Osei",
+      "shift": "10:00 AM - 6:00 PM",
+      "submittedAt": "2026-10-14T21:52:00.000Z",
+      "leaderName": "Ben Sandoval",
+      "leaderMatch": { "uid": "67890", "displayName": "Ben Sandoval" },
+      "tasksCompleted": 6,
+      "tasksTotal": 6,
+      "shiftValid": true,
+      "reminderOwed": false
+    }
+  ]
+}
+```
+
+---
+
+### `POST /api/form-logs/am-pm/by-uids`
+
+**Auth:** requireAuth, requireTeamLeaderRole
+**Description:** Same enriched rows for specific scholars, used by the mentee view. `weekNum` is optional; omit it to get every submission for those scholars. An empty `uids` array returns `{ "data": [] }` without querying.
+**Request Body:**
+```json
+{ "uids": ["12345", "67890"], "weekNum": 7 }
+```
+**Response:** same row shape as `GET /api/form-logs/am-pm/week/:weekNum`.
+
+---
+
 ### MCF (Mentee Check-in Form)
 
 ### `GET /api/form-logs/mcf/week/:weekNum`
