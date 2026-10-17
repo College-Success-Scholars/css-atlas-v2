@@ -63,9 +63,24 @@
 | **Incomplete** | **MCF** only: at least one mentee check-in is in, but not every assigned mentee. Used instead of late/missing while mentees remain. | Partial, in progress |
 | **Missing** | No valid submission received by the campus-week rollover or report cutoff. For **MCF**, no mentee check-ins at all. | Not submitted |
 
+## Front desk AM/PM checklist
+
+| Term | Definition | Aliases to avoid |
+| --- | --- | --- |
+| **AM/PM checklist** | The Google Form a front desk scholar files for a worked shift, recording the shift they worked, the tasks completed, and the leader on duty. Intake is Google Forms → Supabase (`am_pm_form_logs`); the app reads and enriches only and never writes form rows. | Front desk form, opening/closing form, shift form |
+| **Shift** | One of exactly three configured labels: `8:00 AM - 10:00 AM (Opening)`, `10:00 AM - 6:00 PM`, `6:00 PM - 8:00 PM (Closing)`. The strings must match the Google Form options byte for byte. | Slot, duty period |
+| **Shift integrity** | Whether a submission can be trusted to describe a shift the scholar actually worked: the `shift` value is one of the three configured labels **and** the submission time falls inside the valid submission window. | Shift check, validation |
+| **Valid submission window** | Shift start through shift end plus `graceAfterEndMinutes` (default 60), in America/New_York. Grace is **asymmetric** — none before the shift starts, an hour after it ends — because a scholar cannot have completed the shift's tasks before the shift began, but filing shortly after finishing is normal. | Leniency window, shift window |
+| **Shift valid** | The single timing verdict on a checklist row: the submission landed inside the **Valid submission window** for the claimed **Shift**. A null shift, an unrecognised label, or a null timestamp is **not** valid. | On-time, compliant |
+| **Reminder owed** | Someone should follow up with this scholar about filing the checklist during their shift. Currently defined as the inverse of **Shift valid**. Drives the deferred reminder mailer; no email is sent today. | Nudge, overdue |
+| **Front Desk Team view** | The team-leader board at `/dashboard/teams/front-desk/am-pm` listing a campus week's checklist submissions with shift integrity and leader identity. Read-only enrichment over Google Forms intake. | Front desk dashboard, AM/PM report |
+
+> **Dropped — do not reintroduce.** An earlier design judged each submission against the paired front-desk **Exit** ticket (±10 min) *and* against "session end" (±10 min), yielding a four-state verdict (`on_time_exit`, `on_time_session`, `late`, `unmatched_session`) plus a `reminderOwed` derived from which window matched. It was removed: ±10 minutes is too tight to be fair for someone filling a form on their phone after a shift, "session end" was never defined anywhere, and `unmatched_session` would have fired constantly and read as a failure. **Shift validity is the only timing rule.** The AM/PM checklist has no dependency on front desk Entry/Exit pairing.
+
 ## Relationships
 
 - A **Weekly Memo** is scoped to exactly one **Campus Week**.
+- An **AM/PM checklist** row belongs to exactly one **Scholar** and one **Campus Week**, and claims exactly one **Shift**. It appears in exactly two places: the **Front Desk Team view** (all scholars, one week) and the **mentee view** (one mentee at a time). It is deliberately absent from the Study sessions board.
 - A **Weekly Memo** contains multiple **KPI cards**, one **Recognition board** (**WAHF** grade census), one **Attendance detail** section (hours census + overall **WAHF** counts), and one **Team leader performance** section. Missing or late **WAHF** also appears as an **Issue** on **Scholar follow-up**. The export PDF additionally has **Scholar WAHF** and **TL WAHF** snapshot tiles; Needs Attention lists scholar WAHF names separately and folds TL WAHF into Team Leader Submissions with WPL and MCF.
 - A **Scholar** has exactly one **Primary Team Leader** per **Campus Week**, except Team Leaders do not have mentors.
 - A **Team Leader** is also a **Scholar** identity but is exempt from required front desk and study-session hours while active in the Team Leader role.
@@ -106,3 +121,5 @@
 - "forms" is too broad; name **WAHF**, **WPL**, and/or **MCF** when discussing compliance.
 - "WHAF" appears as a variant spelling in code; use **WAHF** as the canonical domain term.
 - "scholar_id", "uid", and "University ID" are the same identity concept; standardize on **Scholar ID** in domain language.
+- "on-time" is overloaded. For the **AM/PM checklist** there is no on-time concept — say **Shift valid**. Reserve **On-time** for form deadlines (WAHF/WPL/MCF).
+- "front desk" alone is ambiguous between hours and the checklist; say **Front desk completion** (minutes against a requirement) or **AM/PM checklist** (the filed form).
