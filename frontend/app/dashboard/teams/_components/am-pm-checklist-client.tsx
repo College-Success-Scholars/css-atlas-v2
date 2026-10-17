@@ -145,15 +145,6 @@ export function AmPmChecklistClient({
             <Badge variant="destructive">Outside shift</Badge>
           ),
       },
-      {
-        id: "reminderOwed",
-        header: "Reminder",
-        field: "reminderOwed",
-        sortable: true,
-        getSortValue: (row) => (row.reminderOwed ? 0 : 1),
-        renderCell: (row) =>
-          row.reminderOwed ? <Badge variant="warning">Owed</Badge> : dash(),
-      },
     ],
     []
   );
