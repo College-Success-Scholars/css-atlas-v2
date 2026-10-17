@@ -36,7 +36,6 @@ Mention this in the Obsidian file for me to go back and change later.
 Okay, commit those changes.
 ---
 Now move to stage two.
---
 ---
 Okay, move to stage 3 of our plan and I will handle stage 4.
 
@@ -44,6 +43,7 @@ Okay, move to stage 3 of our plan and I will handle stage 4.
 Also, can you pull the latest updates from the develop branch and merge them here?
 ---
 Can you remove the reminder on the front desk table column? Also, when the shift is invalid or outside the window, how do we vaildate? Do you check the first form they submit or the last one?
+```
 
 ---
 
