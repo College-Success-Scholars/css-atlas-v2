@@ -2,11 +2,16 @@ import { redirect } from "next/navigation";
 import { MenteeMonitoringClient } from "@/components/mentee-monitoring/mentee-monitoring-client";
 import { canAccessMenteeMonitoring } from "@/lib/auth";
 import { getCurrentProfile } from "@/lib/server/queries";
-import { fetchAttendanceForUids, fetchMenteesWithCompliance } from "@/lib/server/data";
+import {
+  fetchAttendanceForUids,
+  fetchMenteesWithCompliance,
+  getAmPmChecklistByUids,
+} from "@/lib/server/data";
 import { backendPost } from "@/lib/server/api-client";
 import { campusWeekToDateRange, dateToCampusWeek } from "@/lib/format/time";
 import { parseWeekParam } from "@/app/dashboard/memo/_lib/week-navigation";
 import type { WahfRow, TutoringRow, MenteeWithCompliance } from "@/lib/types/supabase";
+import type { AmPmChecklistRow } from "@/lib/types/am-pm-checklist";
 import type { AttendanceForUids } from "@/lib/types/attendance-week";
 
 type PageProps = {
@@ -56,7 +61,7 @@ export default async function MenteePage({ searchParams }: PageProps) {
     rows: [],
   };
 
-  const [attendance, wahf, tutoring] = await Promise.all([
+  const [attendance, wahf, tutoring, amPm] = await Promise.all([
     menteeUids.length && selectedWeek != null
       ? fetchAttendanceForUids(selectedWeek, menteeUids)
       : Promise.resolve(emptyAttendance),
@@ -66,6 +71,9 @@ export default async function MenteePage({ searchParams }: PageProps) {
     menteeUids.length
       ? backendPost<TutoringRow[]>("/api/form-logs/tutor-reports/by-uids", { uids: menteeUids })
       : Promise.resolve([] as TutoringRow[]),
+    menteeUids.length && selectedWeek != null
+      ? getAmPmChecklistByUids(menteeUids, selectedWeek)
+      : Promise.resolve([] as AmPmChecklistRow[]),
   ]);
 
   return (
@@ -75,6 +83,7 @@ export default async function MenteePage({ searchParams }: PageProps) {
         attendance={attendance}
         wahf={wahf as WahfRow[]}
         tutoring={tutoring as TutoringRow[]}
+        amPm={amPm}
         currentCampusWeek={currentCampusWeek}
         selectedWeek={selectedWeek}
         selectedUid={selectedUid}

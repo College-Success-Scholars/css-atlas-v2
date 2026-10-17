@@ -23,6 +23,7 @@ import {
   menteeName,
   getTodayDayLabel,
 } from "./utils"
+import { AmPmCard } from "./am-pm-card"
 import { HoursCard } from "./hours-card"
 import { TutoringCard } from "./tutoring-card"
 import { WahfCard } from "./wahf-card"
@@ -41,6 +42,7 @@ export function MenteeMonitoringClient({
   attendance,
   wahf,
   tutoring,
+  amPm,
   currentCampusWeek,
   selectedWeek,
   selectedUid: selectedUidProp,
@@ -122,6 +124,13 @@ export function MenteeMonitoringClient({
         ? computeTutoringSessions(tutoring, selectedUid, weekNum)
         : [],
     [tutoring, selectedUid, weekNum, yearStarted],
+  )
+
+  // The page already scopes the fetch to the selected week, so this only has to
+  // narrow to the selected mentee.
+  const menteeAmPm = useMemo(
+    () => (selectedUid ? amPm.filter((row) => row.scholarUid === selectedUid) : []),
+    [amPm, selectedUid],
   )
 
   if (validMentees.length === 0) {
@@ -230,6 +239,7 @@ export function MenteeMonitoringClient({
             {wahfStatus != null && (
               <WahfCard menteeName={name} status={wahfStatus} />
             )}
+            <AmPmCard menteeName={name} rows={menteeAmPm} />
           </div>
         </>
       )}
