@@ -2,7 +2,8 @@
 
 import { useMemo, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { AlertCircle, User, Users } from "lucide-react"
+import { AlertCircle, Copy, User, Users } from "lucide-react"
+import { toast } from "sonner"
 import { CampusWeekNav, CAMPUS_WEEK_NAV_WIDTH_CLASS } from "@/components/data-display/campus-week-nav"
 import { campusWeekNumbers } from "@/lib/format/campus-week"
 import {
@@ -22,10 +23,13 @@ import {
   computeTutoringSessions,
   menteeName,
   getTodayDayLabel,
+  latestWahfWithGrades,
 } from "./utils"
 import { HoursCard } from "./hours-card"
 import { TutoringCard } from "./tutoring-card"
 import { WahfCard } from "./wahf-card"
+import { RecentGradesCard } from "./recent-grades-card"
+import { MenteeDetailsSkeleton } from "./mentee-details-skeleton"
 import { YearNotStartedState } from "@/components/dashboard/widgets/year-not-started-state"
 
 function menteeHref(week: number | null, uid?: string | null) {
@@ -66,10 +70,20 @@ export function MenteeMonitoringClient({
   const todayLabel = getTodayDayLabel()
 
   function navigate(week: number | null, uid: string) {
+    if (isPending || (week === selectedWeek && uid === selectedUid)) return
     const href = menteeHref(week, uid)
     startTransition(() => {
       router.push(href)
     })
+  }
+
+  async function copyUid() {
+    try {
+      await navigator.clipboard.writeText(selectedUid)
+      toast.success("Mentee UID copied")
+    } catch {
+      toast.error("Could not copy UID. Please select and copy it manually.")
+    }
   }
 
   const ssRow = useMemo(
@@ -124,6 +138,11 @@ export function MenteeMonitoringClient({
     [tutoring, selectedUid, weekNum, yearStarted],
   )
 
+  const latestGradesSubmission = useMemo(
+    () => latestWahfWithGrades(wahf, selectedUid),
+    [wahf, selectedUid],
+  )
+
   if (validMentees.length === 0) {
     return (
       <div className="space-y-4 max-w-2xl mx-auto">
@@ -150,27 +169,39 @@ export function MenteeMonitoringClient({
       <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{name}</h1>
-          <p className="text-sm text-muted-foreground">UID {selectedUid}</p>
+          <button
+            type="button"
+            onClick={copyUid}
+            aria-label={`Copy mentee UID ${selectedUid}`}
+            title="Copy UID for the MCF form"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <span>UID {selectedUid}</span>
+            <Copy className="size-3.5" aria-hidden />
+          </button>
         </div>
 
         <div className={`flex flex-col gap-2 sm:ml-auto sm:shrink-0 ${CAMPUS_WEEK_NAV_WIDTH_CLASS}`}>
           {/* Mentee selector — same width as week row below */}
-          <Select
-            value={selectedUid}
-            onValueChange={(uid) => navigate(selectedWeek, uid)}
-          >
-            <SelectTrigger className="w-full cursor-pointer">
-              <User className="size-4 shrink-0 text-muted-foreground" />
-              <SelectValue placeholder="Select mentee" />
-            </SelectTrigger>
-            <SelectContent>
-              {validMentees.map((m) => (
-                <SelectItem key={m.scholar_uid} value={m.scholar_uid!}>
-                  {menteeName(m)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {validMentees.length > 1 && (
+            <Select
+              value={selectedUid}
+              onValueChange={(uid) => navigate(selectedWeek, uid)}
+              disabled={isPending}
+            >
+              <SelectTrigger className="w-full cursor-pointer" aria-label="Select mentee">
+                <User className="size-4 shrink-0 text-muted-foreground" />
+                <SelectValue placeholder="Select mentee" />
+              </SelectTrigger>
+              <SelectContent>
+                {validMentees.map((m) => (
+                  <SelectItem key={m.scholar_uid} value={m.scholar_uid!}>
+                    {menteeName(m)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
 
           {yearStarted && (
             <CampusWeekNav
@@ -185,7 +216,9 @@ export function MenteeMonitoringClient({
         </div>
       </div>
 
-      {!yearStarted ? (
+      {isPending ? (
+        <MenteeDetailsSkeleton />
+      ) : !yearStarted ? (
         <YearNotStartedState variant="full" />
       ) : (
         <>
@@ -231,6 +264,7 @@ export function MenteeMonitoringClient({
               <WahfCard menteeName={name} status={wahfStatus} />
             )}
           </div>
+          <RecentGradesCard submission={latestGradesSubmission} />
         </>
       )}
     </div>

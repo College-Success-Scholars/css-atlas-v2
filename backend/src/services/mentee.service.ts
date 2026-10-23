@@ -130,7 +130,7 @@ export async function getMenteesByMentorKey(mentorKey: string): Promise<MenteeRo
 
   const { data, error } = await supabase
     .from("mentor_mentee")
-    .select("mentee_uid, user_roster(first_name, last_name, fd_required, ss_required)")
+    .select("mentee_uid, user_roster(first_name, last_name, email, fd_required, ss_required)")
     .eq("mentor_id", mentorKey);
 
   if (error) throw error;
@@ -142,6 +142,7 @@ export async function getMenteesByMentorKey(mentorKey: string): Promise<MenteeRo
       scholar_uid: row.mentee_uid as string | null,
       first_name: (roster?.first_name as string) ?? null,
       last_name: (roster?.last_name as string) ?? null,
+      email: (roster?.email as string) ?? null,
       fd_required: roster?.fd_required != null ? Number(roster.fd_required) : null,
       ss_required: roster?.ss_required != null ? Number(roster.ss_required) : null,
     };
@@ -158,8 +159,13 @@ export async function getMenteesWithComplianceByMentorKey(
 
   return mentees.map((mentee) => {
     const compliance = mentee.scholar_uid ? complianceByScholar.get(mentee.scholar_uid) : undefined;
+    // Explicit mapping keeps the compliance response free of contact fields.
     return {
-      ...mentee,
+      scholar_uid: mentee.scholar_uid,
+      first_name: mentee.first_name,
+      last_name: mentee.last_name,
+      fd_required: mentee.fd_required,
+      ss_required: mentee.ss_required,
       fdCompliance: compliance?.fdCompliance ?? null,
       ssCompliance: compliance?.ssCompliance ?? null,
     };

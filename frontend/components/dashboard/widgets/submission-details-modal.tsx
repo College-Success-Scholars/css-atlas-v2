@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { CheckCircle2, CircleX } from "lucide-react"
 import type { RecentFormSubmission } from "@/lib/types/form-log"
 import {
@@ -174,7 +174,7 @@ export function SubmissionDetailsModal({ entry }: { entry: RecentFormSubmission 
       <DialogTrigger asChild>
         <Button variant="outline" className="rounded-xl">View details</Button>
       </DialogTrigger>
-      <DialogContent className="overflow-hidden p-0 sm:max-w-2xl">
+      <DialogContent className="max-h-[85dvh] overflow-y-auto p-0 sm:max-w-2xl">
         <DialogHeader className="border-t-4 border-sky-500 bg-card px-5 py-4">
           <DialogTitle className="flex items-start justify-between gap-3 text-left">
             <div className="flex items-center gap-3">
@@ -189,6 +189,9 @@ export function SubmissionDetailsModal({ entry }: { entry: RecentFormSubmission 
               </span>
             </div>
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Details of the {entry.formType} submitted {formatSubmittedAt(entry.submittedAt)}.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="bg-card">

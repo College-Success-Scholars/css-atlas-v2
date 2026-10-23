@@ -68,11 +68,15 @@ async function authenticate(req: AuthenticatedRequest): Promise<boolean> {
 
   // Fetch profile using the user's own token (RLS applies)
   const supabase = getSupabaseClient();
-  const { data: profile } = await supabase
+  // Pin the FK: junction-shaped tables (e.g. mentee_meeting_preferences) make
+  // a bare user_roster(*) embed ambiguous (PGRST201).
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("*, user_roster(*)")
+    .select("*, user_roster!profiles_student_id_fkey(*)")
     .eq("id", user.id)
     .maybeSingle();
+  // Never treat a failed read as "no profile" — that triggers onboarding inserts.
+  if (profileError) throw profileError;
 
   const merged = profile ? mergeProfileWithRoster(profile as ProfilesRow) : null;
 
@@ -91,8 +95,13 @@ function buildAuthMiddleware(role?: { check: (req: AuthenticatedRequest) => bool
   return async function (req: AuthenticatedRequest, res: Response, next: NextFunction) {
     const token = req.headers.authorization?.slice(7) ?? "";
     await runWithToken(token, async () => {
-      if (!(await authenticate(req))) {
-        res.status(401).json({ error: "Unauthorized" });
+      try {
+        if (!(await authenticate(req))) {
+          res.status(401).json({ error: "Unauthorized" });
+          return;
+        }
+      } catch (err) {
+        next(err);
         return;
       }
       if (role && !role.check(req)) {

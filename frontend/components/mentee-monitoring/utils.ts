@@ -13,7 +13,7 @@ import type {
 import type { AttendanceKind, AttendanceWeekBoardRow } from "@/lib/types/attendance-week"
 import {
   computeWeekOptions,
-  findSubmissionForCampusWeek,
+  latestSubmissionForCampusWeek,
   type WeekOption,
 } from "@/components/personal/utils"
 
@@ -119,6 +119,25 @@ export type WahfStatus = {
   latestSubmission: WahfRow | null
 }
 
+export function wahfGradeEntries(submission: WahfRow | null) {
+  return Object.entries(submission?.assignment_grades ?? {}).flatMap(([course, assignments]) =>
+    Object.entries(assignments).flatMap(([assessment, grade]) =>
+      grade.trim() ? [{ course, assessment, grade }] : [],
+    ),
+  )
+}
+
+/** Independent of the selected week; ignore submissions without reported grades. */
+export function latestWahfWithGrades(wahf: WahfRow[], uid: string): WahfRow | null {
+  return wahf.reduce<WahfRow | null>((latest, row) => {
+    const timestamp = new Date(row.created_at).getTime()
+    if (row.scholar_uid !== uid || !Number.isFinite(timestamp) || wahfGradeEntries(row).length === 0) {
+      return latest
+    }
+    return latest == null || timestamp > new Date(latest.created_at).getTime() ? row : latest
+  }, null)
+}
+
 export function computeWahfStatus(
   wahf: WahfRow[],
   uid: string,
@@ -126,7 +145,7 @@ export function computeWahfStatus(
   currentCampusWeek: number | null,
 ): WahfStatus {
   const menteeWahf = wahf.filter((w) => w.scholar_uid === uid)
-  const submission = findSubmissionForCampusWeek(menteeWahf, weekNum)
+  const submission = latestSubmissionForCampusWeek(menteeWahf, weekNum)
   const submitted = submission != null
 
   const now = new Date()
