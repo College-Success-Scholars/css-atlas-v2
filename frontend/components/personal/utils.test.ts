@@ -18,6 +18,7 @@ import {
   buildMcfMenteeOptions,
 } from "./utils"
 import type { WahfRow, McfRow, MenteeRow } from "@/lib/types/supabase"
+import { getMcfWplDeadlineForWeek } from "@/lib/format/form-deadlines"
 
 /** YYYY-MM-DD in Eastern. */
 function toCampusDay(d: Date): string {
@@ -97,6 +98,19 @@ describe("findSubmissionForCampusWeek", () => {
 })
 
 describe("getFormStatusForWeek", () => {
+  it.each([
+    { hoursBefore: 18, daysLeft: 1 },
+    { hoursBefore: 8, daysLeft: 0 },
+    { hoursBefore: 66, daysLeft: 3 },
+  ])("uses campus calendar days $hoursBefore hours before the deadline", ({ hoursBefore, daysLeft }) => {
+    const deadline = getMcfWplDeadlineForWeek(2)!
+    vi.useFakeTimers({ now: new Date(deadline.getTime() - hoursBefore * 60 * 60 * 1000) })
+    const result = getFormStatusForWeek("WPL", [], [], [], 2, 2)
+    expect(result.status).toBe("pending")
+    expect(result.daysLeft).toBe(daysLeft)
+    expect(result.hoursLeft).toBe(hoursBefore)
+  })
+
   function mockWahf(created_at: string): WahfRow {
     return {
       id: "row-1",

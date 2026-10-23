@@ -11,7 +11,7 @@ import {
   isMcfLateForWeek,
   isWplLateForWeek,
 } from "@/lib/format/form-deadlines"
-import { campusWeekToDateRange, dateToCampusWeek } from "@/lib/format/time"
+import { campusWeekToDateRange, dateToCampusWeek, getEasternDateParts, ONE_DAY_MS } from "@/lib/format/time"
 
 // ---------------------------------------------------------------------------
 // Week options (campus calendar — shared by Personal + Mentee)
@@ -74,6 +74,8 @@ export type FormStatusResult = {
   isLate: boolean
   daysOverdue: number
   hoursLeft: number
+  /** Calendar days until the deadline in campus (Eastern) time. */
+  daysLeft: number
   submission: WahfRow | McfRow | WplRow | null
   /** Distinct mentees with an MCF this week (MCF only; 0/1 for WAHF/WPL). */
   completedCount: number
@@ -188,28 +190,34 @@ function incompleteStatusForWeek(
   currentCampusWeek: number | null,
   deadline: Date | null,
   now: Date,
-): Pick<FormStatusResult, "status" | "daysOverdue" | "hoursLeft"> {
+): Pick<FormStatusResult, "status" | "daysOverdue" | "hoursLeft" | "daysLeft"> {
   let daysOverdue = 0
   let hoursLeft = 0
+  let daysLeft = 0
 
   if (currentCampusWeek != null && weekNum < currentCampusWeek) {
     if (deadline) daysOverdue = Math.max(0, differenceInCalendarDays(now, deadline))
-    return { status: "missed", daysOverdue, hoursLeft }
+    return { status: "missed", daysOverdue, hoursLeft, daysLeft }
   }
 
   if (currentCampusWeek != null && weekNum === currentCampusWeek) {
     if (deadline && now.getTime() > deadline.getTime()) {
       daysOverdue = Math.max(0, differenceInCalendarDays(now, deadline))
-      return { status: "overdue", daysOverdue, hoursLeft }
+      return { status: "overdue", daysOverdue, hoursLeft, daysLeft }
     }
     if (deadline) {
       const msLeft = differenceInMilliseconds(deadline, now)
       hoursLeft = Math.max(0, Math.ceil(msLeft / (1000 * 60 * 60)))
+      const due = getEasternDateParts(deadline)
+      const today = getEasternDateParts(now)
+      daysLeft = Math.max(0, (
+        Date.UTC(due.year, due.month, due.day) - Date.UTC(today.year, today.month, today.day)
+      ) / ONE_DAY_MS)
     }
-    return { status: "pending", daysOverdue, hoursLeft }
+    return { status: "pending", daysOverdue, hoursLeft, daysLeft }
   }
 
-  return { status: "pending", daysOverdue, hoursLeft }
+  return { status: "pending", daysOverdue, hoursLeft, daysLeft }
 }
 
 export function getFormStatusForWeek(
@@ -234,7 +242,7 @@ export function getFormStatusForWeek(
     const complete = requiredCount <= 0 || completedCount >= requiredCount
     const partial = requiredCount > 1 && completedCount > 0 && completedCount < requiredCount
     const clock = complete
-      ? { status: "done" as const, daysOverdue: 0, hoursLeft: 0 }
+      ? { status: "done" as const, daysOverdue: 0, hoursLeft: 0, daysLeft: 0 }
       : incompleteStatusForWeek(weekNum, currentCampusWeek, deadline, now)
     const status =
       complete
@@ -250,6 +258,7 @@ export function getFormStatusForWeek(
       isLate,
       daysOverdue: clock.daysOverdue,
       hoursLeft: clock.hoursLeft,
+      daysLeft: clock.daysLeft,
       submission,
       completedCount,
       requiredCount,
@@ -267,7 +276,7 @@ export function getFormStatusForWeek(
     : false
   const complete = submission != null
   const incomplete = complete
-    ? { status: "done" as const, daysOverdue: 0, hoursLeft: 0 }
+    ? { status: "done" as const, daysOverdue: 0, hoursLeft: 0, daysLeft: 0 }
     : incompleteStatusForWeek(weekNum, currentCampusWeek, deadline, now)
 
   return {
@@ -277,6 +286,7 @@ export function getFormStatusForWeek(
     isLate,
     daysOverdue: incomplete.daysOverdue,
     hoursLeft: incomplete.hoursLeft,
+    daysLeft: incomplete.daysLeft,
     submission,
     completedCount: complete ? 1 : 0,
     requiredCount: 1,
