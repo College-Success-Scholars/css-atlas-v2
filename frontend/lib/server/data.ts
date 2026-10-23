@@ -53,6 +53,7 @@ import type {
   TeamLeaderFormStatsRow,
 } from "@/lib/types/form-log";
 import type { TutorReportWeekRow } from "@/lib/types/tutor-report-log";
+import type { AmPmChecklistRow } from "@/lib/types/am-pm-checklist";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -276,6 +277,16 @@ export async function getTrafficEntryCountsForWeeks(weekNumbers: number[]): Prom
 export type WahfFormLogRowWithLate = FormLogRowWithLate<WahfFormLogRow>;
 export type McfFormLogRowWithLate = FormLogRowWithLate<McfFormLogRow>;
 export type WplFormLogRowWithLate = FormLogRowWithLate<WplFormLogRow>;
+
+/** Front Desk AM/PM checklist for a campus week, enriched with shift validity. */
+export async function getAmPmChecklistForWeek(weekNum: number) {
+  return backendGet<AmPmChecklistRow[]>(`/api/form-logs/am-pm/week/${weekNum}`);
+}
+
+/** AM/PM checklist rows for specific scholars (mentee view). Optionally week-scoped. */
+export async function getAmPmChecklistByUids(uids: string[], weekNum?: number) {
+  return backendPost<AmPmChecklistRow[]>("/api/form-logs/am-pm/by-uids", { uids, weekNum });
+}
 
 export async function getMcfFormLogsForWeek(weekNum: number) { return backendGet<McfFormLogRow[]>(`/api/form-logs/mcf/week/${weekNum}`); }
 export async function getMcfFormLogsByUid(uid: string) { return backendGet<McfFormLogRow[]>(`/api/form-logs/mcf/uid/${encodeURIComponent(uid)}`); }

@@ -46,6 +46,10 @@ import {
   getMcfFormLogById,
   getWplFormLogById,
 } from "../services/form-log.service.js";
+import {
+  getAmPmChecklistByUids,
+  getAmPmChecklistForWeek,
+} from "../services/am-pm.service.js";
 import { getTutorReportLogsByUids } from "../services/tutor-report-log.service.js";
 import { getDailyActivityByUids } from "../services/daily-scholar-activity.service.js";
 import { fetchTeamLeaders } from "../services/user.service.js";
@@ -274,6 +278,31 @@ export async function whafByUids(req: AuthenticatedRequest, res: Response) {
     res.json({ data });
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : "Failed to fetch WHAF logs" });
+  }
+}
+
+// GET /api/form-logs/am-pm/week/:weekNum
+export async function amPmForWeek(req: AuthenticatedRequest, res: Response) {
+  try {
+    const weekNum = parseWeekNum(req.params.weekNum);
+    if (!weekNum) { res.status(400).json({ error: "Invalid weekNum parameter" }); return; }
+    const data = await getAmPmChecklistForWeek(weekNum);
+    res.json({ data });
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : "Failed to fetch AM/PM checklist logs" });
+  }
+}
+
+// POST /api/form-logs/am-pm/by-uids
+export async function amPmByUids(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { uids, weekNum } = req.body as { uids?: string[]; weekNum?: number };
+    if (!uids?.length) { res.json({ data: [] }); return; }
+    const week = typeof weekNum === "number" && weekNum >= 1 ? weekNum : undefined;
+    const data = await getAmPmChecklistByUids(uids, week);
+    res.json({ data });
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : "Failed to fetch AM/PM checklist logs" });
   }
 }
 

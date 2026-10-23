@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "npx --prefix ../backend vitest run --environment node time.test.ts"
+    "test": "npx --prefix ../backend vitest run --environment node"
   },
   "devDependencies": {
     "typescript": "^5.9.3"

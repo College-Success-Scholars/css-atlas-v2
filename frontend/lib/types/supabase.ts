@@ -58,6 +58,7 @@ export type ActivityRow = {
 
 import { WahfFormLogRow, McfFormLogRow, WplFormLogRow } from "./form-log"
 import type { AttendanceForUids } from "./attendance-week"
+import type { AmPmChecklistRow } from "./am-pm-checklist"
 
 export type WahfRow = WahfFormLogRow
 export type McfRow = McfFormLogRow
@@ -122,6 +123,8 @@ export interface MenteeMonitoringClientProps {
   attendance: AttendanceForUids
   wahf: WahfRow[]
   tutoring: TutoringRow[]
+  /** Front Desk AM/PM checklist rows for every mentee in the selected week. */
+  amPm: AmPmChecklistRow[]
   /** Campus week from `dateToCampusWeek`; null before Fall start. */
   currentCampusWeek: number | null
   /** Selected campus week (URL `week`); same calendar as Weekly Memo. */
