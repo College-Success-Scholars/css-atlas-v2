@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react"
 import { format } from "date-fns"
-import { ArrowUpRight } from "lucide-react"
+import { ArrowUpRight, ExternalLink, Eye } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -48,6 +48,7 @@ import {
 
 const INITIAL_HISTORY_WEEKS = 2
 const HISTORY_WEEKS_INCREMENT = 2
+const WORKDAY_URL = "https://www.myworkday.com/umd/login-saml2.htmld"
 
 const FORM_TYPES: FormType[] = ["WAHF", "WPL", "MCF"]
 
@@ -116,7 +117,7 @@ export function PersonalClient({ profile, wahf, mcf, wpl, mentees, currentCampus
   const firstName = profile.first_name ?? "there"
 
   return (
-    <div className="space-y-8 max-w-2xl mx-auto">
+    <div className="space-y-8 max-w-3xl mx-auto">
       <div>
         <p className="text-sm text-muted-foreground">
           {today}
@@ -143,6 +144,9 @@ export function PersonalClient({ profile, wahf, mcf, wpl, mentees, currentCampus
                 onView={() => openFormDialog(currentCampusWeek, fs.formType)}
               />
             ))}
+          </div>
+          <div className="mt-4">
+            <WorkdayShortcut />
           </div>
         </section>
 
@@ -207,6 +211,35 @@ export function PersonalClient({ profile, wahf, mcf, wpl, mentees, currentCampus
 // This Week's Form Card
 // ---------------------------------------------------------------------------
 
+function WorkdayShortcut({ inDialog = false }: { inDialog?: boolean }) {
+  return (
+    <div className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between ${inDialog ? "" : "rounded-lg border bg-muted/30 p-4"}`}>
+      <div className="min-w-0 space-y-1">
+        <p className="text-sm font-medium">Enter your hours in Workday</p>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Search for &quot;Enter My Time&quot; in Workday to enter your hours. Opens in a separate window.
+        </p>
+      </div>
+      <Button variant="outline" size="sm" className="shrink-0 cursor-pointer" asChild>
+        <a
+          href={WORKDAY_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(event) => {
+            if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return
+            event.preventDefault()
+            window.open(WORKDAY_URL, "_blank", "popup=yes,width=1100,height=800,noopener,noreferrer")
+          }}
+        >
+          <ExternalLink className="size-3.5" aria-hidden="true" />
+          Open Workday
+          <span className="sr-only"> (opens in a separate window)</span>
+        </a>
+      </Button>
+    </div>
+  )
+}
+
 function ThisWeekFormCard({
   formStatus,
   onView,
@@ -214,12 +247,16 @@ function ThisWeekFormCard({
   formStatus: FormStatusResult
   onView: () => void
 }) {
-  const { formType, status, submittedAt, daysOverdue, hoursLeft, submission } = formStatus
+  const { formType, status, submittedAt, daysOverdue, hoursLeft, daysLeft, submission } = formStatus
   const isMcf = formType === "MCF"
   const progress = isMcf
     ? mcfProgressLabel(formStatus.completedCount, formStatus.requiredCount)
     : null
-  const showView = isMcf ? canBrowseMcf(formStatus) : status === "done" && Boolean(submission)
+  const showView = isMcf
+    ? formStatus.completedCount > 0 && canBrowseMcf(formStatus)
+    : status === "done" && Boolean(submission)
+  const showSubmit = status === "pending" || status === "overdue" || status === "incomplete"
+  const actionClassName = "h-10 w-full min-w-0 cursor-pointer rounded-none border-0 px-2 shadow-none"
 
   const borderClass =
     status === "done"
@@ -231,10 +268,10 @@ function ThisWeekFormCard({
           : ""
 
   return (
-    <Card className={`gap-0 py-0 ${borderClass}`}>
-      <CardContent className="p-4 space-y-3">
-        <div className="flex items-start justify-between">
-          <div>
+    <Card className={`gap-0 overflow-hidden py-0 ${borderClass}`}>
+      <CardContent className="flex flex-1 flex-col gap-3 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
             <p className="font-semibold text-base">{formType}</p>
             <p className="text-xs text-muted-foreground">{FORM_DEADLINES[formType]}</p>
           </div>
@@ -243,52 +280,53 @@ function ThisWeekFormCard({
 
         <Separator />
 
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <p
-            className={`min-w-0 text-xs leading-snug ${
+            className={`min-w-0 flex-1 break-words text-sm leading-relaxed ${
               status === "overdue" ? "font-medium text-destructive" : "text-muted-foreground"
             }`}
           >
             {status === "overdue"
-              ? `${progress ? `${progress} · ` : ""}${daysOverdue} ${daysOverdue === 1 ? "day" : "days"} late`
+              ? `${daysOverdue} ${daysOverdue === 1 ? "day" : "days"} late`
               : status === "incomplete"
-                ? `${progress} submitted`
+                ? "Incomplete"
               : status === "pending"
-                ? `${progress ? `${progress} · ` : ""}${hoursLeft > 0 ? `${hoursLeft} hrs left` : "Due soon"}`
+                ? daysLeft > 0
+                  ? `${daysLeft} ${daysLeft === 1 ? "day" : "days"} left`
+                  : hoursLeft > 0 ? `${hoursLeft} ${hoursLeft === 1 ? "hour" : "hours"} left` : "Due soon"
                 : isMcf && formStatus.requiredCount <= 0
                   ? progress
                   : submittedAt
-                    ? `${progress ? `${progress} · ` : ""}Submitted ${formatSubmittedDateTime(submittedAt)}`
-                    : progress ?? ""}
+                    ? `Submitted ${formatSubmittedDateTime(submittedAt)}`
+                    : ""}
           </p>
-          <div className="flex shrink-0 items-center gap-2">
-            {showView ? (
-              <Button
-                size="sm"
-                variant="outline"
-                className="cursor-pointer"
-                onClick={() => onView()}
-              >
-                View <ArrowUpRight className="size-3.5" />
-              </Button>
-            ) : null}
-            {status === "overdue" || status === "incomplete" ? (
-              <Button size="sm" className="cursor-pointer" asChild>
-                <a href={FORM_URLS[formType]} target="_blank" rel="noopener noreferrer">
-                  Submit now <ArrowUpRight className="size-3.5" />
-                </a>
-              </Button>
-            ) : null}
-            {status === "pending" ? (
-              <Button size="sm" variant="outline" className="cursor-pointer" asChild>
-                <a href={FORM_URLS[formType]} target="_blank" rel="noopener noreferrer">
-                  Submit <ArrowUpRight className="size-3.5" />
-                </a>
-              </Button>
-            ) : null}
-          </div>
+          {isMcf && formStatus.requiredCount > 0 && (
+            <span className="ml-auto shrink-0 text-xs font-medium tabular-nums text-muted-foreground" aria-label={progress ?? undefined}>
+              {formStatus.completedCount}/{formStatus.requiredCount} mentees
+            </span>
+          )}
         </div>
       </CardContent>
+      {(showView || showSubmit) && (
+        <div className={`grid border-t ${showView && showSubmit ? "grid-cols-2 gap-px bg-border" : "grid-cols-1"}`}>
+          {showView ? (
+            <Button
+              variant="outline"
+              className={actionClassName}
+              onClick={() => onView()}
+            >
+              <Eye className="size-3.5" aria-hidden="true" /> View
+            </Button>
+          ) : null}
+          {showSubmit ? (
+            <Button variant={status === "pending" ? "outline" : "default"} className={actionClassName} asChild>
+              <a href={FORM_URLS[formType]} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="size-3.5" aria-hidden="true" /> Submit
+              </a>
+            </Button>
+          ) : null}
+        </div>
+      )}
     </Card>
   )
 }
@@ -325,31 +363,17 @@ function HistoryWeekBlock({
   )
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-medium">
-          Week {weekNum} &middot; {label}
+    <Card className="gap-0 overflow-hidden py-0" role="group" aria-labelledby={`history-week-${weekNum}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/40 px-4 py-3">
+        <h3 id={`history-week-${weekNum}`} className="text-sm font-semibold">
+          Week {weekNum}
         </h3>
-        <div className="flex gap-1.5">
-          {statuses.map((s) => (
-            <Badge
-              key={s.formType}
-              variant={
-                s.status === "missed" || s.status === "overdue" || (s.isLate && s.status === "done")
-                  ? "destructive"
-                  : s.status === "incomplete"
-                    ? "warning"
-                    : "secondary"
-              }
-              className="text-[10px] px-1.5 py-0"
-            >
-              {s.formType}
-            </Badge>
-          ))}
-        </div>
+        <p className="ml-auto text-sm font-medium text-muted-foreground">
+          {label.replace(/\s*[–-]\s*/g, " - ")}
+        </p>
       </div>
 
-      <Card className="gap-0 py-0 divide-y">
+      <div className="divide-y">
         {statuses.map((s) => (
           <HistoryFormRow
             key={s.formType}
@@ -357,8 +381,8 @@ function HistoryWeekBlock({
             onView={s.formType === "MCF" ? (canBrowseMcf(s) ? () => onView(s.formType) : undefined) : (s.submission ? () => onView(s.formType) : undefined)}
           />
         ))}
-      </Card>
-    </div>
+      </div>
+    </Card>
   )
 }
 
@@ -391,26 +415,28 @@ function HistoryFormRow({
   let description: string
   if (isMcf && formStatus.requiredCount <= 0) {
     description = progress ?? "No mentee assigned"
-  } else if (status === "done" && submittedAt) {
+  } else if (submittedAt) {
     const when = formatSubmittedDateTime(submittedAt)
-    const lateLabel = isLate ? `Submitted ${when} \u00b7 late` : `Submitted ${when} \u00b7 on time`
-    description = progress ? `${progress} \u00b7 ${lateLabel}` : lateLabel
-  } else if (isMcf && formStatus.completedCount > 0) {
-    description = `${progress} submitted`
+    description = `Submitted ${when}${isLate ? " \u00b7 late" : ""}`
   } else {
     description = "Not submitted"
   }
 
   return (
-    <div className="flex items-center justify-between px-4 py-3">
-      <div className="flex items-center gap-3">
+    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
         <span className={`size-2 rounded-full shrink-0 ${dotColor}`} />
-        <div>
-          <p className="text-sm font-medium">{formType}</p>
-          <p className="text-xs text-muted-foreground">{description}</p>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-baseline gap-x-2">
+            <p className="text-sm font-medium">{formType}</p>
+            {isMcf && formStatus.requiredCount > 0 && (
+              <span className="text-xs text-muted-foreground">{progress}</span>
+            )}
+          </div>
+          <p className="break-words text-xs leading-relaxed text-muted-foreground">{description}</p>
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 flex-wrap items-center gap-2">
         {status === "missed" || status === "incomplete" ? (
           <span className={`text-xs font-medium ${status === "incomplete" ? "text-warning" : "text-destructive"}`}>
             {status === "incomplete" || (isMcf && formStatus.completedCount > 0) ? "Incomplete" : "Missed"}
@@ -418,7 +444,7 @@ function HistoryFormRow({
         ) : null}
         {onView && (
           <Button size="sm" variant="outline" className="cursor-pointer" onClick={onView}>
-            View
+            <Eye className="size-3.5" aria-hidden="true" /> View
           </Button>
         )}
       </div>
@@ -613,7 +639,8 @@ function FormDetailDialogContent({
         />
       </div>
 
-      <div className="shrink-0 border-t px-6 py-4">
+      <div className="shrink-0 space-y-3 border-t px-6 py-4">
+        {activeTab === "WPL" && <WorkdayShortcut inDialog />}
         <p className="text-center text-xs text-muted-foreground">{footerStatus}</p>
       </div>
     </DialogContent>

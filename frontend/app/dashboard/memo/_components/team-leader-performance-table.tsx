@@ -28,7 +28,7 @@ const STATUS_SORT_ORDER: Record<FormStatus, number> = {
 }
 
 function renderStatus(status: FormStatus) {
-  return <Badge className={statusClassName[status]}>{status}</Badge>
+  return <Badge className={`w-24 justify-center ${statusClassName[status]}`}>{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
 }
 
 const requiresFollowUp = (row: TeamLeaderPerformanceRow) =>
@@ -51,14 +51,7 @@ const columns: DataTableColumn<TeamLeaderPerformanceRow>[] = [
     field: "mcf",
     sortable: true,
     getSortValue: (row) => STATUS_SORT_ORDER[row.mcf],
-    renderCell: (row) => (
-      <span className="inline-flex items-center gap-1.5">
-        {renderStatus(row.mcf)}
-        {row.hasNoMentee ? (
-          <span className="text-[11px] leading-none text-muted-foreground">no mentee</span>
-        ) : null}
-      </span>
-    ),
+    renderCell: (row) => row.hasNoMentee ? "-" : renderStatus(row.mcf),
   },
   {
     id: "wpl",
@@ -75,17 +68,6 @@ const columns: DataTableColumn<TeamLeaderPerformanceRow>[] = [
     sortable: true,
     getSortValue: (row) => STATUS_SORT_ORDER[row.wahf],
     renderCell: (row) => renderStatus(row.wahf),
-  },
-  {
-    id: "mentees-ok",
-    header: "Mentees OK",
-    field: "menteesOk",
-    sortable: true,
-    renderCell: (row) => (
-      <Badge className={row.menteesOk === "yes" ? statusClassName.submitted : statusClassName["check-mentees"]}>
-        {row.menteesOk === "yes" ? "yes" : "check mentees"}
-      </Badge>
-    ),
   },
 ]
 
