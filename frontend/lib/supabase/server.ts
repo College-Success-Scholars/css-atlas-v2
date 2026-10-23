@@ -116,11 +116,13 @@ export async function getCurrentUserWithProfile(): Promise<{
   if (!user?.email) return { user, profile: null };
 
   const supabase = await createClient();
-  const { data: profile } = await supabase.schema("public")
+  const { data: profile, error } = await supabase.schema("public")
     .from("profiles")
-    .select("*, user_roster(*)")
+    .select("*, user_roster!profiles_student_id_fkey(*)")
     .eq("id", user.id)
     .maybeSingle();
+  // A failed read must not look like "no profile" (would route to onboarding).
+  if (error) throw error;
 
   if (!profile) {
     return { user, profile: null };
