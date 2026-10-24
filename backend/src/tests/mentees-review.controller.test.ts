@@ -3,12 +3,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getMenteeReviewByMentorKey: vi.fn(),
+  getMenteeReviewByUid: vi.fn(),
   saveMeetingPreference: vi.fn(),
   getMenteeMcfPrefill: vi.fn(),
 }));
 
 vi.mock("../services/mentee-review-activity.service.js", () => ({
   getMenteeReviewByMentorKey: mocks.getMenteeReviewByMentorKey,
+  getMenteeReviewByUid: mocks.getMenteeReviewByUid,
 }));
 
 vi.mock("../services/mentee-meeting-preference.service.js", () => ({
@@ -21,6 +23,7 @@ vi.mock("../services/mentee-mcf-prefill.service.js", () => ({
 
 import { app } from "../app.js";
 import {
+  getDirectoryMenteeReview,
   getMenteeMcfPrefill,
   getMenteeReview,
   updateMenteeMeetingPreference,
@@ -94,6 +97,11 @@ describe("mentee review routes — auth gating", () => {
     const res = await request(app).get("/api/auth/mentees/1001/mcf-prefill");
     expect(res.status).toBe(401);
   });
+
+  it("GET /api/auth/mentees/:uid/directory-review requires auth", async () => {
+    const res = await request(app).get("/api/auth/mentees/1001/directory-review");
+    expect(res.status).toBe(401);
+  });
 });
 
 describe("getMenteeReview", () => {
@@ -159,6 +167,41 @@ describe("getMenteeReview", () => {
     const res = response();
     await invoke(getMenteeReview, fakeReq({ params: {} }), res);
     expect(res.statusCode).toBe(400);
+  });
+});
+
+describe("getDirectoryMenteeReview", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("returns any assigned mentee's review for a team leader directory view", async () => {
+    mocks.getMenteeReviewByUid.mockResolvedValue(reviewStub);
+    const res = response();
+    await invoke(getDirectoryMenteeReview, fakeReq({ params: { uid: "1001" }, query: { week: "3" } }), res);
+
+    expect(mocks.getMenteeReviewByUid).toHaveBeenCalledWith({
+      menteeUid: "1001",
+      selectedWeek: 3,
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ data: reviewStub });
+  });
+
+  it("rejects a future week with 400", async () => {
+    const res = response();
+    await invoke(
+      getDirectoryMenteeReview,
+      fakeReq({ params: { uid: "1001" }, query: { week: "999999" } }),
+      res,
+    );
+    expect(res.statusCode).toBe(400);
+    expect(mocks.getMenteeReviewByUid).not.toHaveBeenCalled();
+  });
+
+  it("returns a non-enumerating 404 when the scholar is not anyone's mentee", async () => {
+    mocks.getMenteeReviewByUid.mockResolvedValue(null);
+    const res = response();
+    await invoke(getDirectoryMenteeReview, fakeReq({ params: { uid: "nope" } }), res);
+    expect(res.statusCode).toBe(404);
   });
 });
 

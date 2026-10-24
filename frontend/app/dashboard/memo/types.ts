@@ -13,6 +13,8 @@ export type MemoScholarRow = {
   cohort: number | null
   /** Display name from mentor_mentee, or "Unassigned". */
   teamLeader: string
+  /** True when mentor_mentee has at least one row for this scholar. */
+  isMentee: boolean
   fdTotal: number
   ssTotal: number
   fdRequired: number | null
@@ -158,6 +160,8 @@ export type ScholarFollowUpIssue =
   | ScholarFollowUpWahfIssue
 
 export type ScholarFollowUpRow = {
+  scholarId?: string | null
+  isMentee?: boolean
   scholarName: string
   scholarYear: string
   teamLeader: string
@@ -184,6 +188,8 @@ export type RecognitionBoardSectionData = {
 }
 
 export type AttendanceDetailRow = {
+  scholarId?: string | null
+  isMentee?: boolean
   scholarName: string
   scholarYear: string
   completedMinutes: number
@@ -212,6 +218,8 @@ export type WahfCensusSummary = {
 
 export type TutoringLogRow = {
   id: number
+  scholarId?: string | null
+  isMentee?: boolean
   scholarName: string
   dayOfWeek: string
   tutorName: string

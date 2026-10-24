@@ -1,0 +1,50 @@
+/* Feature-local shadcn tokens; the dashboard and portaled controls keep their theme. */
+:global(html:not(.dark)) .surface {
+  --background: #f6f5f3;
+  --foreground: #1c1917;
+  --card: #ffffff;
+  --card-foreground: #1c1917;
+  --border: #e7e5e1;
+  --input: #d6d3ce;
+  --muted: #efeeeb;
+  --muted-foreground: #57534e;
+  --primary: #1d4ed8;
+  --primary-foreground: #ffffff;
+  --ring: #1d4ed8;
+  --success: #2f7a45;
+  --success-muted: #e3f1e6;
+  --success-muted-foreground: #1e6b33;
+  --warning: #c77a0a;
+  --warning-muted: #fcefd6;
+  --warning-muted-foreground: #7a4a00;
+  --destructive: #9f2219;
+  --info: #6b85c9;
+  --info-muted: #edf1fa;
+  --info-muted-foreground: #1e3a8a;
+}
+
+.surface {
+  min-width: 0;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.details {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.requirements {
+  flex: 999 1 620px;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
+  gap: 14px;
+}
+
+.grades {
+  flex: 1 1 300px;
+  min-width: 0;
+}

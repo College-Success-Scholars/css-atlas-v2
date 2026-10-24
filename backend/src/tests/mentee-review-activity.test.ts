@@ -244,7 +244,7 @@ describe("buildAttendanceEvidence", () => {
       ],
       logs: [],
       nonTerminalDates: [localDay(wed)],
-      targets: { front_desk: 5 },
+      targets: { front_desk: 300 },
       wahf: { available: true, dueAt: at(WEEK_1.endDate, "23:59"), submission: null },
       tutoring: { available: true, reports: [] },
     });
@@ -394,7 +394,7 @@ describe("composeMenteeReview", () => {
       mentee: { uid: "1001", fullName: "Test Scholar", email: "scholar@umd.edu" },
       calendar,
       selectedWeek: 1,
-      targets: { front_desk: 5, study_session: null },
+      targets: { front_desk: 300, study_session: null },
       attendance,
       wahf: { ok: true, data: [], loadedAt: asOf.toISOString() },
       tutoring: { ok: true, data: [], loadedAt: asOf.toISOString() },

@@ -44,6 +44,7 @@ import type {
   McfPrefill,
   MeetingPreferenceInput,
   MeetingPreferenceOutput,
+  MenteeOption,
   MenteeReview,
 } from "@/lib/types/mentee-review";
 import type {
@@ -88,6 +89,23 @@ export async function fetchMenteesWithCompliance(
   return backendGet<MenteeWithCompliance[]>(`/api/auth/mentees/compliance?${params}`);
 }
 
+type MenteeApiRow = {
+  scholar_uid: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+};
+
+/** GET /api/auth/mentees — the caller's assigned mentees, normalized for the switcher. */
+export async function fetchMentees(): Promise<MenteeOption[]> {
+  const rows = await backendGet<MenteeApiRow[]>("/api/auth/mentees");
+  return rows.flatMap((row) => {
+    if (!row.scholar_uid) return [];
+    const fullName = [row.first_name, row.last_name].filter(Boolean).join(" ").trim();
+    return [{ uid: row.scholar_uid, fullName: fullName || "Unknown", email: row.email ?? null }];
+  });
+}
+
 /** GET /api/auth/mentees/:uid/review — authorized review (own meeting preference included). */
 export async function fetchMenteeReview(uid: string, week?: number | null): Promise<MenteeReview> {
   const params = new URLSearchParams();
@@ -95,6 +113,22 @@ export async function fetchMenteeReview(uid: string, week?: number | null): Prom
   const query = params.toString();
   return backendGet<MenteeReview>(
     `/api/auth/mentees/${encodeURIComponent(uid)}/review${query ? `?${query}` : ""}`
+  );
+}
+
+/**
+ * GET /api/auth/mentees/:uid/directory-review — team-leader+ review for any
+ * scholar with a mentor assignment (directory detail page).
+ */
+export async function fetchDirectoryMenteeReview(
+  uid: string,
+  week?: number | null,
+): Promise<MenteeReview> {
+  const params = new URLSearchParams();
+  if (week != null) params.set("week", String(week));
+  const query = params.toString();
+  return backendGet<MenteeReview>(
+    `/api/auth/mentees/${encodeURIComponent(uid)}/directory-review${query ? `?${query}` : ""}`,
   );
 }
 

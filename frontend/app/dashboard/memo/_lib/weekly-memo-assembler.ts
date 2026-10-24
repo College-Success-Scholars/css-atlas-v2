@@ -60,6 +60,8 @@ const buildTeamLeaderRows = (data: MemoLivePageData): TeamLeaderPerformanceRow[]
 
 const mapTutoringLogRow = (report: MemoTutorReportRow): TutoringLogRow => ({
   id: report.id,
+  scholarId: report.scholarId,
+  isMentee: report.isMentee ?? false,
   scholarName: report.scholarName,
   dayOfWeek: report.dayOfWeek,
   tutorName: report.tutorName,
@@ -215,6 +217,8 @@ export const assembleWeeklyMemo = (data: MemoLivePageData): WeeklyMemoViewData =
         const completionPct =
           requiredMinutes > 0 ? Math.round((completedMinutes / requiredMinutes) * 100) : 0
         return {
+          scholarId: scholar.scholarId,
+          isMentee: scholar.isMentee,
           scholarName: scholar.scholarName,
           scholarYear: scholarYearLabel(scholar.cohort) ?? "—",
           completedMinutes,

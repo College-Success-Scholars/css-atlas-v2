@@ -90,8 +90,14 @@ export function menteeTeamLeaderRowsFromAssignments(
   });
 }
 
-/** Campus-wide mentee → TL names from mentor_mentee. Empty when RLS hides all rows. */
-export async function fetchMenteeTeamLeaderNames(): Promise<Map<string, string>> {
+export type MenteeTeamLeaderIndex = {
+  labelByMenteeUid: Map<string, string>;
+  /** Every UID with a mentor_mentee row, including mentees without a resolvable team-leader name. */
+  menteeUids: Set<string>;
+};
+
+/** Campus-wide mentee → TL names and UID set from mentor_mentee. Empty when RLS hides all rows. */
+export async function fetchMenteeTeamLeaderIndex(): Promise<MenteeTeamLeaderIndex> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("mentor_mentee")
@@ -99,6 +105,11 @@ export async function fetchMenteeTeamLeaderNames(): Promise<Map<string, string>>
   if (error) throw error;
 
   const assignments = data ?? [];
+  const menteeUids = new Set(
+    assignments
+      .map((row) => row.mentee_uid?.trim())
+      .filter((uid): uid is string => Boolean(uid)),
+  );
   const studentIds = [
     ...new Set(
       assignments
@@ -120,9 +131,26 @@ export async function fetchMenteeTeamLeaderNames(): Promise<Map<string, string>>
     }
   }
 
-  return teamLeaderLabelByMenteeUid(
-    menteeTeamLeaderRowsFromAssignments(assignments, rosterNameByUid),
-  );
+  return {
+    labelByMenteeUid: teamLeaderLabelByMenteeUid(
+      menteeTeamLeaderRowsFromAssignments(assignments, rosterNameByUid),
+    ),
+    menteeUids,
+  };
+}
+
+const MENTEE_SELECT = "mentee_uid, user_roster(first_name, last_name, email, fd_required, ss_required)" as const;
+
+function mapMenteeRow(row: Record<string, unknown>): MenteeRow {
+  const roster = row.user_roster as Record<string, unknown> | null;
+  return {
+    scholar_uid: row.mentee_uid as string | null,
+    first_name: (roster?.first_name as string) ?? null,
+    last_name: (roster?.last_name as string) ?? null,
+    email: (roster?.email as string) ?? null,
+    fd_required: roster?.fd_required != null ? Number(roster.fd_required) : null,
+    ss_required: roster?.ss_required != null ? Number(roster.ss_required) : null,
+  };
 }
 
 export async function getMenteesByMentorKey(mentorKey: string): Promise<MenteeRow[]> {
@@ -130,23 +158,31 @@ export async function getMenteesByMentorKey(mentorKey: string): Promise<MenteeRo
 
   const { data, error } = await supabase
     .from("mentor_mentee")
-    .select("mentee_uid, user_roster(first_name, last_name, email, fd_required, ss_required)")
+    .select(MENTEE_SELECT)
     .eq("mentor_id", mentorKey);
 
   if (error) throw error;
   if (!data) return [];
 
-  return data.map((row: Record<string, unknown>) => {
-    const roster = row.user_roster as Record<string, unknown> | null;
-    return {
-      scholar_uid: row.mentee_uid as string | null,
-      first_name: (roster?.first_name as string) ?? null,
-      last_name: (roster?.last_name as string) ?? null,
-      email: (roster?.email as string) ?? null,
-      fd_required: roster?.fd_required != null ? Number(roster.fd_required) : null,
-      ss_required: roster?.ss_required != null ? Number(roster.ss_required) : null,
-    };
-  });
+  return data.map((row) => mapMenteeRow(row as Record<string, unknown>));
+}
+
+/**
+ * One scholar with at least one `mentor_mentee` assignment, even when the
+ * caller is not their mentor. RLS limits reads to team_leader+, and null means
+ * the scholar is not anyone's mentee.
+ */
+export async function getMenteeByUid(menteeUid: string): Promise<MenteeRow | null> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("mentor_mentee")
+    .select(MENTEE_SELECT)
+    .eq("mentee_uid", menteeUid)
+    .limit(1);
+
+  if (error) throw error;
+  const row = data?.[0];
+  return row ? mapMenteeRow(row as Record<string, unknown>) : null;
 }
 
 export async function getMenteesWithComplianceByMentorKey(

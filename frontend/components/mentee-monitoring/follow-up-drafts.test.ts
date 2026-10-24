@@ -18,6 +18,8 @@ function shift(status: ShiftStatus, kind: ShiftSessionKind): ShiftEvidence {
     scheduledStart: "2026-09-08T19:00:00.000Z",
     scheduledEnd: "2026-09-08T21:00:00.000Z",
     scheduledMinutes: 120,
+    loggedStart: status === "no_show" ? null : "2026-09-08T19:00:00.000Z",
+    loggedEnd: status === "no_show" ? null : "2026-09-08T21:00:00.000Z",
     overlapMinutes: status === "no_show" ? 0 : 120,
     status,
   };

@@ -21,7 +21,7 @@
  */
 import { campusWeekToDateRange, dateToCampusWeek, freshmanCohortYear, getWeekFetchEnd, sophomoreCohortYear } from "./time.service.js";
 import { fetchTeamLeaders, isEligibleScholar, isTeamLeaderForPerformance } from "./user.service.js";
-import { fetchMenteeTeamLeaderNames, teamLeaderLabelForScholar } from "./mentee.service.js";
+import { fetchMenteeTeamLeaderIndex, teamLeaderLabelForScholar } from "./mentee.service.js";
 import {
   getCampusWeekAttendance,
 } from "./attendance-week.service.js";
@@ -76,6 +76,8 @@ export function scholarWahfSubmittedAt(
 
 export type MemoGradeEntry = {
   scholarName: string;
+  scholarId: string | null;
+  isMentee: boolean;
   course: string;
   assessment: string;
   grade: string;
@@ -88,10 +90,15 @@ export type MemoGradeBreakdown = {
   low: MemoGradeEntry[];
 };
 
-function parseGradeEntriesFromWahf(row: FormLogRowWithLate<WahfFormLogRow>): MemoGradeEntry[] {
+function parseGradeEntriesFromWahf(
+  row: FormLogRowWithLate<WahfFormLogRow>,
+  menteeUids: ReadonlySet<string> = new Set(),
+): MemoGradeEntry[] {
   const grades = row.assignment_grades;
   if (!grades || typeof grades !== "object") return [];
   const scholarName = row.scholar_name ?? row.scholar_uid ?? "Unknown";
+  const scholarId = row.scholar_uid || null;
+  const isMentee = scholarId != null && menteeUids.has(scholarId);
   const entries: MemoGradeEntry[] = [];
   for (const [course, assessments] of Object.entries(grades)) {
     if (!assessments || typeof assessments !== "object") continue;
@@ -99,7 +106,7 @@ function parseGradeEntriesFromWahf(row: FormLogRowWithLate<WahfFormLogRow>): Mem
       const match = String(gradeStr).match(/(\d+(?:\.\d+)?)/);
       if (!match) continue;
       const percent = parseFloat(match[1]!);
-      entries.push({ scholarName, course, assessment, grade: String(gradeStr), percent });
+      entries.push({ scholarName, scholarId, isMentee, course, assessment, grade: String(gradeStr), percent });
     }
   }
   return entries;
@@ -113,6 +120,7 @@ function parseGradeEntriesFromWahf(row: FormLogRowWithLate<WahfFormLogRow>): Mem
 export function buildGradeBreakdown(
   wahfRows: FormLogRowWithLate<WahfFormLogRow>[],
   submitterIds?: Set<string>,
+  menteeUids: ReadonlySet<string> = new Set(),
 ): MemoGradeBreakdown {
   const breakdown: MemoGradeBreakdown = { high: [], mid: [], low: [] };
   const ids = submitterIds ?? new Set(
@@ -121,7 +129,7 @@ export function buildGradeBreakdown(
   for (const scholarId of ids) {
     const latest = latestScholarWahf(scholarId, wahfRows);
     if (!latest) continue;
-    for (const entry of parseGradeEntriesFromWahf(latest)) {
+    for (const entry of parseGradeEntriesFromWahf(latest, menteeUids)) {
       if (entry.percent >= 90) breakdown.high.push(entry);
       else if (entry.percent >= 70) breakdown.mid.push(entry);
       else breakdown.low.push(entry);
@@ -151,6 +159,8 @@ export type MemoScholarAttendanceRow = {
   scholarName: string;
   cohort: number | null;
   teamLeader: string;
+  /** True when mentor_mentee has at least one row for this scholar. */
+  isMentee: boolean;
   fdTotal: number;
   ssTotal: number;
   fdRequired: number | null;
@@ -210,6 +220,7 @@ export function buildMemoScholarAttendanceRows(
   wahfRows: FormLogRowWithLate<WahfFormLogRow>[] = [],
   complianceByScholarId: Map<string, ScholarShiftCompliance> = new Map(),
   teamLeaderByMenteeUid: Map<string, string> = new Map(),
+  menteeUids: ReadonlySet<string> = new Set(),
 ): {
   scholars: MemoScholarAttendanceRow[];
   cohort2024: { total: number; fdCompleteCount: number; ssCompleteCount: number };
@@ -239,6 +250,7 @@ export function buildMemoScholarAttendanceRows(
       scholarName: name,
       cohort: u.cohort ?? null,
       teamLeader: teamLeaderLabelForScholar(u.uid, teamLeaderByMenteeUid),
+      isMentee: menteeUids.has(u.uid),
       fdTotal: fd.loggedMin,
       ssTotal: study.loggedMin,
       fdRequired: fdReq,
@@ -311,7 +323,7 @@ export async function getMemoPageData(weekNum: number) {
     trafficComparableLastWeekCount,
     trafficSessions,
     teamLeadersRaw,
-    menteeTeamLeaders,
+    menteeTeamLeaderIndex,
     mcfRowsWithLate,
     whafRowsWithLate,
     wplRowsWithLate,
@@ -325,13 +337,14 @@ export async function getMemoPageData(weekNum: number) {
       : getTrafficEntryCountForWeekThrough(weekNum - 1, lastWeekThrough),
     getTrafficSessionsForWeek(weekNum),
     fetchTeamLeaders(),
-    fetchMenteeTeamLeaderNames(),
+    fetchMenteeTeamLeaderIndex(),
     getMcfFormLogsForWeekWithLate(weekNum),
     getWhafFormLogsForWeekWithLate(weekNum),
     getWplFormLogsForWeekWithLate(weekNum),
     getTutorReportLogsForWeek(weekNum),
   ]);
 
+  const { labelByMenteeUid: teamLeaderByMenteeUid, menteeUids } = menteeTeamLeaderIndex;
   const allUsers = attendance.users;
   const enrolledScholars = allUsers.filter(isEligibleScholar);
   const completedStudy = attendance.ssSessions;
@@ -343,7 +356,7 @@ export async function getMemoPageData(weekNum: number) {
     )
     : new Map<string, ScholarShiftCompliance>();
 
-  const gradeBreakdown = buildGradeBreakdown(whafRowsWithLate);
+  const gradeBreakdown = buildGradeBreakdown(whafRowsWithLate, undefined, menteeUids);
 
   // WAHF census — enrolled eligible scholars only (`user_roster.status` = enrolled)
   const whafSubmitterUids = new Set(
@@ -396,7 +409,8 @@ export async function getMemoPageData(weekNum: number) {
     attendance.ssByUid,
     whafRowsWithLate,
     complianceByScholarId,
-    menteeTeamLeaders,
+    teamLeaderByMenteeUid,
+    menteeUids,
   );
 
   const pieData = {
@@ -443,6 +457,7 @@ export async function getMemoPageData(weekNum: number) {
       id: log.id,
       scholarId: log.scholar_uid,
       scholarName: tutorReportScholarName(log.scholar_uid, userNameByUid),
+      isMentee: log.scholar_uid != null && menteeUids.has(log.scholar_uid),
       tutorName: log.tutor_name,
       courses: log.courses,
       startTime: log.start_time,

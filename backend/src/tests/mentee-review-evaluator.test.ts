@@ -142,13 +142,14 @@ describe("hour bands and display", () => {
     const start = at(WEEK_1.startDate, "13:00");
     const summary = evaluateWeek(
       baseInput({
-        targets: { front_desk: 5 },
+        targets: { front_desk: 300 },
         logs: [logMs("l1", "front_desk", start, 270)], // 4.5h = 90% of 5h
       })
     );
     const fd = summary.hours[0]!;
     expect(fd.percent).toBeCloseTo(90, 10);
     expect(fd.band).toBe("green");
+    expect(fd.targetMinutes).toBe(300);
     expect(fd.displayHours).toBe(4.5);
     expect(fd.pending).toBe(false);
     expect(fd.overageMinutes).toBe(0);
@@ -165,7 +166,7 @@ describe("hour bands and display", () => {
     const start = at(WEEK_1.startDate, "13:00");
     const summary = evaluateWeek(
       baseInput({
-        targets: { front_desk: 5 },
+        targets: { front_desk: 300 },
         logs: [logMs("l1", "front_desk", start, 269.9)], // 89.97% → orange, displays 4.5
       })
     );
@@ -177,13 +178,13 @@ describe("hour bands and display", () => {
   it("reports overage as whole minutes only above target", () => {
     const start = at(WEEK_1.startDate, "13:00");
     const above = evaluateWeek(
-      baseInput({ targets: { front_desk: 5 }, logs: [logMs("l1", "front_desk", start, 336)] }) // 5.6h
+      baseInput({ targets: { front_desk: 300 }, logs: [logMs("l1", "front_desk", start, 336)] }) // 5.6h
     );
     expect(above.hours[0]!.displayHours).toBe(5.6);
     expect(above.hours[0]!.overageMinutes).toBe(36);
 
     const below = evaluateWeek(
-      baseInput({ targets: { front_desk: 5 }, logs: [logMs("l1", "front_desk", start, 270)] })
+      baseInput({ targets: { front_desk: 300 }, logs: [logMs("l1", "front_desk", start, 270)] })
     );
     expect(below.hours[0]!.overageMinutes).toBe(0);
   });
@@ -205,7 +206,7 @@ describe("hour bands and display", () => {
   it("marks an unfinished current week below 90% as pending and green weeks as not pending", () => {
     const start = at(WEEK_1.startDate, "13:00");
     const pending = evaluateWeek(
-      baseInput({ targets: { front_desk: 5 }, logs: [logMs("l1", "front_desk", start, 240)] }) // 80% → orange
+      baseInput({ targets: { front_desk: 300 }, logs: [logMs("l1", "front_desk", start, 240)] }) // 80% → orange
     );
     expect(pending.hours[0]!.pending).toBe(true);
     expect(pending.hours[0]!.band).toBe("orange");
@@ -215,7 +216,7 @@ describe("hour bands and display", () => {
     const summary = evaluateWeek(
       baseInput({
         asOf: addEasternCalendarDays(WEEK_1.endDate, 3),
-        targets: { front_desk: 5 },
+        targets: { front_desk: 300 },
         logs: [logMs("l1", "front_desk", at(WEEK_1.startDate, "13:00"), 120)],
       })
     );
@@ -285,7 +286,7 @@ describe("scheduled shift classification", () => {
     const summary = evaluateWeek(
       baseInput({
         asOf: at(day, "12:00"),
-        targets: { front_desk: 5 },
+        targets: { front_desk: 300 },
         shifts: [shift("s1", "front_desk", day, "10:00", "11:00")],
         logs: [logMs("l1", "front_desk", at(day, "13:00"), 300)], // 5h off-shift
       })
@@ -301,7 +302,7 @@ describe("scheduled shift classification", () => {
     const day = WEEK_1.startDate;
     const summary = evaluateWeek(
       baseInput({
-        targets: { front_desk: 2 },
+        targets: { front_desk: 120 },
         shifts: [shift("s1", "front_desk", day, "10:00", "12:00")],
         logs: [
           logMs("l1", "front_desk", at(day, "10:00"), 90),
@@ -316,7 +317,7 @@ describe("scheduled shift classification", () => {
   });
 
   it("reports no assignments neutrally and treats missing activity as absence of activity", () => {
-    const summary = evaluateWeek(baseInput({ targets: { front_desk: 5 } }));
+    const summary = evaluateWeek(baseInput({ targets: { front_desk: 300 } }));
     const fd = summary.hours[0]!;
     expect(fd.assignmentAvailable).toBe(false);
     expect(fd.hasActivity).toBe(false);
@@ -494,7 +495,7 @@ describe("week bounds and phases", () => {
         weekStart: WEEK_9.startDate,
         weekEnd: WEEK_9.endDate,
         asOf: at(sunday, "23:00"),
-        targets: { front_desk: 5 },
+        targets: { front_desk: 300 },
         logs: [logMs("l1", "front_desk", at(sunday, "20:00"), 60)],
       })
     );
@@ -508,7 +509,7 @@ describe("week bounds and phases", () => {
       baseInput({
         asOf: at(mondayAfter, "09:00"),
         logs: [logMs("l1", "front_desk", at(mondayAfter, "08:00"), 60)],
-        targets: { front_desk: 5 },
+        targets: { front_desk: 300 },
       })
     );
     expect(summary.phase).toBe("past");

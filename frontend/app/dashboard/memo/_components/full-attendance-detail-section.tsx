@@ -6,6 +6,7 @@ import { CompletionMeter } from "@/components/data-display/completion-meter"
 import { DataTable, type DataTableColumn } from "@/components/data-display/data-table"
 import { cn } from "@/lib/utils"
 import { MemoAccordionSection } from "./memo-accordion-section"
+import { ScholarNameLink } from "./scholar-name-link"
 import type { AttendanceDetailRow, FullAttendanceDetailSectionData } from "../types"
 
 type FullAttendanceDetailSectionProps = {
@@ -19,6 +20,11 @@ const columns: DataTableColumn<AttendanceDetailRow>[] = [
     field: "scholarName",
     cellClassName: "font-medium",
     sortable: true,
+    renderCell: (row) => (
+      <ScholarNameLink scholarId={row.scholarId} isMentee={row.isMentee}>
+        {row.scholarName}
+      </ScholarNameLink>
+    ),
   },
   {
     id: "class",

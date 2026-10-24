@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { useRouter } from "next/navigation";
 import { ChevronRight, Filter, Search } from "lucide-react";
 import { backendGet } from "@/lib/client/api-client";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +10,14 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { activeFilterCount, directoryPath, initialDirectoryState, type DirectoryFilters, type DirectoryState } from "./directory-state";
+import {
+  activeFilterCount,
+  directoryMenteePath,
+  directoryPath,
+  initialDirectoryState,
+  type DirectoryFilters,
+  type DirectoryState,
+} from "./directory-state";
 import { directoryTeamFilterOptions, directoryTeamPresentationFor } from "./directory-team-presentation";
 
 const PAGE_SIZE = 10;
@@ -24,6 +32,8 @@ type DirectoryPerson = {
   phoneNumber: string | null;
   teams: string[];
   programRole: string | null;
+  /** Team-leader viewers see this; RLS returns false for everyone else. */
+  isMentee: boolean;
 };
 
 type Pagination = {
@@ -356,6 +366,7 @@ function useGroupCursorPagination() {
 }
 
 export function DirectoryDashboard() {
+  const router = useRouter();
   const [state, setState] = useState<DirectoryState>(initialDirectoryState);
   const [searchInput, setSearchInput] = useState(initialDirectoryState.search);
   const debouncedSearch = useDebouncedValue(searchInput, 200);
@@ -425,6 +436,16 @@ export function DirectoryDashboard() {
   const pagination = response?.view === "flat" ? response.pagination : null;
   const filterCount = activeFilterCount(filters);
   const toggleGroup = (team: string) => setExpandedGroup((current) => (current === team ? null : team));
+
+  const openPerson = (person: DirectoryPerson) => {
+    const menteePath = directoryMenteePath(person.uid, person.isMentee);
+    if (menteePath) {
+      router.push(menteePath);
+      return;
+    }
+    // Non-mentees keep the existing profile placeholder modal.
+    setSelectedPerson(person);
+  };
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 pb-8">
@@ -504,7 +525,7 @@ export function DirectoryDashboard() {
               <div className={`grid items-center gap-4 border-b px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground ${DIRECTORY_GRID_COLS}`}>
                 <span>Name</span><span>Cohort</span><span>Contact</span><span>Team &amp; role</span><span />
               </div>
-              {response.members.map((person) => <DirectoryRow key={person.id} person={person} onOpen={setSelectedPerson} />)}
+              {response.members.map((person) => <DirectoryRow key={person.id} person={person} onOpen={openPerson} />)}
               {!response.members.length && <p className="py-8 text-center text-muted-foreground">No matching people.</p>}
             </div>
           </div>
@@ -545,7 +566,7 @@ export function DirectoryDashboard() {
                   <div className="border-t">
                     <div className="overflow-x-auto">
                       <div className="min-w-[46rem]">
-                        {group.members.map((person) => <DirectoryRow key={person.id} person={person} onOpen={setSelectedPerson} />)}
+                        {group.members.map((person) => <DirectoryRow key={person.id} person={person} onOpen={openPerson} />)}
                         {!group.members.length && <p className="py-6 text-center text-muted-foreground">No matching people.</p>}
                       </div>
                     </div>

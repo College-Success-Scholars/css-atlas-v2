@@ -34,6 +34,9 @@ export interface ShiftEvidence {
   scheduledStart: string;
   scheduledEnd: string;
   scheduledMinutes: number;
+  /** Matched logged interval clipped to the shift; null when nothing overlapped. */
+  loggedStart: string | null;
+  loggedEnd: string | null;
   overlapMinutes: number;
   status: ShiftStatus;
 }
@@ -178,4 +181,24 @@ export interface MenteeReview {
   selectedWeekReview: SectionResult<WeekReviewSummary | null>;
   latestGrades: SectionResult<LatestGradesSummary>;
   meetingPreference: SectionResult<MeetingPreferenceOutput | null>;
+}
+
+/** Switcher option from GET /api/auth/mentees (no compliance data). */
+export interface MenteeOption {
+  uid: string;
+  fullName: string;
+  email: string | null;
+}
+
+export interface MenteeReviewClientProps {
+  mentees: MenteeOption[];
+  /** Null when the caller has no assigned mentees. */
+  review: MenteeReview | null;
+  /** Selected campus week from the URL `week` param. */
+  selectedWeek: number | null;
+  /**
+   * Directory detail view path. When present, hides the mentee switcher and
+   * MCF bar and keeps week navigation on that path.
+   */
+  detailPath?: string;
 }

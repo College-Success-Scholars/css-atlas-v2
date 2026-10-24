@@ -21,7 +21,7 @@
  * - Attendance row reading (mentee-review-attendance.adapter)
  * - HTTP request/response logic
  */
-import { getMenteesByMentorKey } from "./mentee.service.js";
+import { getMenteeByUid, getMenteesByMentorKey } from "./mentee.service.js";
 import { getWhafDeadlineForWeek, getWhafFormLogsByUid } from "./form-log.service.js";
 import {
   filterTutorReportsForCampusWeek,
@@ -40,6 +40,7 @@ import {
 } from "./mentee-review-evaluator.js";
 import { campusWeekToDateRange, dateToCampusWeek, parseEasternDate } from "./time.service.js";
 import type { WahfFormLogRow } from "../models/form-log.model.js";
+import type { MenteeRow } from "../models/mentee.model.js";
 import type { TutorReportLogRow } from "../models/tutor-report-log.model.js";
 import type { MeetingPreferenceOutput } from "../models/meeting-preference.model.js";
 import type {
@@ -174,6 +175,7 @@ export interface ComposeMenteeReviewInput {
   mentee: MenteeReviewIdentity;
   calendar: SemesterCalendar;
   selectedWeek: number | null;
+  /** Required minutes per session kind, straight from the roster. */
   targets: Partial<Record<ShiftSessionKind, number | null>>;
   attendance: SectionResult<AttendanceEvidence>;
   wahf: SectionResult<WahfFormLogRow[]>;
@@ -269,23 +271,15 @@ async function toSection<T>(label: string, run: () => Promise<T>): Promise<Secti
   }
 }
 
-/**
- * Authorized review for one mentee. Returns null when the mentee is not among
- * the caller's assignments (RLS-scoped roster) so the controller can 404 without
- * enumerating records.
- */
-export async function getMenteeReviewByMentorKey(params: {
-  mentorKey: string;
+/** Shared review composition once the mentee and viewer-specific preference are known. */
+async function composeReviewForMentee(params: {
+  mentee: MenteeRow;
   menteeUid: string;
   selectedWeek: number | null;
-  asOf?: Date;
-}): Promise<MenteeReview | null> {
-  const { mentorKey, menteeUid } = params;
-  const asOf = params.asOf ?? new Date();
-
-  const mentees = await getMenteesByMentorKey(mentorKey);
-  const mentee = mentees.find((m) => m.scholar_uid === menteeUid);
-  if (!mentee) return null;
+  asOf: Date;
+  meetingPreference: SectionResult<MeetingPreferenceOutput | null>;
+}): Promise<MenteeReview> {
+  const { mentee, menteeUid, asOf, meetingPreference } = params;
 
   const semester = await getActiveSemesterRow();
   const calendar = buildSemesterCalendar({ semester, asOf });
@@ -300,12 +294,6 @@ export async function getMenteeReviewByMentorKey(params: {
     study_session: mentee.ss_required,
   };
   const selectedWeek = params.selectedWeek ?? calendar.currentWeek;
-
-  // The caller's own preference is part of the review response (no standalone
-  // read endpoint); a read failure is an explicit section error, not "not set".
-  const meetingPreference = await toSection("meeting_preference", () =>
-    getMeetingPreference(mentorKey, menteeUid)
-  );
 
   if (calendar.noActiveWeek) {
     return composeMenteeReview({
@@ -345,5 +333,55 @@ export async function getMenteeReviewByMentorKey(params: {
     wahf,
     tutoring,
     meetingPreference,
+  });
+}
+
+/**
+ * Authorized review for one mentee. Returns null when the mentee is not among
+ * the caller's assignments (RLS-scoped roster) so the controller can 404 without
+ * enumerating records.
+ */
+export async function getMenteeReviewByMentorKey(params: {
+  mentorKey: string;
+  menteeUid: string;
+  selectedWeek: number | null;
+  asOf?: Date;
+}): Promise<MenteeReview | null> {
+  const { mentorKey, menteeUid } = params;
+  const asOf = params.asOf ?? new Date();
+
+  const mentees = await getMenteesByMentorKey(mentorKey);
+  const mentee = mentees.find((m) => m.scholar_uid === menteeUid);
+  if (!mentee) return null;
+
+  // The caller's own preference is part of the review response (no standalone
+  // read endpoint); a read failure is an explicit section error, not "not set".
+  const meetingPreference = await toSection("meeting_preference", () =>
+    getMeetingPreference(mentorKey, menteeUid)
+  );
+
+  return composeReviewForMentee({ mentee, menteeUid, selectedWeek: params.selectedWeek, asOf, meetingPreference });
+}
+
+/**
+ * Team-leader review for any scholar with a `mentor_mentee` assignment, used by
+ * the directory detail page. The viewer is not necessarily the mentor, so no
+ * meeting preference is read; the field is null and the UI omits its editor.
+ */
+export async function getMenteeReviewByUid(params: {
+  menteeUid: string;
+  selectedWeek: number | null;
+  asOf?: Date;
+}): Promise<MenteeReview | null> {
+  const asOf = params.asOf ?? new Date();
+  const mentee = await getMenteeByUid(params.menteeUid);
+  if (!mentee) return null;
+
+  return composeReviewForMentee({
+    mentee,
+    menteeUid: params.menteeUid,
+    selectedWeek: params.selectedWeek,
+    asOf,
+    meetingPreference: { ok: true, data: null, loadedAt: asOf.toISOString() },
   });
 }

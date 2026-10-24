@@ -100,6 +100,8 @@ export type DirectoryPerson = {
   phoneNumber: string | null;
   teams: string[];
   programRole: string | null;
+  /** True when `mentor_mentee` has at least one assignment. RLS hides this from non-leaders. */
+  isMentee: boolean;
 };
 
 /** Distinct filter-facet values for the Directory page's team/role/cohort dropdowns. */

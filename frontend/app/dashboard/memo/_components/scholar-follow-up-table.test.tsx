@@ -6,6 +6,8 @@ import type { ScholarFollowUpRow } from "../types"
 
 const rows: ScholarFollowUpRow[] = [
   {
+    scholarId: "mentee-1",
+    isMentee: true,
     scholarName: "Bob Scholar",
     scholarYear: "Sophomore",
     teamLeader: "TL One",
@@ -22,6 +24,8 @@ const rows: ScholarFollowUpRow[] = [
     ssRequired: 120,
   },
   {
+    scholarId: "scholar-2",
+    isMentee: false,
     scholarName: "Late Scholar",
     scholarYear: "Freshman",
     teamLeader: "TL Two",
@@ -64,5 +68,7 @@ describe("ScholarFollowUpTable", () => {
     expect(html).not.toContain("90%")
     expect(html).toContain("TL One")
     expect(html).toContain("TL Two")
+    expect(html).toContain('href="/dashboard/directory/mentee-1"')
+    expect(html).not.toContain('href="/dashboard/directory/scholar-2"')
   })
 })

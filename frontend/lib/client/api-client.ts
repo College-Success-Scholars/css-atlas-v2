@@ -115,3 +115,7 @@ export async function backendPost<T>(path: string, body: unknown) {
 export async function backendPatch<T>(path: string, body: unknown) {
   return backendFetch<T>(path, { method: "PATCH", body });
 }
+
+export async function backendPut<T>(path: string, body: unknown) {
+  return backendFetch<T>(path, { method: "PUT", body });
+}

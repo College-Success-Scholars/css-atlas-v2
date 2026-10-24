@@ -95,6 +95,26 @@ describe("buildMemoScholarAttendanceRows", () => {
     });
   });
 
+  it("marks scholars with a mentor_mentee assignment as mentees", () => {
+    const assigned = buildMemoScholarAttendanceRows(
+      [scholar],
+      new Map(),
+      new Map(),
+      [],
+      new Map(),
+      new Map(),
+      new Set(["1001"]),
+    ).scholars[0];
+    const unassigned = buildMemoScholarAttendanceRows(
+      [scholar],
+      new Map(),
+      new Map(),
+    ).scholars[0];
+
+    expect(assigned?.isMentee).toBe(true);
+    expect(unassigned?.isMentee).toBe(false);
+  });
+
   it("excuse-only scholar gets completion from scholar_week_excuses", () => {
     const fdByUid = new Map<string, CampusWeekAttendanceTotals>([
       ["1001", { ...zero, excuseMin: 120, description: "Sick" }],
@@ -482,5 +502,28 @@ describe("buildGradeBreakdown", () => {
     ]);
     expect(breakdown.mid).toHaveLength(0);
     expect(breakdown.low).toHaveLength(0);
+  });
+
+  it("marks grade entries from mentor_mentee scholars as mentees", () => {
+    const breakdown = buildGradeBreakdown(
+      [
+        wahfRow({
+          scholar_uid: "1001",
+          scholar_name: "Ada Lovelace",
+          assignment_grades: { CMSC131: { Quiz: "91%" } },
+        }),
+        wahfRow({
+          id: "2",
+          scholar_uid: "1002",
+          scholar_name: "Alan Turing",
+          assignment_grades: { PHYS161: { Lab: "65%" } },
+        }),
+      ],
+      undefined,
+      new Set(["1001"]),
+    );
+
+    expect(breakdown.high[0]).toMatchObject({ scholarId: "1001", isMentee: true });
+    expect(breakdown.low[0]).toMatchObject({ scholarId: "1002", isMentee: false });
   });
 });

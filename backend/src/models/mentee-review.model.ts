@@ -150,6 +150,9 @@ export interface ShiftEvidence {
   scheduledStart: Date;
   scheduledEnd: Date;
   scheduledMinutes: number;
+  /** Matched logged interval clipped to the shift, merged across overlapping logs; null when none overlapped. */
+  loggedStart: Date | null;
+  loggedEnd: Date | null;
   /** Positive raw overlap with logged intervals; a boundary touch is 0. */
   overlapMinutes: number;
   status: ShiftStatus;
@@ -261,6 +264,7 @@ export interface EvaluateWeekInput {
    * A no-show is never confirmed on these dates (task 3.3).
    */
   nonTerminalDates?: string[];
+  /** Required minutes per session kind (roster `fd_required` / `ss_required`). */
   targets: Partial<Record<ShiftSessionKind, number | null>>;
   wahf: WahfEvidence;
   tutoring: TutoringEvidenceInput;

@@ -152,6 +152,9 @@ interface ShiftClassification {
   scheduledStartMs: number;
   scheduledEndMs: number;
   scheduledMs: number;
+  /** Matched logged window clipped to the shift; null when nothing overlapped. */
+  loggedStartMs: number | null;
+  loggedEndMs: number | null;
   overlapMs: number;
   status: ShiftStatus;
 }
@@ -168,13 +171,19 @@ function classifyShift(
   const scheduledMs = Math.max(0, scheduledEndMs - scheduledStartMs);
 
   let overlapMs = 0;
+  let loggedStartMs: number | null = null;
+  let loggedEndMs: number | null = null;
   for (const iv of normalized) {
-    overlapMs += positiveOverlapMs(
-      iv.start.getTime(),
-      iv.end.getTime(),
-      scheduledStartMs,
-      scheduledEndMs
-    );
+    const ivStart = iv.start.getTime();
+    const ivEnd = iv.end.getTime();
+    overlapMs += positiveOverlapMs(ivStart, ivEnd, scheduledStartMs, scheduledEndMs);
+
+    const clippedStart = Math.max(ivStart, scheduledStartMs);
+    const clippedEnd = Math.min(ivEnd, scheduledEndMs);
+    if (clippedEnd > clippedStart) {
+      if (loggedStartMs == null || clippedStart < loggedStartMs) loggedStartMs = clippedStart;
+      if (loggedEndMs == null || clippedEnd > loggedEndMs) loggedEndMs = clippedEnd;
+    }
   }
 
   let status: ShiftStatus;
@@ -187,12 +196,20 @@ function classifyShift(
   // Open/unmatched evidence on the day means the miss cannot be confirmed.
   if (status === "no_show" && nonTerminalDates.has(shift.date)) status = "unconfirmed";
 
-  return { scheduledStartMs, scheduledEndMs, scheduledMs, overlapMs, status };
+  return {
+    scheduledStartMs,
+    scheduledEndMs,
+    scheduledMs,
+    loggedStartMs,
+    loggedEndMs,
+    overlapMs,
+    status,
+  };
 }
 
 export function evaluateHours(params: {
   kind: ShiftSessionKind;
-  targetHours: number | null;
+  targetMinutes: number | null;
   shifts: ScheduledShiftInput[];
   logs: LoggedIntervalInput[];
   weekStartMs: number;
@@ -203,7 +220,7 @@ export function evaluateHours(params: {
 }): HourWeekSummary {
   const {
     kind,
-    targetHours,
+    targetMinutes,
     shifts,
     logs,
     weekStartMs,
@@ -217,14 +234,16 @@ export function evaluateHours(params: {
   const loggedMs = normalized.reduce((sum, iv) => sum + (iv.end.getTime() - iv.start.getTime()), 0);
   const loggedMinutes = loggedMs / MS_PER_MINUTE;
 
-  const targetMinutes =
-    targetHours != null && Number.isFinite(targetHours) && targetHours > 0 ? targetHours * 60 : null;
+  const validTargetMinutes =
+    targetMinutes != null && Number.isFinite(targetMinutes) && targetMinutes > 0
+      ? targetMinutes
+      : null;
   const percent =
-    targetMinutes != null ? (loggedMinutes / targetMinutes) * 100 : null;
+    validTargetMinutes != null ? (loggedMinutes / validTargetMinutes) * 100 : null;
   const band = percent == null ? null : hourBandForPercent(percent);
   const overageMinutes =
-    targetMinutes != null && loggedMinutes > targetMinutes
-      ? Math.round(loggedMinutes - targetMinutes)
+    validTargetMinutes != null && loggedMinutes > validTargetMinutes
+      ? Math.round(loggedMinutes - validTargetMinutes)
       : 0;
   const pending = phase === "current" && band !== null && band !== "green";
 
@@ -238,6 +257,8 @@ export function evaluateHours(params: {
         scheduledStart: new Date(c.scheduledStartMs),
         scheduledEnd: new Date(c.scheduledEndMs),
         scheduledMinutes: Math.round(c.scheduledMs / MS_PER_MINUTE),
+        loggedStart: c.loggedStartMs == null ? null : new Date(c.loggedStartMs),
+        loggedEnd: c.loggedEndMs == null ? null : new Date(c.loggedEndMs),
         overlapMinutes: c.overlapMs / MS_PER_MINUTE,
         status: c.status,
       };
@@ -273,7 +294,7 @@ export function evaluateHours(params: {
     kind,
     assignmentAvailable: shifts.length > 0,
     loggedMinutes,
-    targetMinutes,
+    targetMinutes: validTargetMinutes,
     percent,
     band,
     displayHours: displayHoursFor(loggedMs),
@@ -511,7 +532,7 @@ export function evaluateWeek(input: EvaluateWeekInput): WeekReviewSummary {
   const hours = HOUR_KINDS.map((kind) =>
     evaluateHours({
       kind,
-      targetHours: input.targets[kind] ?? null,
+      targetMinutes: input.targets[kind] ?? null,
       shifts: input.shifts.filter((s) => s.kind === kind),
       logs: input.logs.filter((l) => l.kind === kind),
       weekStartMs,

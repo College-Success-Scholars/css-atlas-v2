@@ -117,19 +117,6 @@ export type ProfileRow = {
   teams: string[] | null
 }
 
-export interface MenteeMonitoringClientProps {
-  mentees: MenteeWithCompliance[]
-  attendance: AttendanceForUids
-  wahf: WahfRow[]
-  tutoring: TutoringRow[]
-  /** Campus week from `dateToCampusWeek`; null before Fall start. */
-  currentCampusWeek: number | null
-  /** Selected campus week (URL `week`); same calendar as Weekly Memo. */
-  selectedWeek: number | null
-  /** Selected mentee UID (URL `uid`). */
-  selectedUid: string | null
-}
-
 export interface PersonalClientProps {
   profile: ProfileRow
   wahf: WahfRow[]

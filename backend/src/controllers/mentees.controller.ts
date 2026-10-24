@@ -8,14 +8,17 @@
  *
  * ## Responsibilities
  * - getMentees, getMenteesWithCompliance
- * - getMenteeReview, updateMenteeMeetingPreference
+ * - getMenteeReview, getDirectoryMenteeReview, updateMenteeMeetingPreference
  * - getMenteeMcfPrefill
  *
  * ## What does NOT belong here
  * - JWT verification or profile resolution (middleware/auth.middleware.ts)
  */
 import { getMenteesByMentorKey, getMenteesWithComplianceByMentorKey } from "../services/mentee.service.js";
-import { getMenteeReviewByMentorKey } from "../services/mentee-review-activity.service.js";
+import {
+  getMenteeReviewByMentorKey,
+  getMenteeReviewByUid,
+} from "../services/mentee-review-activity.service.js";
 import { saveMeetingPreference } from "../services/mentee-meeting-preference.service.js";
 import { getMenteeMcfPrefill as getMenteeMcfPrefillForMentor } from "../services/mentee-mcf-prefill.service.js";
 import { dateToCampusWeek } from "../services/time.service.js";
@@ -26,6 +29,23 @@ import { MAX_DATE_RANGE_DAYS, parseDateRangeQuery } from "../utils/request-valid
 function firstParam(value: string | string[] | undefined): string | null {
   const raw = Array.isArray(value) ? value[0] : value;
   return raw && raw.trim() ? raw.trim() : null;
+}
+
+/** Current week is the default; a future week is rejected. */
+function parseSelectedWeek(
+  rawWeek: unknown,
+): { ok: true; week: number | null } | { ok: false; error: string } {
+  const raw = Array.isArray(rawWeek) ? rawWeek[0] : rawWeek;
+  if (raw === undefined || raw === "") return { ok: true, week: null };
+  const parsed = Number(raw);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    return { ok: false, error: "week must be a positive integer" };
+  }
+  const currentWeek = dateToCampusWeek(new Date());
+  if (currentWeek != null && parsed > currentWeek) {
+    return { ok: false, error: "Cannot select a future week" };
+  }
+  return { ok: true, week: parsed };
 }
 
 // GET /api/auth/mentees
@@ -59,26 +79,43 @@ export const getMenteeReview = asyncHandler(async (req, res) => {
     return;
   }
 
-  const rawWeek = Array.isArray(req.query.week) ? req.query.week[0] : req.query.week;
-  let selectedWeek: number | null = null;
-  if (rawWeek !== undefined && rawWeek !== "") {
-    const parsed = Number(rawWeek);
-    if (!Number.isInteger(parsed) || parsed < 1) {
-      res.status(400).json({ error: "week must be a positive integer" });
-      return;
-    }
-    const currentWeek = dateToCampusWeek(new Date());
-    if (currentWeek != null && parsed > currentWeek) {
-      res.status(400).json({ error: "Cannot select a future week" });
-      return;
-    }
-    selectedWeek = parsed;
+  const week = parseSelectedWeek(req.query.week);
+  if (!week.ok) {
+    res.status(400).json({ error: week.error });
+    return;
   }
 
   const data = await getMenteeReviewByMentorKey({
     mentorKey: resolveMentorKey(req),
     menteeUid: uid,
-    selectedWeek,
+    selectedWeek: week.week,
+  });
+  if (!data) {
+    res.status(404).json({ error: "Mentee not found" });
+    return;
+  }
+  res.json({ data });
+});
+
+// GET /api/auth/mentees/:uid/directory-review?week=<n>
+// Team-leader+ read of any scholar with a mentor_mentee assignment. Used by the
+// directory detail page, which is not scoped to the caller's own mentees.
+export const getDirectoryMenteeReview = asyncHandler(async (req, res) => {
+  const uid = firstParam(req.params.uid);
+  if (!uid) {
+    res.status(400).json({ error: "Missing mentee uid" });
+    return;
+  }
+
+  const week = parseSelectedWeek(req.query.week);
+  if (!week.ok) {
+    res.status(400).json({ error: week.error });
+    return;
+  }
+
+  const data = await getMenteeReviewByUid({
+    menteeUid: uid,
+    selectedWeek: week.week,
   });
   if (!data) {
     res.status(404).json({ error: "Mentee not found" });

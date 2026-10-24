@@ -4,6 +4,7 @@ import { CompletionMeter } from "@/components/data-display/completion-meter"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { MemoAccordionSection } from "./memo-accordion-section"
+import { ScholarNameLink } from "./scholar-name-link"
 import type { ScholarFollowUpIssue, ScholarFollowUpRow } from "../types"
 
 type ScholarFollowUpTableProps = {
@@ -65,7 +66,11 @@ export function ScholarFollowUpTable({ rows }: ScholarFollowUpTableProps) {
           {rows.map((row) => (
             <TableRow key={row.scholarName}>
               <TableCell className="px-4 align-top">
-                <div className="font-medium">{row.scholarName}</div>
+                <div className="font-medium">
+                  <ScholarNameLink scholarId={row.scholarId} isMentee={row.isMentee}>
+                    {row.scholarName}
+                  </ScholarNameLink>
+                </div>
                 <div className="text-muted-foreground text-xs">{row.scholarYear}</div>
               </TableCell>
               <TableCell

@@ -37,7 +37,7 @@ const censusData: RecognitionBoardSectionData = {
     {
       id: "high",
       label: "90 – 100%",
-      entries: [{ scholarName: "Alice Scholar", course: "CMSC131", assessment: "Quiz", grade: "95%", percent: 95 }],
+      entries: [{ scholarName: "Alice Scholar", scholarId: "alice-1", isMentee: true, course: "CMSC131", assessment: "Quiz", grade: "95%", percent: 95 }],
     },
     {
       id: "mid",
@@ -47,7 +47,7 @@ const censusData: RecognitionBoardSectionData = {
     {
       id: "low",
       label: "Below 70%",
-      entries: [{ scholarName: "Bob Scholar", course: "MATH140", assessment: "Exam", grade: "60%", percent: 60 }],
+      entries: [{ scholarName: "Bob Scholar", scholarId: "bob-1", isMentee: false, course: "MATH140", assessment: "Exam", grade: "60%", percent: 60 }],
     },
   ],
 }
@@ -74,6 +74,8 @@ describe("RecognitionBoardSection", () => {
     expect(html).toContain("text-warning-muted-foreground")
     expect(html).toContain("text-destructive")
     expect(html).toContain("tabular-nums")
+    expect(html).toContain('href="/dashboard/directory/alice-1"')
+    expect(html).not.toContain('href="/dashboard/directory/bob-1"')
     expect(html).not.toContain("emerald")
     expect(html).not.toContain("amber")
     expect(html).not.toContain('data-slot="table"')

@@ -274,6 +274,11 @@ function ThisWeekFormCard({
           <div className="min-w-0">
             <p className="font-semibold text-base">{formType}</p>
             <p className="text-xs text-muted-foreground">{FORM_DEADLINES[formType]}</p>
+            <span>{isMcf && formStatus.requiredCount > 0 && (
+            <span className="ml-auto shrink-0 text-xs font-medium tabular-nums text-muted-foreground" aria-label={progress ?? undefined}>
+              {formStatus.completedCount}/{formStatus.requiredCount} mentees
+            </span>
+          )}</span>
           </div>
           <StatusBadge status={status} />
         </div>
@@ -300,11 +305,6 @@ function ThisWeekFormCard({
                     ? `Submitted ${formatSubmittedDateTime(submittedAt)}`
                     : ""}
           </p>
-          {isMcf && formStatus.requiredCount > 0 && (
-            <span className="ml-auto shrink-0 text-xs font-medium tabular-nums text-muted-foreground" aria-label={progress ?? undefined}>
-              {formStatus.completedCount}/{formStatus.requiredCount} mentees
-            </span>
-          )}
         </div>
       </CardContent>
       {(showView || showSubmit) && (

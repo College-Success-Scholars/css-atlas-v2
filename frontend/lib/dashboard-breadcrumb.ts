@@ -42,6 +42,14 @@ export function resolveDashboardBreadcrumb(pathname: string): DashboardBreadcrum
     return [{ label: "Dashboard" }];
   }
 
+  if (path.startsWith("/dashboard/directory/")) {
+    return [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Directory", href: "/dashboard/directory" },
+      { label: "Scholar" },
+    ];
+  }
+
   const routeSegments = path.split("/").filter(Boolean).slice(1);
   const items: DashboardBreadcrumbItem[] = [{ label: "Dashboard", href: "/dashboard" }];
 
