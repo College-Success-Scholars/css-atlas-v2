@@ -420,6 +420,29 @@ describe("composeMenteeReview", () => {
     expect(review.latestGrades.ok).toBe(true);
   });
 
+  it("anchors all recent grades to asOf, not the selected historical week", () => {
+    const now = new Date("2026-09-17T16:00:00Z");
+    const gradeCalendar = buildSemesterCalendar({
+      semester: { id: 1, start_date: "2026-08-31", end_date: "2026-12-12" },
+      asOf: now,
+    });
+    const rows = [
+      wahf("old", new Date("2026-08-31T16:00:00Z"), { C: { Old: "70" } }),
+      wahf("previous", new Date("2026-09-08T16:00:00Z"), { C: { Previous: "80" } }),
+      wahf("current", new Date("2026-09-16T16:00:00Z"), { C: { Current: "90" } }),
+      wahf("future", new Date("2026-09-18T16:00:00Z"), { C: { Future: "95" } }),
+    ];
+    const options = { asOf: now, calendar: gradeCalendar, wahf: { ok: true as const, data: rows, loadedAt: now.toISOString() } };
+    const historical = compose({ ...options, selectedWeek: 1 });
+    const current = compose({ ...options, selectedWeek: 3 });
+
+    expect(historical.latestGrades.ok).toBe(true);
+    if (!historical.latestGrades.ok || !current.latestGrades.ok) throw new Error("Expected grades to be available");
+    expect(historical.latestGrades.data).toEqual(current.latestGrades.data);
+    expect(historical.latestGrades.data.entries.map((entry) => entry.submissionId)).toEqual(["current", "previous"]);
+    expect(historical.latestGrades.data.entries[1]!.comparison?.priorPercent).toBe(70);
+  });
+
   it("marks WAHF/tutoring unknown (never missing/none) when their reads fail", () => {
     const review = compose({
       wahf: { ok: false, error: { code: "w", message: "boom", retriable: true } },

@@ -412,7 +412,9 @@ describe("parseGradePercent", () => {
 });
 
 describe("deriveLatestGrades", () => {
-  it("uses the latest submission even when it has no grades", () => {
+  const asOf = new Date("2026-08-08T12:00:00Z");
+
+  it("keeps other recent grades when the latest submission has no grades", () => {
     const summary = deriveLatestGrades({
       available: true,
       submissions: [
@@ -421,21 +423,22 @@ describe("deriveLatestGrades", () => {
         ]),
         submission("new", new Date("2026-08-08T00:00:00Z"), []),
       ],
-    });
-    expect(summary.status).toBe("empty");
+    }, asOf);
+    expect(summary.status).toBe("grades");
     expect(summary.submissionId).toBe("new");
-    expect(summary.entries).toHaveLength(0);
+    expect(summary.entries).toHaveLength(1);
+    expect(summary.entries[0]).toMatchObject({ submissionId: "old", submittedAt: new Date("2026-08-01T00:00:00Z") });
   });
 
   it("is an error when unavailable, never empty", () => {
-    expect(deriveLatestGrades({ available: false, submissions: [] }).status).toBe("error");
+    expect(deriveLatestGrades({ available: false, submissions: [] }, asOf).status).toBe("error");
   });
 
   it("reports first grade, direction, and equal comparison", () => {
     const first = deriveLatestGrades({
       available: true,
       submissions: [submission("s1", new Date("2026-08-01T00:00:00Z"), [{ course: "C", assessment: "Q1", rawGrade: "80" }])],
-    });
+    }, asOf);
     expect(first.entries[0]!.firstGrade).toBe(true);
     expect(first.entries[0]!.comparison).toBeNull();
 
@@ -445,9 +448,9 @@ describe("deriveLatestGrades", () => {
         submission("s1", new Date("2026-08-01T00:00:00Z"), [{ course: "C", assessment: "Q1", rawGrade: "80" }]),
         submission("s2", new Date("2026-08-08T00:00:00Z"), [{ course: "C", assessment: "Q2", rawGrade: "90" }]),
       ],
-    });
+    }, asOf);
     expect(up.status).toBe("grades");
-    expect(up.entries).toHaveLength(1);
+    expect(up.entries).toHaveLength(2);
     expect(up.entries[0]!.comparison).toEqual({ direction: "up", priorPercent: 80, priorAssessment: "Q1" });
 
     const equal = deriveLatestGrades({
@@ -456,7 +459,7 @@ describe("deriveLatestGrades", () => {
         submission("s1", new Date("2026-08-01T00:00:00Z"), [{ course: "C", assessment: "Q1", rawGrade: "85" }]),
         submission("s2", new Date("2026-08-08T00:00:00Z"), [{ course: "C", assessment: "Q2", rawGrade: "85" }]),
       ],
-    });
+    }, asOf);
     expect(equal.entries[0]!.comparison!.direction).toBe("equal");
   });
 
@@ -467,12 +470,142 @@ describe("deriveLatestGrades", () => {
         submission("s1", new Date("2026-08-01T00:00:00Z"), [{ course: "C", assessment: "Q1", rawGrade: "90" }]),
         submission("s2", new Date("2026-08-08T00:00:00Z"), [{ course: "C", assessment: "Q2", rawGrade: "A" }]),
       ],
-    });
+    }, asOf);
     expect(summary.status).toBe("grades");
     expect(summary.entries[0]!.percent).toBeNull();
     expect(summary.entries[0]!.band).toBeNull();
     expect(summary.entries[0]!.comparison).toBeNull();
     expect(summary.entries[0]!.firstGrade).toBe(false);
+  });
+
+  it("shows all recent submissions newest first, preserving repeated entries and observed entry order", () => {
+    const repeated = { course: "C", assessment: "Quiz", rawGrade: "90" };
+    const submissions = [
+      submission("previous", new Date("2026-09-08T16:00:00Z"), [repeated]),
+      submission("empty", new Date("2026-09-16T16:00:00Z"), []),
+      submission("current", new Date("2026-09-15T16:00:00Z"), [
+        { course: "Z", assessment: "Exam", rawGrade: "85" }, repeated, repeated,
+      ]),
+    ];
+    const summary = deriveLatestGrades({ available: true, submissions }, new Date("2026-09-17T16:00:00Z"));
+
+    expect(summary.status).toBe("grades");
+    expect(summary.submissionId).toBe("empty");
+    expect(summary.entries.map((entry) => [entry.submissionId, entry.course])).toEqual([
+      ["current", "Z"], ["current", "C"], ["current", "C"], ["previous", "C"],
+    ]);
+    expect(summary.entries[1]!.comparison?.direction).toBe("equal");
+    expect(summary.entries[2]!.comparison?.direction).toBe("equal");
+    expect(summary.entries[3]!.firstGrade).toBe(true);
+    expect(submissions.map((entry) => entry.sourceId)).toEqual(["previous", "empty", "current"]);
+  });
+
+  it("includes the previous Monday and asOf exactly, excluding stale and future submissions", () => {
+    const summary = deriveLatestGrades({ available: true, submissions: [
+      submission("stale", new Date("2026-09-07T03:59:59.999Z"), [{ course: "C", assessment: "Old", rawGrade: "70" }]),
+      submission("start", new Date("2026-09-07T04:00:00Z"), [{ course: "C", assessment: "Previous", rawGrade: "80" }]),
+      submission("now", new Date("2026-09-17T16:00:00Z"), [{ course: "C", assessment: "Current", rawGrade: "90" }]),
+      submission("future", new Date("2026-09-17T16:00:00.001Z"), [{ course: "C", assessment: "Future", rawGrade: "95" }]),
+      submission("future-sunday", new Date("2026-09-21T03:59:59Z"), [{ course: "C", assessment: "Sunday", rawGrade: "95" }]),
+      submission("next-week", new Date("2026-09-21T04:00:00Z"), [{ course: "C", assessment: "Next", rawGrade: "95" }]),
+    ] }, new Date("2026-09-17T16:00:00Z"));
+
+    expect(summary.submissionId).toBe("now");
+    expect(summary.entries.map((entry) => entry.submissionId)).toEqual(["now", "start"]);
+    expect(summary.entries[0]!.comparison).toMatchObject({ priorPercent: 80, priorAssessment: "Previous" });
+    expect(summary.entries[1]!.comparison).toMatchObject({ priorPercent: 70, priorAssessment: "Old" });
+  });
+
+  it("rolls the window at Eastern Monday midnight, not UTC midnight or a rolling duration", () => {
+    const evidence = { available: true, submissions: [
+      submission("previous", new Date("2026-08-31T04:00:00Z"), [{ course: "C", assessment: "Quiz", rawGrade: "80" }]),
+    ] };
+    expect(deriveLatestGrades(evidence, new Date("2026-09-14T03:59:59.999Z")).entries).toHaveLength(1);
+    expect(deriveLatestGrades(evidence, new Date("2026-09-14T04:00:00Z"))).toEqual({
+      status: "empty", submissionId: null, submittedAt: null, entries: [],
+    });
+  });
+
+  it.each([
+    ["fall-back Sunday", "2026-11-01T17:00:00Z", "2026-10-19T04:00:00Z"],
+    ["Monday after fall-back", "2026-11-02T17:00:00Z", "2026-10-26T04:00:00Z"],
+    ["spring-forward Sunday", "2027-03-14T16:00:00Z", "2027-03-01T05:00:00Z"],
+    ["Monday after spring-forward", "2027-03-15T16:00:00Z", "2027-03-08T05:00:00Z"],
+    ["during winter break", "2027-01-15T17:00:00Z", "2027-01-04T05:00:00Z"],
+    ["after winter break", "2027-01-28T17:00:00Z", "2027-01-18T05:00:00Z"],
+    ["across New Year", "2027-01-01T17:00:00Z", "2026-12-21T05:00:00Z"],
+  ])("uses real Monday–Sunday calendar weeks %s", (_label, now, start) => {
+    const startDate = new Date(start);
+    const summary = deriveLatestGrades({ available: true, submissions: [
+      submission("outside", new Date(startDate.getTime() - 1), [{ course: "C", assessment: "Old", rawGrade: "70" }]),
+      submission("inside", startDate, [{ course: "C", assessment: "New", rawGrade: "90" }]),
+    ] }, new Date(now));
+
+    expect(summary.entries.map((entry) => entry.submissionId)).toEqual(["inside"]);
+    expect(summary.entries[0]!.comparison?.priorPercent).toBe(70);
+  });
+
+  it("keeps both repeated fall-back clock times as distinct submissions", () => {
+    const summary = deriveLatestGrades({ available: true, submissions: [
+      submission("edt", new Date("2026-11-01T05:30:00Z"), [{ course: "C", assessment: "Quiz", rawGrade: "80" }]),
+      submission("est", new Date("2026-11-01T06:30:00Z"), [{ course: "C", assessment: "Quiz", rawGrade: "80" }]),
+    ] }, new Date("2026-11-01T17:00:00Z"));
+    expect(summary.entries.map((entry) => entry.submissionId)).toEqual(["est", "edt"]);
+  });
+
+  it("keeps source submission order for timestamp ties and compares earlier same-course entries", () => {
+    const summary = deriveLatestGrades({ available: true, submissions: [
+      submission("first", asOf, [
+        { course: "C", assessment: "Q1", rawGrade: "90" },
+        { course: "C", assessment: "Q2", rawGrade: "80" },
+      ]),
+      submission("second", asOf, [{ course: "C", assessment: "Q3", rawGrade: "80" }]),
+    ] }, asOf);
+    expect(summary.entries.map((entry) => [entry.submissionId, entry.assessment])).toEqual([
+      ["first", "Q1"], ["first", "Q2"], ["second", "Q3"],
+    ]);
+    expect(summary.entries[0]!.firstGrade).toBe(true);
+    expect(summary.entries[1]!.comparison).toEqual({ direction: "down", priorPercent: 90, priorAssessment: "Q1" });
+    expect(summary.entries[2]!.comparison).toEqual({ direction: "equal", priorPercent: 80, priorAssessment: "Q2" });
+  });
+
+  it("does not revive stale grades when the recent submissions are all empty", () => {
+    expect(deriveLatestGrades({ available: true, submissions: [
+      submission("stale", new Date("2026-07-01T16:00:00Z"), [{ course: "C", assessment: "Old", rawGrade: "90" }]),
+      submission("empty", asOf, []),
+    ] }, asOf)).toEqual({ status: "empty", submissionId: "empty", submittedAt: asOf, entries: [] });
+  });
+
+  it("uses older numeric history across unsupported entries without calling a course new", () => {
+    const summary = deriveLatestGrades({ available: true, submissions: [
+      submission("history", new Date("2026-07-01T16:00:00Z"), [
+        { course: "C", assessment: "Old exam", rawGrade: "75" },
+        { course: "D", assessment: "Old quiz", rawGrade: "A" },
+      ]),
+      submission("unsupported", new Date("2026-08-07T16:00:00Z"), [{ course: "C", assessment: "Letter", rawGrade: "A" }]),
+      submission("current", asOf, [
+        { course: "C", assessment: "Exam", rawGrade: "85" },
+        { course: "D", assessment: "Quiz", rawGrade: "90" },
+      ]),
+    ] }, asOf);
+    expect(summary.entries).toHaveLength(3);
+    expect(summary.entries[0]!.comparison).toEqual({ direction: "up", priorPercent: 75, priorAssessment: "Old exam" });
+    expect(summary.entries[1]).toMatchObject({ comparison: null, firstGrade: false });
+    expect(summary.entries[2]).toMatchObject({ percent: null, comparison: null, firstGrade: false });
+  });
+
+  it.each([
+    { submissions: [] },
+    { submissions: [submission("stale", new Date("2026-01-01T00:00:00Z"), [
+      { course: "C", assessment: "Old", rawGrade: "90" },
+    ])] },
+    { submissions: [submission("future", new Date("2026-08-09T00:00:00Z"), [
+      { course: "C", assessment: "Future", rawGrade: "90" },
+    ])] },
+  ])("returns an empty window without borrowing stale or future metadata (%#)", ({ submissions }) => {
+    expect(deriveLatestGrades({ available: true, submissions }, asOf)).toEqual({
+      status: "empty", submissionId: null, submittedAt: null, entries: [],
+    });
   });
 });
 

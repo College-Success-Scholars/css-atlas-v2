@@ -22,6 +22,7 @@ import { MenteeDetailsSkeleton } from "./mentee-details-skeleton"
 import { RecentGradesSummaryCard } from "./recent-grades-summary-card"
 import { SectionError } from "./section-error"
 import { SemesterGrid } from "./semester-grid"
+import { TierBadge } from "./tier-badge"
 import { TutoringSummaryCard } from "./tutoring-summary-card"
 import { WahfSummaryCard } from "./wahf-summary-card"
 import { formatAsOf, formatWeekTitle, menteeFirstName } from "./utils"
@@ -32,11 +33,12 @@ function menteeHref(
   week: number | null,
   uid: string | null,
 ) {
-  const params = new URLSearchParams()
+  const [path, existingQuery = ""] = basePath.split("?")
+  const params = new URLSearchParams(existingQuery)
   if (week != null && week > 0) params.set("week", String(week))
   if (uid) params.set("uid", uid)
   const query = params.toString()
-  return query ? `${basePath}?${query}` : basePath
+  return query ? `${path}?${query}` : path
 }
 
 function NoMentees() {
@@ -208,28 +210,31 @@ export function MenteeMonitoringClient({
       ) : (
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-[17px] font-semibold">
+            <h2 className="flex flex-wrap items-center gap-2 text-[17px] font-semibold">
               {titleWeek != null && titleDescriptor
                 ? formatWeekTitle(titleWeek, titleDescriptor.startDate, titleDescriptor.endDate)
                 : titleWeek != null
                   ? `Week ${titleWeek}`
                   : "This week"}
             </h2>
-            {phase === "current" && titleWeek != null && (
-              <p className="text-[13px] text-info-muted-foreground">
-                In progress · as of {formatAsOf(review.asOf)}
-              </p>
-            )}
-            {phase === "past" && currentWeek != null && (
-              <Button
-                type="button"
-                variant="outline"
-                className="min-h-11"
-                onClick={() => navigate(currentWeek, review.mentee.uid)}
-              >
-                Back to this week
-              </Button>
-            )}
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {selectedSummary?.tier ? <TierBadge tier={selectedSummary.tier} /> : null}
+              {phase === "current" && titleWeek != null && (
+                <p className="text-[13px] text-info-muted-foreground">
+                  In progress · as of {formatAsOf(review.asOf)}
+                </p>
+              )}
+              {phase === "past" && currentWeek != null && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-11"
+                  onClick={() => navigate(currentWeek, review.mentee.uid)}
+                >
+                  Back to this week
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className={styles.details}>
@@ -244,7 +249,7 @@ export function MenteeMonitoringClient({
                     <HourSummaryCard
                       key={hours.kind}
                       summary={hours}
-                      followUp={draftFor(hours.kind === "front_desk" ? "front_desk" : "study_session")}
+                      tier={selectedSummary.tier}
                     />
                   ))}
                   <WahfSummaryCard

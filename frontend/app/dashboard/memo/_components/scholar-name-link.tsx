@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils"
 type ScholarNameLinkProps = {
   scholarId?: string | null
   isMentee?: boolean
+  /** Entry year carried into the detail page so tier cutoffs use the right class. */
+  cohort?: number | null
   children: ReactNode
   className?: string
 }
@@ -18,10 +20,11 @@ type ScholarNameLinkProps = {
 export function ScholarNameLink({
   scholarId,
   isMentee = false,
+  cohort,
   children,
   className,
 }: ScholarNameLinkProps) {
-  const href = directoryMenteePath(scholarId ?? null, isMentee)
+  const href = directoryMenteePath(scholarId ?? null, isMentee, cohort)
 
   if (!href) return <span className={className}>{children}</span>
 

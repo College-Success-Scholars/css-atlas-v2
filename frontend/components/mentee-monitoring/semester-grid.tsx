@@ -10,10 +10,12 @@ import type {
   ShiftSessionKind,
   WeekDescriptor,
   WeekReviewSummary,
+  WeekTier,
 } from "@/lib/types/mentee-review"
 
 import { SectionError } from "./section-error"
-import { PENDING_STYLES, formatDayMonth, formatHours, formatPercent } from "./utils"
+import { TIER_UI, TierBadge } from "./tier-badge"
+import { formatDayMonth, formatHours, formatPercent } from "./utils"
 
 type RowId = ShiftSessionKind | "wahf" | "tutoring"
 
@@ -27,13 +29,23 @@ const ROWS: { id: RowId; label: string }[] = [
 type CellTone = "green" | "orange" | "red" | "pending" | "neutral" | "future" | "break"
 
 const TONE_CLASSES: Record<CellTone, string> = {
-  green: "border-success/30 bg-success-muted text-success-muted-foreground",
-  orange: "border-warning/30 bg-warning-muted text-warning-muted-foreground",
-  red: "border-destructive/20 bg-destructive/10 text-destructive",
-  pending: PENDING_STYLES.cell,
+  green: "border-success/45 bg-success/20 text-success-muted-foreground",
+  orange: "border-warning/50 bg-warning/25 text-warning-muted-foreground",
+  red: "border-destructive/35 bg-destructive/20 text-destructive",
+  pending: "border-info/40 bg-info/10 text-info-muted-foreground",
   neutral: "border-border/70 bg-muted/70 text-muted-foreground",
   future: "border-dashed border-border bg-transparent text-transparent",
   break: "border-border bg-muted/40 text-muted-foreground",
+}
+
+const TONE_BACKGROUNDS: Record<CellTone, string> = {
+  green: "var(--success-muted)",
+  orange: "var(--warning-muted)",
+  red: "color-mix(in srgb, var(--destructive) 20%, var(--card))",
+  pending: "var(--info-muted)",
+  neutral: "var(--muted)",
+  future: "transparent",
+  break: "var(--muted)",
 }
 
 function columnBackground(
@@ -42,11 +54,12 @@ function columnBackground(
   hoveredWeek: number | null,
   selectedWeek: number | null,
 ): string {
-  if (selectedWeek === week.weekNumber) return "bg-primary/[0.07]"
-  if (currentWeek === week.weekNumber) {
-    return hoveredWeek === week.weekNumber ? "bg-info-muted/80" : "bg-info-muted/50"
+  if (hoveredWeek === week.weekNumber && week.isSelectable) {
+    if (selectedWeek === week.weekNumber) return "bg-primary/[0.12]"
+    return currentWeek === week.weekNumber ? "bg-info-muted/80" : "bg-muted"
   }
-  if (hoveredWeek === week.weekNumber && week.isSelectable) return "bg-muted/40"
+  if (selectedWeek === week.weekNumber) return "bg-primary/[0.07]"
+  if (currentWeek === week.weekNumber) return "bg-info-muted/50"
   return ""
 }
 
@@ -55,6 +68,7 @@ interface GridCell {
   tone: CellTone
   disabled: boolean
   description: string
+  tier?: WeekTier | null
 }
 
 function cellFor(row: RowId, label: string, week: WeekDescriptor, summary: WeekReviewSummary | null): GridCell {
@@ -89,10 +103,10 @@ function cellFor(row: RowId, label: string, week: WeekDescriptor, summary: WeekR
   }
 
   const value = `${formatHours(hours.loggedMinutes)}${hours.noShowCount > 0 ? " •" : ""}`
-  // Match the cards: the band is the source of truth whenever a target exists,
-  // even when no shifts were assigned (off-shift logs still count).
-  const tone: CellTone =
-    week.isCurrent && hours.pending ? "pending" : hours.band ?? "neutral"
+  // Always show the band, including the current week. The separate "In
+  // progress" label already communicates that the current week can still move;
+  // a blank pending cell made the grid look uncolored.
+  const tone: CellTone = hours.band ?? "neutral"
   const logged = formatHours(hours.loggedMinutes)
   const target = hours.targetMinutes != null && hours.targetMinutes > 0
     ? formatHours(hours.targetMinutes)
@@ -100,12 +114,19 @@ function cellFor(row: RowId, label: string, week: WeekDescriptor, summary: WeekR
   const notes = [
     target ? `${logged} of ${target} hours` : `${logged} hours`,
     hours.percent != null ? formatPercent(hours.percent) : null,
+    summary.tier ? `${TIER_UI[summary.tier].label} tier` : null,
     hours.noShowCount > 0 ? `${hours.noShowCount} no-show` : null,
     hours.pending ? "in progress" : null,
   ]
     .filter(Boolean)
     .join(", ")
-  return { text: value, tone, disabled: false, description: `${label}: ${base}, ${notes}` }
+  return {
+    text: value,
+    tone,
+    disabled: false,
+    description: `${label}: ${base}, ${notes}`,
+    tier: summary.tier ?? null,
+  }
 }
 
 interface SemesterGridProps {
@@ -143,38 +164,53 @@ export function SemesterGrid({
   }
 
   const summaries = new Map(result.data.map((summary) => [summary.weekNumber, summary]))
+  const achievedTiers = new Set(
+    weeks.flatMap((week) => {
+      if (week.isFuture || week.isBreak) return []
+      const summary = summaries.get(week.weekNumber) ?? null
+      return ROWS.flatMap((row) => {
+        const tier = cellFor(row.id, row.label, week, summary).tier
+        return tier ? [tier] : []
+      })
+    }),
+  )
 
   return (
     <Card className="min-w-0 gap-0 py-0 shadow-none">
       <CardContent className="min-w-0 space-y-3 px-5 py-[18px]">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-[17px] font-semibold">Semester overview <span className="font-normal text-muted-foreground">· select a week</span></h2>
-          <ul className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[13px] text-muted-foreground">
+          <ul
+            data-testid="semester-legend"
+            className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[13px] text-muted-foreground"
+          >
             <li className="inline-flex items-center gap-1.5">
-              <span className="size-3.5 rounded-sm bg-success-muted" aria-hidden />
+              <span className="size-3.5 rounded-sm border border-success/45 bg-success/20" aria-hidden />
               90%+
             </li>
             <li className="inline-flex items-center gap-1.5">
-              <span className="size-3.5 rounded-sm bg-warning-muted" aria-hidden />
+              <span className="size-3.5 rounded-sm border border-warning/50 bg-warning/25" aria-hidden />
               60–89%
             </li>
             <li className="inline-flex items-center gap-1.5">
-              <span className="size-3.5 rounded-sm bg-destructive/10" aria-hidden />
-              Under 60% or missed
+              <span className="size-3.5 rounded-sm border border-destructive/35 bg-destructive/20" aria-hidden />
+              &lt;60% / missed
             </li>
             <li className="inline-flex items-center gap-1.5">
               <span className="size-3.5 rounded-sm bg-info-muted ring-1 ring-info/30" aria-hidden />
               Current week
             </li>
-            <li className="inline-flex items-center gap-1.5">
-              <span aria-hidden>•</span>
-              no-show
-            </li>
+            {(["rare", "epic", "legendary"] as const).filter((tier) => achievedTiers.has(tier)).map((tier) => (
+              <li key={tier}>
+                <TierBadge tier={tier} className="text-[11px]" />
+              </li>
+            ))}
           </ul>
         </div>
 
         <div className="min-w-0 overflow-x-auto p-0.5" role="group" aria-label="Semester weeks by requirement">
-          <table className="w-full table-fixed border-separate border-spacing-x-[5px] border-spacing-y-1.5" style={{ minWidth: Math.max(680, 96 + weeks.length * 37) }}>
+          {/* Cell padding keeps the visual gutters inside each column's hit area. */}
+          <table className="w-full table-fixed border-separate border-spacing-0" style={{ minWidth: Math.max(680, 96 + weeks.length * 37) }}>
             <caption className="sr-only">
               Each column is one instructional week. Hover a column to preview it, then select it to review that week.
             </caption>
@@ -190,7 +226,21 @@ export function SemesterGrid({
                   const headerLabel = week.isBreak ? "Break" : isCurrent ? "Now" : String(week.weekNumber)
                   const dateRange = `${formatDayMonth(week.startDate)}–${formatDayMonth(week.endDate)}`
                   return (
-                    <th key={week.weekNumber} scope="col" className="p-0">
+                    <th
+                      key={week.weekNumber}
+                      scope="col"
+                      data-week={week.weekNumber}
+                      className={cn(
+                        "rounded-t-md px-[2.5px] py-0.5 transition-colors",
+                        week.isSelectable && "cursor-pointer",
+                        columnBackground(week, currentWeek, hoveredWeek, selectedWeek),
+                      )}
+                      onClick={() => {
+                        if (week.isSelectable) onSelect(week.weekNumber)
+                      }}
+                      onMouseEnter={() => setHoveredWeek(week.weekNumber)}
+                      onMouseLeave={() => setHoveredWeek(null)}
+                    >
                       <Button variant="ghost"
                         type="button"
                         disabled={!week.isSelectable}
@@ -198,9 +248,6 @@ export function SemesterGrid({
                         aria-current={isCurrent ? "true" : undefined}
                         aria-label={`Week ${week.weekNumber}, ${dateRange}${isCurrent ? ", current week" : ""}`}
                         title={`Week ${week.weekNumber} · ${dateRange}`}
-                        onClick={() => onSelect(week.weekNumber)}
-                        onMouseEnter={() => setHoveredWeek(week.weekNumber)}
-                        onMouseLeave={() => setHoveredWeek(null)}
                         onFocus={() => setHoveredWeek(week.weekNumber)}
                         onBlur={() => setHoveredWeek(null)}
                         className={cn(
@@ -238,38 +285,57 @@ export function SemesterGrid({
                     const isSelected = selectedWeek === week.weekNumber
                     const isCurrent = currentWeek === week.weekNumber
                     const isHovered = hoveredWeek === week.weekNumber && week.isSelectable
+                    const tierUi = cell.tier ? TIER_UI[cell.tier] : null
+                    const TierIcon = tierUi?.Icon ?? null
                     return (
                       <td
                         key={week.weekNumber}
                         data-week={week.weekNumber}
                         className={cn(
-                          "p-0 align-middle transition-colors",
+                          "px-[2.5px] py-[3px] align-middle transition-colors",
+                          !cell.disabled && week.isSelectable && "cursor-pointer",
+                          row.id === "tutoring" && "rounded-b-md",
                           columnBackground(week, currentWeek, hoveredWeek, selectedWeek),
                         )}
+                        onClick={() => {
+                          if (!cell.disabled && week.isSelectable) onSelect(week.weekNumber)
+                        }}
                         onMouseEnter={() => setHoveredWeek(week.weekNumber)}
                         onMouseLeave={() => setHoveredWeek(null)}
                       >
                         <Button variant="ghost"
                           type="button"
-                          disabled={cell.disabled}
-                          tabIndex={-1}
+                          disabled={cell.disabled || !week.isSelectable}
                           aria-pressed={isSelected}
                           aria-label={description}
                           title={description}
-                          onClick={() => onSelect(week.weekNumber)}
+                          data-tier={cell.tier ?? undefined}
+                          style={{ backgroundColor: tierUi ? undefined : TONE_BACKGROUNDS[cell.tone] }}
                           onFocus={() => setHoveredWeek(week.weekNumber)}
                           onBlur={() => setHoveredWeek(null)}
                           className={cn(
-                            "flex h-8 w-full items-center justify-center rounded-md border px-0 text-xs font-semibold leading-none tabular-nums transition-colors disabled:opacity-100 motion-reduce:transition-none",
+                            "relative flex h-8 w-full items-center justify-center rounded-md border px-0 text-xs font-semibold leading-none tabular-nums transition-colors disabled:opacity-100 motion-reduce:transition-none",
                             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                            TONE_CLASSES[cell.tone],
-                            cell.disabled ? "cursor-default" : "cursor-pointer",
-                            isSelected && "ring-1 ring-inset ring-primary/40",
-                            isCurrent && !isSelected && "ring-1 ring-inset ring-info/30",
+                            tierUi ? tierUi.cell : TONE_CLASSES[cell.tone],
+                            cell.disabled || !week.isSelectable ? "cursor-default" : "cursor-pointer",
+                            isSelected && (!isCurrent || !tierUi) && "ring-1 ring-inset ring-primary/40",
+                            isCurrent && (tierUi
+                              ? "ring-2 ring-info ring-offset-2 ring-offset-transparent"
+                              : !isSelected && "ring-1 ring-inset ring-info/30"),
                             isHovered && !isSelected && !isCurrent && "ring-1 ring-inset ring-foreground/15",
                           )}
                         >
-                          {cell.text}
+                          {isHovered && (
+                            <span aria-hidden className="pointer-events-none absolute inset-0 rounded-[inherit] bg-foreground/[0.06]" />
+                          )}
+                          {TierIcon ? (
+                            <span className="relative z-10 inline-flex min-w-0 items-center justify-center gap-0.5">
+                              <TierIcon className="size-3 shrink-0" aria-hidden />
+                              <span className="truncate text-[11px]">{cell.text}</span>
+                            </span>
+                          ) : (
+                            cell.text
+                          )}
                         </Button>
                       </td>
                     )

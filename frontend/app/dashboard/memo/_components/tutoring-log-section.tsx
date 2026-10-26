@@ -22,7 +22,7 @@ const sessionColumns: DataTableColumn<TutoringLogRow>[] = [
     cellClassName: "font-medium",
     sortable: true,
     renderCell: (row) => (
-      <ScholarNameLink scholarId={row.scholarId} isMentee={row.isMentee}>
+      <ScholarNameLink scholarId={row.scholarId} isMentee={row.isMentee} cohort={row.cohort}>
         {row.scholarName}
       </ScholarNameLink>
     ),

@@ -23,8 +23,17 @@ vi.mock("./mentee-review.module.css", () => ({
   default: { details: "details", requirements: "requirements", grades: "grades" },
 }))
 
+import { applyWeekTiers } from "@/lib/tiers"
 import { MenteeMonitoringClient } from "./mentee-monitoring-client"
 import styles from "./mentee-review.module.css"
+import { TIER_UI } from "./tier-badge"
+import tierStyles from "./tier-styles.module.css"
+
+vi.mock("./tier-styles.module.css", () => ({ default: {
+  palette: "tier-palette", rare: "tier-rare", epic: "tier-epic", legendary: "tier-legendary",
+  pill: "tier-pill", cell: "tier-cell", card: "tier-card", text: "tier-text",
+  bar: "tier-bar", sheen: "tier-sheen", legendaryHours: "tier-legendary-hours",
+} }))
 import type {
   HourWeekSummary,
   MenteeReview,
@@ -108,7 +117,7 @@ function ok<T>(data: T): SectionResult<T> {
 function makeReview(overrides: Partial<MenteeReview> = {}): MenteeReview {
   return {
     asOf: AS_OF,
-    mentee: { uid: UID, fullName: "Test Mentee", email: "test@umd.edu" },
+    mentee: { uid: UID, fullName: "Test Mentee", email: "test@umd.edu", cohort: 2026 },
     calendar: {
       semesterId: "1",
       semesterStart: "2026-08-31T04:00:00.000Z",
@@ -206,7 +215,7 @@ describe("MenteeMonitoringClient", () => {
     expect(group.className).toContain(styles.requirements)
     expect(screen.getByRole("complementary", { name: "Recent grades" }).parentElement).toBe(group.parentElement)
 
-    // Grades come from the latest submission, not the selected week's review.
+    // Recent grades are independent of the selected week's review.
     expect(screen.getByText("Recent grades")).toBeTruthy()
     expect(screen.getByText("CMSC420")).toBeTruthy()
   })
@@ -217,6 +226,35 @@ describe("MenteeMonitoringClient", () => {
     fireEvent.click(screen.getByRole("button", { name: /^Front desk: week 1,/ }))
 
     expect(mocks.routerPush).toHaveBeenCalledWith(`/dashboard/mentee?week=1&uid=${UID}`)
+    expect(mocks.routerPush).toHaveBeenCalledTimes(1)
+  })
+
+  it("exposes every available grid cell as a keyboard-operable, labelled button", () => {
+    render(<MenteeMonitoringClient {...makeProps()} />)
+
+    const cell = screen.getByRole("button", { name: /^Front desk: week 1,/ }) as HTMLButtonElement
+    expect(cell.tabIndex).toBe(0)
+    expect(cell.getAttribute("title")).toContain("Front desk: week 1")
+
+    cell.focus()
+    expect(document.activeElement).toBe(cell)
+    fireEvent.click(cell)
+    expect(mocks.routerPush).toHaveBeenCalledWith(`/dashboard/mentee?week=1&uid=${UID}`)
+  })
+
+  it("keeps Fill MCF as an outline action", () => {
+    render(<MenteeMonitoringClient {...makeProps()} />)
+
+    const fill = screen.getByRole("button", { name: "Fill MCF" })
+    expect(fill.className.split(/\s+/)).not.toContain("bg-primary")
+  })
+
+  it("pairs status colors with words for WAHF and tutoring", () => {
+    render(<MenteeMonitoringClient {...makeProps()} />)
+
+    const requirements = within(screen.getByRole("group", { name: "Weekly requirements" }))
+    expect(requirements.getByText("Submitted")).toBeTruthy()
+    expect(requirements.getByText("Attended")).toBeTruthy()
   })
 
   it("renders the directory detail view without the switcher or MCF bar", () => {
@@ -250,16 +288,69 @@ describe("MenteeMonitoringClient", () => {
     expect(mocks.routerPush).toHaveBeenCalledWith(`/dashboard/directory/${UID}?week=1`)
   })
 
+  it("keeps the cohort query when navigating weeks on the directory path", () => {
+    render(
+      <MenteeMonitoringClient
+        {...makeProps({ detailPath: `/dashboard/directory/${UID}?cohort=2025` })}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: /^Front desk: week 1,/ }))
+
+    expect(mocks.routerPush).toHaveBeenCalledWith(
+      `/dashboard/directory/${UID}?cohort=2025&week=1`,
+    )
+  })
+
   it("highlights the whole week column on hover", () => {
     const { container } = render(<MenteeMonitoringClient {...makeProps()} />)
     const cells = Array.from(container.querySelectorAll('td[data-week="1"]'))
     expect(cells).toHaveLength(4)
 
     fireEvent.mouseEnter(cells[0]!)
-    cells.forEach((cell) => expect(cell.className).toContain("bg-muted/40"))
+    cells.forEach((cell) => expect(cell.className.split(/\s+/)).toContain("bg-muted"))
+    const header = screen.getByRole("button", { name: "Week 1, Aug 31–Sep 6" }).closest("th")!
+    expect(header.className.split(/\s+/)).toContain("bg-muted")
 
     fireEvent.mouseLeave(cells[0]!)
-    cells.forEach((cell) => expect(cell.className).not.toContain("bg-muted/40"))
+    cells.forEach((cell) => expect(cell.className.split(/\s+/)).not.toContain("bg-muted"))
+  })
+
+  it("keeps the visual gaps inside clickable column padding", () => {
+    const { container } = render(<MenteeMonitoringClient {...makeProps()} />)
+    const table = screen.getByRole("table")
+    expect(table.className).toContain("border-spacing-0")
+
+    const cells = Array.from(container.querySelectorAll('td[data-week="1"]'))
+    for (const cell of cells) {
+      expect(cell.className).toContain("py-[3px]")
+      fireEvent.click(cell)
+    }
+    fireEvent.click(container.querySelector('th[data-week="1"]')!)
+    expect(mocks.routerPush).toHaveBeenCalledTimes(5)
+    expect(mocks.routerPush).toHaveBeenLastCalledWith(`/dashboard/mentee?week=1&uid=${UID}`)
+  })
+
+  it("highlights the full column when hovering its header or focusing a cell", () => {
+    const { container } = render(<MenteeMonitoringClient {...makeProps()} />)
+    const header = container.querySelector('th[data-week="1"]')!
+    const cells = Array.from(container.querySelectorAll('td[data-week="1"]'))
+    fireEvent.mouseEnter(header)
+    cells.forEach((cell) => expect(cell.className.split(/\s+/)).toContain("bg-muted"))
+    fireEvent.mouseLeave(header)
+    fireEvent.focus(cells[2]!.querySelector("button")!)
+    cells.forEach((cell) => expect(cell.className.split(/\s+/)).toContain("bg-muted"))
+    fireEvent.blur(cells[2]!.querySelector("button")!)
+    cells.forEach((cell) => expect(cell.className.split(/\s+/)).not.toContain("bg-muted"))
+  })
+
+  it("also emphasizes the selected column on hover", () => {
+    const { container } = render(<MenteeMonitoringClient {...makeProps()} />)
+    const cells = Array.from(container.querySelectorAll('td[data-week="2"]'))
+    fireEvent.mouseEnter(cells[0]!)
+    cells.forEach((cell) => expect(cell.className).toContain("bg-primary/[0.12]"))
+    fireEvent.mouseLeave(cells[0]!)
+    cells.forEach((cell) => expect(cell.className).toContain("bg-primary/[0.07]"))
   })
 
   it("marks the current week column when another week is selected", () => {
@@ -280,8 +371,88 @@ describe("MenteeMonitoringClient", () => {
     render(<MenteeMonitoringClient {...makeProps()} />)
 
     const frontDeskCell = screen.getByRole("button", { name: /^Front desk: week 1,/ })
-    expect(frontDeskCell.className).toContain("bg-success-muted")
+    expect(frontDeskCell.className).toContain("bg-success/20")
     expect(frontDeskCell.className).toContain("text-success-muted-foreground")
+  })
+
+  it("colors the current week by band instead of leaving pending cells blank", () => {
+    const review = makeReview({
+      semesterGrid: ok([
+        weekSummary(1, { phase: "past" }),
+        weekSummary(2, {
+          hours: [
+            hours("front_desk", { percent: 70, band: "orange", pending: true }),
+            hours("study_session", { percent: 70, band: "orange", pending: true }),
+          ],
+        }),
+        weekSummary(3, { phase: "future" }),
+      ]),
+    })
+    render(<MenteeMonitoringClient {...makeProps({ review })} />)
+
+    const frontDeskCell = screen.getByRole("button", { name: /^Front desk: week 2,/ })
+    expect(frontDeskCell.className).toContain("bg-warning/25")
+    expect(frontDeskCell.className).not.toContain("bg-card")
+  })
+
+  it("applies a week tier to both hourly grid cells and the detail cards", () => {
+    const tieredHours = [
+      hours("front_desk", { loggedMinutes: 330, targetMinutes: 300, percent: 110 }),
+      hours("study_session", { loggedMinutes: 330, targetMinutes: 300, percent: 110 }),
+    ]
+    const review = applyWeekTiers(
+      makeReview({
+        semesterGrid: ok([
+          weekSummary(1, { phase: "past" }),
+          weekSummary(2, { hours: tieredHours }),
+          weekSummary(3, { phase: "future" }),
+        ]),
+        selectedWeekReview: ok<WeekReviewSummary | null>(weekSummary(2, { hours: tieredHours })),
+      }),
+    )
+    render(<MenteeMonitoringClient {...makeProps({ review })} />)
+
+    const frontDesk = screen.getByRole("button", { name: /^Front desk: week 2,.*Rare tier/ })
+    const study = screen.getByRole("button", { name: /^Study: week 2,.*Rare tier/ })
+    expect(frontDesk.getAttribute("data-tier")).toBe("rare")
+    expect(study.getAttribute("data-tier")).toBe("rare")
+    expect(frontDesk.className).toContain(TIER_UI.rare.cell)
+    expect(study.className).toContain(TIER_UI.rare.cell)
+
+    const wahf = screen.getByRole("button", { name: /^WAHF: week 2,/ })
+    expect(wahf.getAttribute("data-tier")).toBeNull()
+    expect((wahf as HTMLElement).style.backgroundColor).toBe("var(--success-muted)")
+
+    const requirements = screen.getByRole("group", { name: "Weekly requirements" })
+    expect(within(requirements).getAllByText("Rare")).toHaveLength(2)
+  })
+
+  it("keeps the blue current-week ring outside a legendary tier cell", () => {
+    const legendaryHours = [
+      hours("front_desk", { loggedMinutes: 390, targetMinutes: 300, percent: 130 }),
+      hours("study_session", { loggedMinutes: 390, targetMinutes: 300, percent: 130 }),
+    ]
+    const review = applyWeekTiers(
+      makeReview({
+        selectedWeek: 1,
+        semesterGrid: ok([
+          weekSummary(1, { phase: "past" }),
+          weekSummary(2, { hours: legendaryHours }),
+          weekSummary(3, { phase: "future" }),
+        ]),
+        selectedWeekReview: ok<WeekReviewSummary | null>(weekSummary(1, { phase: "past" })),
+      }),
+    )
+    render(
+      <MenteeMonitoringClient {...makeProps({ review, selectedWeek: 1 })} />,
+    )
+
+    const frontDesk = screen.getByRole("button", { name: /^Front desk: week 2,.*Legendary tier/ })
+    expect(frontDesk.getAttribute("data-tier")).toBe("legendary")
+    expect(frontDesk.className).toContain("ring-2")
+    expect(frontDesk.className).toContain("ring-info")
+    expect(frontDesk.className).toContain("ring-offset-2")
+    expect(frontDesk.className).toContain(tierStyles.sheen)
   })
 
   it("colors orange hour cells for weeks between 60% and 90%", () => {
@@ -301,8 +472,53 @@ describe("MenteeMonitoringClient", () => {
     render(<MenteeMonitoringClient {...makeProps({ review })} />)
 
     const frontDeskCell = screen.getByRole("button", { name: /^Front desk: week 1,/ })
-    expect(frontDeskCell.className).toContain("bg-warning-muted")
+    expect(frontDeskCell.className).toContain("bg-warning/25")
     expect(frontDeskCell.className).toContain("text-warning-muted-foreground")
+    expect((frontDeskCell as HTMLElement).style.backgroundColor).toBe("var(--warning-muted)")
+  })
+
+  it("hides unachieved tier tags and the no-show legend and uses a short low-completion label", () => {
+    render(<MenteeMonitoringClient {...makeProps()} />)
+
+    const legend = screen.getByTestId("semester-legend")
+    expect(legend.querySelector("[data-tier]")).toBeNull()
+    expect(within(legend).queryByText(/no-show/)).toBeNull()
+    expect(within(legend).getByText("<60% / missed")).toBeTruthy()
+  })
+
+  it.each(["rare", "epic", "legendary"] as const)("shows only the achieved %s tier in the legend", (achievedTier) => {
+    const review = makeReview({ semesterGrid: ok([
+      weekSummary(1, { phase: "past", tier: achievedTier }),
+      weekSummary(2),
+      weekSummary(3, { phase: "future" }),
+    ]) })
+    render(<MenteeMonitoringClient {...makeProps({ review })} />)
+
+    const legend = screen.getByTestId("semester-legend")
+    for (const tier of ["rare", "epic", "legendary"] as const) {
+      const tag = legend.querySelector(`[data-tier="${tier}"]`)
+      if (tier !== achievedTier) {
+        expect(tag).toBeNull()
+        continue
+      }
+      expect(tag).toBeTruthy()
+      expect(tag?.className).toContain(TIER_UI[tier].pill)
+    }
+  })
+
+  it("does not count future or break cells as achieved tiers", () => {
+    const review = makeReview({
+      calendar: { ...makeReview().calendar, weeks: [
+        ...WEEKS, weekDescriptor(4, { isBreak: true, isSelectable: false }),
+      ] },
+      semesterGrid: ok([
+        weekSummary(1), weekSummary(2),
+        weekSummary(3, { phase: "future", tier: "epic" }),
+        weekSummary(4, { tier: "legendary" }),
+      ]),
+    })
+    render(<MenteeMonitoringClient {...makeProps({ review })} />)
+    expect(screen.getByTestId("semester-legend").querySelector("[data-tier]")).toBeNull()
   })
 
   it("keeps future week cells non-actionable", () => {
@@ -312,6 +528,32 @@ describe("MenteeMonitoringClient", () => {
     const futureHeader = screen.getByRole("button", { name: "Week 3, Sep 7–Sep 13" })
     expect((futureCell as HTMLButtonElement).disabled).toBe(true)
     expect((futureHeader as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(futureCell.closest("td")!)
+    fireEvent.click(futureHeader.closest("th")!)
+    expect(mocks.routerPush).not.toHaveBeenCalled()
+  })
+
+  it("removes hourly email actions without removing the overdue WAHF email", () => {
+    const summary = weekSummary(1, {
+      phase: "past",
+      hours: [
+        hours("front_desk", { percent: 20, band: "red" }),
+        hours("study_session", { percent: 20, band: "red" }),
+      ],
+      wahf: { status: "missing", dueAt: "2026-09-04T03:59:59.999Z", submittedAt: null, onTime: null, submissionId: null },
+    })
+    render(<MenteeMonitoringClient {...makeProps({
+      selectedWeek: 1,
+      review: makeReview({ selectedWeek: 1, selectedWeekReview: ok(summary) }),
+    })} />)
+
+    const group = screen.getByRole("group", { name: "Weekly requirements" })
+    const links = within(group).getAllByRole("link")
+    expect(links).toHaveLength(1)
+    expect(decodeURIComponent(links[0]!.getAttribute("href")!)).toContain("WAHF")
+    for (const title of ["Front desk", "Study sessions"]) {
+      expect(within(group).getByText(title).closest('[data-slot="card"]')!.querySelector("a")).toBeNull()
+    }
   })
 
   it("retains the selected week when switching mentees", () => {

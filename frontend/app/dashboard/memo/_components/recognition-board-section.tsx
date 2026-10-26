@@ -37,7 +37,7 @@ function RecognitionBand({ band }: { band: RecognitionBoardBand }) {
             >
               <span className="truncate">
                 <span className="font-semibold">
-                  <ScholarNameLink scholarId={entry.scholarId} isMentee={entry.isMentee}>
+                  <ScholarNameLink scholarId={entry.scholarId} isMentee={entry.isMentee} cohort={entry.cohort}>
                     {entry.scholarName}
                   </ScholarNameLink>
                 </span>

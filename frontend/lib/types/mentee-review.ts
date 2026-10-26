@@ -17,6 +17,8 @@ export type ShiftStatus =
   /** Would be a no-show but the day has open/unmatched evidence; never a confirmed miss. */
   | "unconfirmed";
 export type WeekPhase = "current" | "past" | "future";
+/** Display-only completion tier for a week where both hourly requirements are over the cutoff. */
+export type WeekTier = "rare" | "epic" | "legendary";
 export type WahfStatus = "pending" | "submitted" | "missing" | "unknown";
 export type TutoringStatus = "recorded" | "none" | "unknown";
 export type GradesStatus = "grades" | "empty" | "error";
@@ -93,6 +95,8 @@ export interface WeekReviewSummary {
   weekStart: string;
   weekEnd: string;
   phase: WeekPhase;
+  /** Derived in the page data path by `applyWeekTiers`; never sent by the API. */
+  tier?: WeekTier | null;
   /** [front_desk, study_session] in stable order. */
   hours: HourWeekSummary[];
   wahf: WahfWeekSummary;
@@ -106,6 +110,9 @@ export interface GradeComparison {
 }
 
 export interface LatestGradeEntry {
+  /** Always emitted by the evaluator; optional for legacy single-submission DTOs. */
+  submissionId?: string;
+  submittedAt?: string;
   course: string;
   assessment: string;
   rawGrade: string;
@@ -117,8 +124,10 @@ export interface LatestGradeEntry {
 
 export interface LatestGradesSummary {
   status: GradesStatus;
+  /** Latest submission within the recent window, including one with no grades. */
   submissionId: string | null;
   submittedAt: string | null;
+  /** All recent entries, newest submission first and observed order within each. */
   entries: LatestGradeEntry[];
 }
 
@@ -147,6 +156,11 @@ export interface MenteeReviewIdentity {
   fullName: string;
   /** Roster contact for follow-up drafts; null disables launch. */
   email: string | null;
+  /**
+   * Optional entering cohort year. The current frontend-only tier path uses
+   * freshman cutoffs when this is absent, so no backend field is required yet.
+   */
+  cohort?: number | null;
 }
 
 /** Output DTO for the meeting preference (normalized HH:MM). */

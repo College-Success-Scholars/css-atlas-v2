@@ -126,7 +126,7 @@ export interface GradeSubmissionInput {
 }
 
 export interface GradesEvidenceInput {
-  /** False when the latest-submission read failed; status becomes "error". */
+  /** False when the submission-history read failed; status becomes "error". */
   available: boolean;
   submissions: GradeSubmissionInput[];
 }
@@ -231,6 +231,9 @@ export interface GradeComparison {
 }
 
 export interface LatestGradeEntry {
+  /** Always emitted by the evaluator; optional for legacy single-submission DTOs. */
+  submissionId?: string;
+  submittedAt?: Date;
   course: string;
   assessment: string;
   rawGrade: string;
@@ -244,8 +247,10 @@ export interface LatestGradeEntry {
 
 export interface LatestGradesSummary {
   status: GradesStatus;
+  /** Latest submission within the recent window, including one with no grades. */
   submissionId: string | null;
   submittedAt: Date | null;
+  /** All recent entries, newest submission first and observed order within each. */
   entries: LatestGradeEntry[];
 }
 
@@ -316,7 +321,7 @@ export interface MenteeReview {
   semesterGrid: SectionResult<WeekReviewSummary[]>;
   /** The selected week's shared summary consumed by the four cards. */
   selectedWeekReview: SectionResult<WeekReviewSummary | null>;
-  /** Independently scoped latest grades (not tied to the selected week). */
+  /** This and last Eastern calendar week's grades, independent of the selected week. */
   latestGrades: SectionResult<LatestGradesSummary>;
   /** The signed-in TL's own weekday/time for this pair (independent of the selected week). */
   meetingPreference: SectionResult<MeetingPreferenceOutput | null>;

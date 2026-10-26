@@ -67,7 +67,7 @@ export function ScholarFollowUpTable({ rows }: ScholarFollowUpTableProps) {
             <TableRow key={row.scholarName}>
               <TableCell className="px-4 align-top">
                 <div className="font-medium">
-                  <ScholarNameLink scholarId={row.scholarId} isMentee={row.isMentee}>
+                  <ScholarNameLink scholarId={row.scholarId} isMentee={row.isMentee} cohort={row.cohort}>
                     {row.scholarName}
                   </ScholarNameLink>
                 </div>

@@ -80,6 +80,80 @@ All routes under `/api/auth` require **requireAuth**.
 
 ---
 
+### `GET /api/auth/mentees/:uid/review?week=<n>`
+
+**Auth:** requireAuth (assigned team leader, plus existing higher-role mentee-page access; assignment and role are rechecked in the service and by RLS)
+**Description:** Composes the full weekly review for one mentee from real records: semester calendar, semester week grid, selected-week requirement summaries, grades from all WAHF submissions in the current and previous Eastern Monday–Sunday calendar weeks through `asOf`, and the caller's own meeting preference. Recent grades are independent of the selected review week; older submissions are used only for grade comparisons. The current campus week is the default. Future weeks are rejected. Sections are independently recoverable: a failed source returns a section error instead of empty data, while the rest of the review still renders. Authorization is never downgraded to a partial success.
+**Query:**
+- `week` (integer, optional) — actual campus week number to review; must be `<=` the current campus week.
+**Response:** `200`
+```json
+{
+  "data": {
+    "asOf": "ISO instant",
+    "mentee": { "uid": "string", "fullName": "string", "email": "string | null" },
+    "calendar": { "semesterId": "string | null", "semesterStart": "ISO | null", "semesterEnd": "ISO | null", "currentWeek": 3, "weeks": [ /* WeekDescriptor */ ], "noActiveWeek": false },
+    "currentWeek": 3,
+    "selectedWeek": 3,
+    "semesterGrid": { "ok": true, "data": [ /* WeekReviewSummary */ ], "loadedAt": "ISO instant" },
+    "selectedWeekReview": { "ok": true, "data": { /* WeekReviewSummary */ }, "loadedAt": "ISO instant" },
+    "latestGrades": { "ok": true, "data": { /* LatestGradesSummary */ }, "loadedAt": "ISO instant" },
+    "meetingPreference": { "ok": true, "data": { "weekday": 3, "meetingTime": "15:00" }, "loadedAt": "ISO instant" }
+  }
+}
+```
+Each `${section}` uses `{ ok: true, data, loadedAt }` or `{ ok: false, error: { code, message, retriable } }`. `meetingPreference.data` is `null` when the caller has not set one for this pair.
+
+**Week/time semantics:** weeks are program-local Monday 00:00 through the next Monday 00:00 (Eastern), displayed Monday–Sunday. Percent bands are green `>=90%`, orange `60–<90%`, red `<60%`, computed from unrounded minutes. `•` on a grid hour cell means at least one independent no-show, not a low-hours state. Tutoring reflects recorded attendance only; request/upcoming/missed states are deferred.
+
+**Errors:** `400` invalid or future `week`; `404` mentee not found or not visible to the caller (non-enumerating); `401` no auth.
+
+---
+
+### `GET /api/auth/mentees/:uid/directory-review?week=<n>`
+
+**Auth:** requireTeamLeaderRole
+**Description:** Team-leader+ read used by the directory scholar detail page. Returns the same review DTO for any scholar with a `mentor_mentee` assignment, not only the caller's own mentees. Read-only: it never grants another TL's preference write access. Current-week default, future-week rejection, and section envelopes match `/review`.
+**Errors:** `400` invalid or future `week`; `404` mentee not found; `401` no auth.
+
+---
+
+### `PUT /api/auth/mentees/:uid/meeting-preference`
+
+**Auth:** requireAuth; requires an active `mentor_mentee` pairing and team-leader-or-above role. The owner is the authenticated profile id, never a request-body id, so an administrator cannot overwrite another TL's setting.
+**Description:** Atomically upserts the caller's optional weekday/time for this TL–mentee pair. Both fields are required; a failed save preserves the previous value. The setting affects no other pairing and does not attest that a meeting occurred.
+**Request Body:**
+```json
+{ "weekday": 3, "meetingTime": "15:00" }
+```
+`weekday` is ISO 1–7; `meetingTime` is program-local 24-hour `HH:MM` (minute precision).
+**Response:** `200`
+```json
+{ "data": { "weekday": 3, "meetingTime": "15:00" } }
+```
+**Errors:** `400` invalid weekday/time; `403` not assigned to this mentee; `500` save failure; `401` no auth.
+
+---
+
+### `GET /api/auth/mentees/:uid/mcf-prefill`
+
+**Auth:** requireAuth (assigned pair)
+**Description:** Builds a fresh, click-time prefill URL for the **current** program-local week, using newly read attendance, WAHF, and tutoring evidence plus the caller's saved meeting preference. The page never submits the form and never accepts a browser-supplied form host or entry map. If a required source read fails, prefill is blocked rather than turned into a fabricated `No`. Response is private and must not be cached.
+**Response headers:** `Cache-Control: private, no-store`
+**Response:** `200`
+```json
+{
+  "data": {
+    "url": "https://docs.google.com/forms/.../viewform?usp=pp_url&entry....",
+    "weekStart": "YYYY-MM-DD",
+    "generatedAt": "ISO instant"
+  }
+}
+```
+**Errors:** `404` mentee not found; `409` caller's roster UID is unavailable; `503` required source read failed; `401` no auth. Do not log the generated URL; it contains personal data.
+
+---
+
 ### `GET /api/auth/semester`
 
 **Auth:** requireAuth

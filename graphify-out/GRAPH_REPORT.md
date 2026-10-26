@@ -1,16 +1,16 @@
-# Graph Report - css-atlas-v2  (2026-10-23)
+# Graph Report - css-atlas-v2  (2026-10-25)
 
 ## Corpus Check
-- 700 files · ~617,247 words
+- 710 files · ~625,124 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 4010 nodes · 8761 edges · 303 communities (244 shown, 59 thin omitted)
-- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 94 edges (avg confidence: 0.75)
+- 4056 nodes · 8891 edges · 302 communities (242 shown, 60 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 104 edges (avg confidence: 0.76)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `29f18229`
+- Built from commit: `68c4535c`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -83,7 +83,7 @@
 - Backend Layered Architecture Docs
 - General Sign-Up Flow Docs
 - Auth/RLS Runbook & Roles Docs
-- Frontend Lib/Supabase READMEs
+- missed-session.template.ts
 - Weekly Memo Mock Data & Types
 - Session Log Types
 - Frontend package.json Scripts
@@ -136,13 +136,13 @@
 - Supabase CLI Migrations Docs
 - settings-client.tsx
 - shift-occurrence.service.ts
-- Frontend ESLint Config
+- tutoring-log-section.tsx
 - Issue Tracker Config Docs
 - team-leader-performance-table.tsx
 - sheet.tsx
 - Scripts README
 - API Contract Normalization Agent Log
-- CODEOWNERS Branching Policy Agent Logs
+- mentee-monitoring-client.test.tsx
 - Docs Site Generation Agent Log
 - Complete Profile Form Fix Agent Log
 - Empty Route API Pages Agent Log
@@ -191,7 +191,7 @@
 - Orphaned Starter File: Next Logo
 - Orphaned Starter File: Supabase Logo
 - Dev Effective UID Util
-- Server Data Scholar UID Helper
+- mock-user-roster.ts
 - Frontend Time Type
 - File Icon Asset
 - Globe Icon Asset
@@ -288,7 +288,7 @@
 - scholar-schedule-cli
 - full-attendance-detail-section.tsx
 - Slack Sign-In Notifications
-- weekly-memo-export-button.tsx
+- weekly-kpi-cards.tsx
 - getWeeklyMemoPdf
 - isUmdEmail
 - PersonalClient
@@ -296,23 +296,21 @@
 - remove-scholar.sh script
 - update-scholar-schedule.sh script
 - route.test.ts
-- @radix-ui/react-avatar
 - sort
 - plugin
 - TRAFFIC_MAX_STAY_MINUTES
 - API Contract Normalization
-- page.tsx
+- backendPut
 - reject-writes-when-acting.ts
-- progress-cell.tsx
-- Test persona acting-as mechanism
-- filterRoomScholarsByName
-- tutoring-card.tsx
-- getWeeklyMemoPdf
+- getTeamLeaderOrAboveUser
 - date-fns
+- API Contract Normalization
+- getWeeklyMemoPdf
+- layout.tsx
 
 ## God Nodes (most connected - your core abstractions)
-1. `cn()` - 172 edges
-2. `react` - 92 edges
+1. `cn()` - 174 edges
+2. `react` - 93 edges
 3. `getSupabaseClient()` - 72 edges
 4. `Card()` - 63 edges
 5. `CardContent()` - 59 edges
@@ -329,10 +327,10 @@
   docs/agents/logs/2026-07-11T072147Z-frontend-component-reorganization.md → frontend/components/mentee-monitoring/wahf-card.tsx
 - `tl-pages-effective-role-redirect (agent log)` --references--> `canAccessWeeklyMemo()`  [AMBIGUOUS]
   docs/agents/logs/2026-07-14T231614Z-tl-pages-effective-role-redirect.md → frontend/lib/auth.ts
+- `tl-pages-effective-role-redirect (agent log)` --references--> `getTeamLeaderOrAboveUser()`  [AMBIGUOUS]
+  docs/agents/logs/2026-07-14T231614Z-tl-pages-effective-role-redirect.md → frontend/lib/supabase/server.ts
 - `tl-pages-effective-role-redirect (agent log)` --references--> `requireTeamLeaderOrAbove()`  [AMBIGUOUS]
   docs/agents/logs/2026-07-14T231614Z-tl-pages-effective-role-redirect.md → frontend/lib/supabase/server.ts
-- `Campus Week` --semantically_similar_to--> `Campus time (lib/time) semantics`  [INFERRED] [semantically similar]
-  docs/agents/ubiquitous_language.md → frontend/legacy/lib/time/README.md
 
 ## Import Cycles
 - None detected.
@@ -360,11 +358,11 @@
 - **Architecture-alert issue-tracking script flow** — docs_dev_scripts_readme_alert_sh, docs_dev_scripts_readme_resolve_alert_sh, docs_dev_scripts_readme_ensure_issue_labels_sh, docs_dev_scripts_readme_migrate_alerts_to_issues_sh [EXTRACTED 1.00]
 - **PR review process (branch policy + template + walkthrough)** — docs_dev_onboarding_branching_and_reviews, docs_dev_pr_template, docs_dev_onboarding_golden_path_first_pr [EXTRACTED 1.00]
 
-## Communities (303 total, 59 thin omitted)
+## Communities (302 total, 60 thin omitted)
 
 ### Community 0 - "UI Card & Badge Components"
-Cohesion: 0.11
-Nodes (28): NavSidebarIcon(), NavTeams(), Sheet(), Sidebar(), SidebarContext, SidebarContextProps, SidebarGroup(), SidebarGroupAction() (+20 more)
+Cohesion: 0.08
+Nodes (35): metadata, Home(), DevActingBanner(), DevActingBannerProps, ProfileSwitcher(), AppSidebar(), AppSidebarProps, NavMain() (+27 more)
 
 ### Community 1 - "Dashboard Memo Sub-pages"
 Cohesion: 0.06
@@ -375,44 +373,44 @@ Cohesion: 0.17
 Nodes (26): cohortBarSvg(), cohortFillWidth(), cohortHoursName(), escapeXml(), HEAT_DAYS, HEAT_PAD, heatSlotsPerDay(), hexRgb() (+18 more)
 
 ### Community 3 - "Session Record Backend"
-Cohesion: 0.08
-Nodes (45): dailyActivityByUids(), mcfByUid(), mcfByUidAndWeek(), mcfByUidAndWeekWithLate(), mcfByUids(), mcfByUidWithLate(), mcfForWeek(), mcfForWeekWithLate() (+37 more)
+Cohesion: 0.07
+Nodes (68): mcfByUid(), mcfByUidAndWeek(), mcfByUidAndWeekWithLate(), mcfByUids(), mcfByUidWithLate(), mcfForWeek(), mcfForWeekWithLate(), paramStr() (+60 more)
 
 ### Community 4 - "Session Log Backend"
-Cohesion: 0.08
-Nodes (28): Event, KPI_TRACK_COLOR, WeeklyKpiCardsProps, metadata, MARGIN, TrafficSemesterFilter, TrafficWeeklyLineChartBySemesterProps, chartData (+20 more)
+Cohesion: 0.09
+Nodes (23): Event, metadata, chartData, chartData, TutoringHoursProps, TutoringSession, CampusWeekCardProps, features (+15 more)
 
 ### Community 5 - "Dev Profile Server Data Layer"
 Cohesion: 0.06
-Nodes (31): SLOT_OPTIONS, TrafficHeatMapSection(), TrafficHeatMapSectionProps, TrafficHeatMapProps, TrafficWeeklyLineChartProps, FormCompletionOverall, CohortPieChart(), DAY_SORT_MAP (+23 more)
+Nodes (29): metadata, PageProps, CampusWeekCard(), FORM_COMPLETION_WHAF_COLOR, FormCompletionDonut(), FormCompletionOverall, FormCompletionOverviewCard(), CohortPieChart() (+21 more)
 
 ### Community 6 - "Backend package.json Deps"
-Cohesion: 0.14
-Nodes (23): WeeklyMemoHeaderShellContent(), WeeklyMemoHeaderShellProps, WeeklyMemoHeaderProps, useWeeklyMemoNav(), dayCell(), KIND_TABS, TeamsAttendanceClient(), TeamsAttendanceClientProps (+15 more)
+Cohesion: 0.15
+Nodes (14): downloadWeeklyMemoPdf(), WeeklyMemoExportButton(), WeeklyMemoExportButtonProps, weeklyMemoPdfFilename(), WeeklyMemoHeaderShellContent(), WeeklyMemoHeaderShellProps, useWeeklyMemoNav(), dayCell() (+6 more)
 
 ### Community 7 - "Form Log Backend Model/Service"
-Cohesion: 0.08
-Nodes (42): CleanedAndErroredResult, DEFAULT_SESSION_CONFIG, DoubleEntry, FrontDeskLogRow, ProcessedTicket, ScholarInRoom, ScholarShiftAssignment, ScholarShiftCompliance (+34 more)
+Cohesion: 0.09
+Nodes (39): CleanedAndErroredResult, DEFAULT_SESSION_CONFIG, DoubleEntry, FrontDeskLogRow, ProcessedTicket, ScholarInRoom, ScholarShiftAssignment, ScholarShiftCompliance (+31 more)
 
 ### Community 8 - "Memo Page & User Backend"
-Cohesion: 0.06
-Nodes (43): Settings Formatting Cleanup, AddOpportunityForm, getUniqueCompanies(), getUniqueTags(), InternshipBoardPage(), mockOpportunities, Opportunity, MemoAccordionSection() (+35 more)
+Cohesion: 0.10
+Nodes (26): MemoAccordionSection(), ScholarFollowUpTableProps, WeeklyMemoDataSkeleton(), WEEKLY_MEMO_KPI_TITLES, PANEL_ICONS, RoomScholarRow, RoomSessionPanelVariant, filterRoomScholarsByName() (+18 more)
 
 ### Community 9 - "UI Button & Form Logs Test"
 Cohesion: 0.08
-Nodes (51): EvaluateWeekInput, GradeBand, GradeComparison, GradeEntryInput, GradesEvidenceInput, GradesStatus, GradeSubmissionInput, HourBand (+43 more)
+Nodes (49): EvaluateWeekInput, GradeBand, GradeComparison, GradeEntryInput, GradesEvidenceInput, GradesStatus, GradeSubmissionInput, HourBand (+41 more)
 
 ### Community 10 - "Shared Campus Calendar/Time Utils"
 Cohesion: 0.05
 Nodes (40): Access model (for the assessment form), Controls already in place, CSS Atlas — current-state briefing and IT vetting proposal, Current product state, Data classification, Data flow, Decision we need, Gaps DIT is likely to flag (+32 more)
 
 ### Community 11 - "Landing Page & Charts"
-Cohesion: 0.08
-Nodes (44): FormLogsTestPage(), metadata, PageProps, parseWeekParam(), DevProfilesPage(), DevProfilePage(), parseWeek(), DailyActivityMinutesNote() (+36 more)
+Cohesion: 0.07
+Nodes (50): FormLogsTestPage(), parseWeekParam(), DevProfilesPage(), DevProfilePage(), parseWeek(), SessionLogsTestPage(), DailyActivityMinutesNote(), backendGet() (+42 more)
 
 ### Community 12 - "Form Log Backend Controller"
-Cohesion: 0.14
-Nodes (30): DoubleEntry, DoubleEntryOptions, getDoubleEntries(), overlapMs(), CleanedAndErroredOptions, filterBySessionType(), getCleanedAndErroredTickets(), getEasternDayKey() (+22 more)
+Cohesion: 0.13
+Nodes (31): ticket(), DoubleEntry, DoubleEntryOptions, getDoubleEntries(), overlapMs(), CleanedAndErroredOptions, filterBySessionType(), getCleanedAndErroredTickets() (+23 more)
 
 ### Community 13 - "Dashboard Nav & Sidebar Widgets"
 Cohesion: 0.06
@@ -431,12 +429,12 @@ Cohesion: 0.13
 Nodes (18): GET(), PATCH(), GET(), POST(), POST(), PATCH(), GET(), POST() (+10 more)
 
 ### Community 17 - "Frontend tsconfig"
-Cohesion: 0.17
-Nodes (21): trafficCount(), entryCount(), entryCounts(), parseWeekNum(), sessionsForWeek(), TrafficRow, TrafficSession, WeekEntryCount (+13 more)
+Cohesion: 0.18
+Nodes (21): entryCount(), entryCounts(), parseWeekNum(), sessionsForWeek(), TrafficRow, TrafficSession, WeekEntryCount, getMemoPageData() (+13 more)
 
 ### Community 18 - "Docs tsconfig"
-Cohesion: 0.17
-Nodes (30): Path, blank_to_none(), build_mcf_row(), build_wpl_row(), cells_from_row(), fetch_all(), load_mapped(), looks_like_header() (+22 more)
+Cohesion: 0.07
+Nodes (29): Settings Formatting Cleanup, WeeklyMemoHeaderProps, DirectoryPageProps, csv(), PROGRAM_ROLE_OPTIONS, RosterEditForm(), RosterEditFormProps, STATUS_OPTIONS (+21 more)
 
 ### Community 19 - "Dashboard Personal/Settings Pages"
 Cohesion: 0.07
@@ -447,24 +445,33 @@ Cohesion: 0.13
 Nodes (32): QuickStayMinutes, baseProps, TrafficCheckInForm(), TrafficCheckInFormProps, durationMinFromLeaveAt(), formatDuration(), formatEstimatedExit(), formatLeaveAtClock() (+24 more)
 
 ### Community 21 - "Legacy Campus Week Time Lib"
-Cohesion: 0.13
-Nodes (36): fetchFrontDesk(), fetchStudy(), frontDeskCleaned(), frontDeskCompleted(), frontDeskInRoom(), parseDateOrUndefined(), studyCleaned(), studyCompleted() (+28 more)
+Cohesion: 0.19
+Nodes (24): fetchFrontDesk(), fetchStudy(), frontDeskCleaned(), frontDeskCompleted(), frontDeskInRoom(), parseDateOrUndefined(), studyCleaned(), studyCompleted() (+16 more)
 
 ### Community 22 - "Dev Session Logs & Double-Entry Checker"
-Cohesion: 0.16
-Nodes (12): WeeklyMemoHeaderShell(), defaultState, WeeklyMemoNavContext, WeeklyMemoNavProvider(), WeeklyMemoNavSetterContext, WeeklyMemoNavState, WeeklyMemoNavSync(), WeeklyMemoNavSyncProps (+4 more)
+Cohesion: 0.11
+Nodes (18): freshman, {
+  mockGetWeeklyMemoPageData,
+  mockWeeklyMemoNavSync,
+  mockWeeklyKpiCards,
+  mockTeamLeaderPerformanceTable,
+  mockScholarFollowUpTable,
+  mockRecognitionBoardSection,
+  mockTutoringLogSection,
+  mockFullAttendanceDetailSection,
+}, renderAsyncContent(), sophomore, WeeklyMemoAsyncContent(), WeeklyMemoAsyncContentProps, WeeklyMemoHeaderShell(), defaultState (+10 more)
 
 ### Community 23 - "Weekly Memo Legacy Async Content"
-Cohesion: 0.16
-Nodes (23): cohortClassYearLabel(), escapeHtml(), fontFace(), isMissingBundledChrome(), launchWeeklyMemoBrowser(), PDF_BROWSER_ARGS, percentage(), renderWeeklyMemoHtml() (+15 more)
+Cohesion: 0.18
+Nodes (21): cohortClassYearLabel(), escapeHtml(), fontFace(), isMissingBundledChrome(), launchWeeklyMemoBrowser(), PDF_BROWSER_ARGS, percentage(), renderWeeklyMemoHtml() (+13 more)
 
 ### Community 24 - "Dev Auth/Profile Server Actions"
-Cohesion: 0.08
-Nodes (22): allowedOrigins, app, requireDeveloper, requireTeamLeaderOrAbove, getRequestUrl(), requestLogger(), router, router (+14 more)
+Cohesion: 0.09
+Nodes (21): allowedOrigins, app, requireAuth, requireTeamLeaderOrAbove, getRequestUrl(), requestLogger(), router, router (+13 more)
 
 ### Community 25 - "App Sidebar & Weekly Memo Access"
-Cohesion: 0.18
-Nodes (22): formatAssignmentGrades(), formatProjects(), formatStructured(), formatSubmittedAt(), McfRows(), SubmissionDetailsModal(), WhafRows(), WplRows() (+14 more)
+Cohesion: 0.12
+Nodes (25): ExcuseDialogProps, ExcuseDialogValues, formatSubmittedAt(), SubmissionDetailsModal(), McfBar(), McfBarProps, MeetingPreferenceEditor(), MeetingPreferenceEditorProps (+17 more)
 
 ### Community 26 - "Legacy Form Log Deadlines/Name Matching"
 Cohesion: 0.09
@@ -475,24 +482,24 @@ Cohesion: 0.08
 Nodes (25): class-variance-authority, clsx, d3, @date-fns/utc, dependencies, class-variance-authority, clsx, d3 (+17 more)
 
 ### Community 28 - "Mentee Monitoring Dashboard"
-Cohesion: 0.11
-Nodes (23): McfBar(), McfBarProps, MeetingPreferenceEditorProps, SemesterGridProps, formatWeekFriday(), GradeBand, GradesStatus, HourBand (+15 more)
+Cohesion: 0.17
+Nodes (30): Path, blank_to_none(), build_mcf_row(), build_wpl_row(), cells_from_row(), fetch_all(), load_mapped(), looks_like_header() (+22 more)
 
 ### Community 29 - "Backend API Docs & Codebase Notes"
 Cohesion: 0.11
-Nodes (26): MeetingPreferenceEditor(), RecentGradesCard(), addComplianceToDailyHours(), attendanceRowForKind(), campusWeekForTutoringRow(), clockStringToMinutes(), computeTutoringSessions(), computeWahfStatus() (+18 more)
+Nodes (24): RecentGradesCard(), addComplianceToDailyHours(), attendanceRowForKind(), campusWeekForTutoringRow(), clockStringToMinutes(), computeTutoringSessions(), computeWahfStatus(), dailyHoursFromAttendance() (+16 more)
 
 ### Community 30 - "Data Table Components"
-Cohesion: 0.07
-Nodes (34): DirectoryPageProps, csv(), PROGRAM_ROLE_OPTIONS, RosterEditForm(), RosterEditFormProps, STATUS_OPTIONS, metadata, ForgotPasswordForm() (+26 more)
+Cohesion: 0.12
+Nodes (25): HourSummaryCard(), HourSummaryCardProps, ATTENDED_SHIFT, TIERS, comparisonText(), SectionError(), cellFor(), CellTone (+17 more)
 
 ### Community 31 - "Traffic Check-in Form Tests"
 Cohesion: 0.13
 Nodes (21): MenteeRow, MenteeTeamLeaderRow, MenteeWithCompliance, ShiftComplianceByKind, getMenteeReviewByUid(), asMentorProfile(), displayName(), fetchMenteeTeamLeaderIndex() (+13 more)
 
 ### Community 32 - "Frontend package.json Deps (charts/date)"
-Cohesion: 0.12
-Nodes (20): FormTabBody(), McfWeekPanel(), buildMcfMenteeOptions(), computeWeekOptions(), countableMcfRequired(), countDistinctMcfMentees(), findSubmissionForCampusWeek(), findSubmissionsForCampusWeek() (+12 more)
+Cohesion: 0.09
+Nodes (30): DevTrafficPage(), metadata, PageProps, parseSlotMinutes(), SLOT_MINUTES_OPTIONS, addSessionToGrid(), aggregate(), DAYS (+22 more)
 
 ### Community 33 - "Root package.json & Scripts"
 Cohesion: 0.10
@@ -503,32 +510,32 @@ Cohesion: 0.14
 Nodes (19): APP_ROLE_ORDER re-export (user.model.ts), Resolve Auth Role Hierarchy Duplication, resolve-alert.sh script, APP_ROLE_ORDER, AppRole, canAccessRequestedScholarId(), DevTestProfileRow, getEffectiveScholarId() (+11 more)
 
 ### Community 35 - "Backend tsconfig"
-Cohesion: 0.09
-Nodes (24): authed(), buildScholarProfileInsertRow(), createProfile, getMe(), getProfile, getDirectoryMenteeReview, getMenteeMcfPrefill, getMenteeReview (+16 more)
+Cohesion: 0.11
+Nodes (19): authed(), createProfile, getMe(), getDirectoryMenteeReview, getMenteeMcfPrefill, getMenteeReview, getMentees, getMenteesWithCompliance (+11 more)
 
 ### Community 36 - "Form Submission Details Modal"
-Cohesion: 0.15
-Nodes (15): supabase-schema-drift-alert (agent log), Supabase-vs-codebase schema drift remediation plan, Deployment topology documentation (Railway/Vercel/Docker Compose), deployment-architecture-docs (agent log), nixpacks-vs-docker (agent log), Nixpacks auto-build vs explicit Dockerfile trade-off, onboarding-docs-section (agent log), New-developer onboarding guided path (+7 more)
+Cohesion: 0.14
+Nodes (16): getProfile, supabase-schema-drift-alert (agent log), Supabase-vs-codebase schema drift remediation plan, Deployment topology documentation (Railway/Vercel/Docker Compose), deployment-architecture-docs (agent log), nixpacks-vs-docker (agent log), Nixpacks auto-build vs explicit Dockerfile trade-off, onboarding-docs-section (agent log) (+8 more)
 
 ### Community 37 - "Traffic Backend Service/Controller"
-Cohesion: 0.14
-Nodes (12): TeamsPageFallback(), TeamsAttendanceView(), TeamsAttendanceViewProps, TeamsTutoringView(), PageProps, PageProps, PageProps, AttendanceForUids (+4 more)
+Cohesion: 0.12
+Nodes (16): TeamsPageFallback(), TeamsAttendanceView(), TeamsAttendanceViewProps, TeamsTutoringView(), TeamsTutoringViewProps, PageProps, PageProps, PageProps (+8 more)
 
 ### Community 38 - "Dashboard Layout & Header"
 Cohesion: 0.24
 Nodes (21): apply_profile_updates(), apply_roster_updates(), describe_roster_changes(), extra_profile_updates(), fetch_pages(), intended_assignment(), is_enrolled(), is_team_leader_for_performance() (+13 more)
 
 ### Community 39 - "Issue Tracker & Triage Docs"
-Cohesion: 0.06
-Nodes (67): allUids(), directory(), directoryFacets(), DirectoryQueryParams, eligibleScholars(), getByUid(), memoUsers(), parseDirectoryQuery() (+59 more)
+Cohesion: 0.08
+Nodes (41): DirectoryFacets, DirectoryFlatResponse, DirectoryGroup, DirectoryGroupedResponse, DirectoryPagination, DirectoryPerson, DirectoryQuery, DirectoryResponse (+33 more)
 
 ### Community 40 - "Memo Types & Tutoring Log Section"
 Cohesion: 0.10
 Nodes (20): compilerOptions, declaration, declarationMap, isolatedModules, jsx, module, moduleDetection, noUncheckedIndexedAccess (+12 more)
 
 ### Community 41 - "Weekly Memo Nav Context"
-Cohesion: 0.09
-Nodes (23): BAND_STYLE, RecognitionBand(), RecognitionBoardSection(), RecognitionBoardSectionProps, censusData, ScholarFollowUpTable(), rows, FullAttendanceDetailTab (+15 more)
+Cohesion: 0.05
+Nodes (70): formatAssignmentGrades(), formatProjects(), formatStructured(), McfRows(), WhafRows(), WplRows(), yesNoPill(), yesNoText() (+62 more)
 
 ### Community 42 - "API Client (client/server)"
 Cohesion: 0.21
@@ -539,36 +546,36 @@ Cohesion: 0.12
 Nodes (16): categorizeByGroup, entryPointStrategy, excludeExternals, excludeInternal, excludePrivate, githubPages, gitRevision, includeVersion (+8 more)
 
 ### Community 44 - "shadcn Components Config"
-Cohesion: 0.30
-Nodes (10): tl-pages-effective-role-redirect (agent log), Team-leader-only page redirect using effective auth profile, traffic-public-ungated-kiosk (agent log), /traffic as a public, ungated foot-traffic kiosk, traffic-public-docs-and-layout-test (agent log), tl-redirects-and-public-traffic-kiosk (agent log), POST(), GET() (+2 more)
+Cohesion: 0.62
+Nodes (7): tl-pages-effective-role-redirect (agent log), Team-leader-only page redirect using effective auth profile, traffic-public-ungated-kiosk (agent log), /traffic as a public, ungated foot-traffic kiosk, traffic-public-docs-and-layout-test (agent log), tl-redirects-and-public-traffic-kiosk (agent log), recordTrafficEntry()
 
 ### Community 45 - "Chart UI Components"
 Cohesion: 0.12
-Nodes (30): caughtErrorMessage(), getFormLog(), getRoster(), getTestProfile(), getTestProfiles(), optionalInt(), optionalNonNegativeInt(), optionalString() (+22 more)
+Nodes (25): caughtErrorMessage(), getFormLog(), getRoster(), getTestProfile(), getTestProfiles(), optionalInt(), optionalNonNegativeInt(), optionalString() (+17 more)
 
 ### Community 46 - "Backend Auth Controller/Routes"
-Cohesion: 0.12
-Nodes (17): getInitials(), NavUser(), ThemeToggle(), Avatar(), AvatarFallback(), AvatarImage(), DropdownMenu(), DropdownMenuCheckboxItem() (+9 more)
+Cohesion: 0.06
+Nodes (45): CompleteProfileForm(), LoginForm(), DashboardHeader(), LandingFeatureCards(), LandingHeader(), LandingHero(), AccordionContent(), AccordionItem() (+37 more)
 
 ### Community 47 - "Tutor Report Log Backend"
-Cohesion: 0.17
-Nodes (25): attended(), byUid(), byUidAndWeek(), forWeek(), paramStr(), remove(), campusWeekForTutoringRow(), deleteTutorReportLog() (+17 more)
+Cohesion: 0.14
+Nodes (29): tutorReportsByUids(), attended(), byUid(), byUidAndWeek(), forWeek(), paramStr(), remove(), TutorReportLogRow (+21 more)
 
 ### Community 48 - "Weekly Memo Assembler & Risk Classifier"
 Cohesion: 0.09
 Nodes (23): Attendance detail, Campus Week, Developer role, Flag, Form status, Form submissions, Front desk completion, KPI card (+15 more)
 
 ### Community 49 - "Dashboard Breadcrumb"
-Cohesion: 0.12
-Nodes (41): buildSections(), GroupBy, ScholarCell(), Section, SessionGroup, Status, summary(), TeamsTutoringClient() (+33 more)
+Cohesion: 0.10
+Nodes (45): buildSections(), GroupBy, ScholarCell(), Section, SessionGroup, Status, summary(), TeamsTutoringClient() (+37 more)
 
 ### Community 50 - "TypeDoc Config"
 Cohesion: 0.18
-Nodes (11): CleanedAndErroredOptions, CleanedAndErroredResult, computeOverlapMs(), DoubleEntry, getDoubleEntries(), ProcessedTicket, ScholarsInRoomOptions, SessionLogConfig (+3 more)
+Nodes (15): Frontend Dashboard Memo README, Frontend Dashboard README, buildScholarFollowUpIssues(), classifyScholarFollowUpRisk(), formatWahfSubmittedAt(), gradeGlanceLabel(), gradePct(), freshman (+7 more)
 
 ### Community 51 - "Auth/Deployment Agent Logs"
-Cohesion: 0.13
-Nodes (19): TeamLeadersTable(), displayName(), ProfilesUserTable(), statusFilterBar, CollapsibleTableSection(), DataTable(), DataTableColumn, DataTableColumnConfig (+11 more)
+Cohesion: 0.11
+Nodes (24): MemoAccordionSectionProps, RosterAccordionSectionProps, TeamLeadersTable(), displayName(), ProfilesUserTable(), statusFilterBar, CollapsibleTableSection(), DataTable() (+16 more)
 
 ### Community 52 - "Weekly Memo Week Nav & Profile Switcher"
 Cohesion: 0.15
@@ -576,7 +583,7 @@ Nodes (25): addEasternCalendarDays(), CAMPUS_WEEK, CampusWeekDateRange, campusWe
 
 ### Community 53 - "Shared tsconfig"
 Cohesion: 0.12
-Nodes (27): teamLeaderStats(), ActivityFormType, FormLogRowWithLate, McfFormLogRow, RecentFormSubmission, TeamLeaderFormStatsRow, TeamLeaderNameRecord, WplFormLogRow (+19 more)
+Nodes (31): allUids(), directory(), directoryFacets(), DirectoryQueryParams, eligibleScholars(), getByUid(), memoUsers(), parseDirectoryQuery() (+23 more)
 
 ### Community 54 - "Memo Backend Controller/Service"
 Cohesion: 0.14
@@ -595,20 +602,20 @@ Cohesion: 0.12
 Nodes (17): devDependencies, supertest, tsx, @types/cors, @types/express, @types/node, @types/supertest, typescript (+9 more)
 
 ### Community 58 - "Dev Session Records Test Page"
-Cohesion: 0.14
-Nodes (15): FollowUpReason, MenteeDetailsSkeleton(), MenteeMonitoringClient(), hours(), makeProps(), makeReview(), mocks, ok() (+7 more)
+Cohesion: 0.12
+Nodes (17): DailyWeekTile, FrontDeskChart(), FrontDeskChartProps, StudySessionChart(), StudySessionChartProps, ActivityLog(), COLOR_CONFIG, HoursCard() (+9 more)
 
 ### Community 59 - "Activity Log Client Widgets"
-Cohesion: 0.13
-Nodes (17): auth.controller.ts (POST /api/auth/profile), public.dev_test_profiles (developer persona switching), General Sign-Up Flow, Invite alternate flow (type=invite), mergeProfileWithRoster (roster backfill mechanism), Pre-provisioned users flow, Removal checklist for self-service sign-up, requireTeamLeaderOrAbove (memo access guard) (+9 more)
+Cohesion: 0.17
+Nodes (13): auth.controller.ts (POST /api/auth/profile), public.dev_test_profiles (developer persona switching), General Sign-Up Flow, Invite alternate flow (type=invite), mergeProfileWithRoster (roster backfill mechanism), Pre-provisioned users flow, Removal checklist for self-service sign-up, requireTeamLeaderOrAbove (memo access guard) (+5 more)
 
 ### Community 60 - "TypeDoc Backend Entry Points"
-Cohesion: 0.09
+Cohesion: 0.08
 Nodes (26): metadata, PageProps, addSessionToGrid(), aggregate(), DAYS, HOURS, parseET(), SessionHeatMap() (+18 more)
 
 ### Community 61 - "Docs API Index Generation Script"
-Cohesion: 0.20
-Nodes (13): DashboardBreadcrumb(), Breadcrumb(), BreadcrumbEllipsis(), BreadcrumbItem(), BreadcrumbLink(), BreadcrumbList(), BreadcrumbPage(), BreadcrumbSeparator() (+5 more)
+Cohesion: 0.19
+Nodes (18): buildFollowUpDrafts(), BuildFollowUpDraftsInput, FollowUpReason, hoursDraft(), KIND_LABELS, shiftLabel(), shortDate(), hours() (+10 more)
 
 ### Community 62 - "Supabase Client & DB Types"
 Cohesion: 0.14
@@ -619,12 +626,12 @@ Cohesion: 0.06
 Nodes (32): backend/dist/**, backend/src/**/*.ts, frontend/lib/**/*.ts, frontend/lib/**/*.tsx, shared/dist/**, shared/**/*.ts, **/*.spec.ts, compilerOptions (+24 more)
 
 ### Community 64 - "Shared Auth Role Hierarchy"
-Cohesion: 0.09
-Nodes (35): Frontend Dashboard Memo README, Frontend Dashboard README, buildScholarFollowUpIssues(), classifyScholarFollowUpRisk(), formatWahfSubmittedAt(), gradeGlanceLabel(), gradePct(), freshman (+27 more)
+Cohesion: 0.16
+Nodes (19): assembleWeeklyMemo(), buildRecognitionBoard(), buildTeamLeaderRows(), buildTutoringLog(), byGradePercentDesc(), formatWeekDateRange(), getFormStatus(), getMcfStatus() (+11 more)
 
 ### Community 65 - "Backend Layered Architecture Docs"
-Cohesion: 0.17
-Nodes (14): docs/dev/frontend/lib/README.md (canonical), docs/dev/frontend/README.md (canonical), lib/time/config.ts (FALL_SEMESTER_FIRST_DAY, WINTER_BREAK_FIRST_DAY, WINTER_BREAK_LAST_DAY), Campus time (lib/time) semantics, lib/client/ (browser-side backend API client), frontend/lib (shared utilities, types, server-side data layer), lib/server/ (server-only backend API client), lib/supabase/ (auth-only Supabase client factories) (+6 more)
+Cohesion: 0.15
+Nodes (15): docs/dev/frontend/lib/README.md (canonical), docs/dev/frontend/README.md (canonical), lib/time/config.ts (FALL_SEMESTER_FIRST_DAY, WINTER_BREAK_FIRST_DAY, WINTER_BREAK_LAST_DAY), Campus time (lib/time) semantics, lib/auth.ts (UI role helpers), lib/client/ (browser-side backend API client), frontend/lib (shared utilities, types, server-side data layer), lib/server/ (server-only backend API client) (+7 more)
 
 ### Community 66 - "General Sign-Up Flow Docs"
 Cohesion: 0.12
@@ -634,17 +641,17 @@ Nodes (15): ./dist, compilerOptions, declaration, module, moduleResolution, outD
 Cohesion: 0.13
 Nodes (15): dependencies, cors, date-fns, dotenv, express, @fontsource/archivo, puppeteer, @supabase/supabase-js (+7 more)
 
-### Community 68 - "Frontend Lib/Supabase READMEs"
-Cohesion: 0.14
-Nodes (16): DialogState, FORM_DEADLINES, FORM_TYPES, FORM_URLS, FormDetailDialogContent(), HistoryFormRow(), HistoryWeekBlock(), McfTabBody() (+8 more)
+### Community 68 - "missed-session.template.ts"
+Cohesion: 0.32
+Nodes (4): backendMemoSource, MemoSource, { mockBackendGet }, MemoPageData
 
 ### Community 69 - "Weekly Memo Mock Data & Types"
 Cohesion: 0.22
 Nodes (15): Supabase Migration Baseline, Agent Log: supabase-phase1-baseline-dump, Backend-Only Supabase Access Pattern, Agent Log: docs-no-supabase-edge-functions, Agent Log: supabase-step2-migration-history-repair, Backend Typed Supabase Client (backend/src/supabase), Agent Log: backend-typed-supabase-client, Agent Log: delete-supabase-service-reexport (+7 more)
 
 ### Community 70 - "Session Log Types"
-Cohesion: 0.15
-Nodes (15): frontend/legacy README, Do-not-import-from-legacy rule, frontend/lib README, Server-only modules never bundled for client (golden rule), lib/server README, api-client.ts JWT-to-backend fetch flow, lib/supabase README, Supabase client used only for auth, not domain data (+7 more)
+Cohesion: 0.20
+Nodes (12): frontend/legacy README, Do-not-import-from-legacy rule, frontend/lib README, Server-only modules never bundled for client (golden rule), lib/server README, api-client.ts JWT-to-backend fetch flow, lib/supabase README, Supabase client used only for auth, not domain data (+4 more)
 
 ### Community 71 - "Frontend package.json Scripts"
 Cohesion: 0.13
@@ -655,29 +662,20 @@ Cohesion: 0.24
 Nodes (13): API_ROOT, buildModuleTable(), buildRoutesSection(), buildSection(), hub, KIND_DIRS, listChildModules(), listDocumentedModules() (+5 more)
 
 ### Community 73 - "Form Deadlines Utils"
-Cohesion: 0.11
-Nodes (18): WeeklyKpiCards(), freshman, {
-  mockGetWeeklyMemoPageData,
-  mockWeeklyMemoNavSync,
-  mockWeeklyKpiCards,
-  mockTeamLeaderPerformanceTable,
-  mockScholarFollowUpTable,
-  mockRecognitionBoardSection,
-  mockTutoringLogSection,
-  mockFullAttendanceDetailSection,
-}, renderAsyncContent(), sophomore, WeeklyMemoAsyncContent(), WeeklyMemoAsyncContentProps, WeeklyMemoHeader() (+10 more)
+Cohesion: 0.16
+Nodes (18): DirectoryScholarPage(), PageProps, parseCohortParam(), scholarHref(), WeeklyMemoHeader(), WeeklyMemoLayout(), DashboardMemoPage(), PageProps (+10 more)
 
 ### Community 74 - "Legacy Form View Helpers"
-Cohesion: 0.19
-Nodes (12): minutes(), AuthedRequest, authenticate(), AuthenticatedRequest, buildAuthMiddleware(), requireAuth, requireSelfOrTeamLeader(), requireSelfScholarIdOrTeamLeader() (+4 more)
+Cohesion: 0.12
+Nodes (17): RecentGradesSummaryCardProps, entry(), summary(), GradeBand, GradeComparison, GradesStatus, LatestGradeEntry, LatestGradesSummary (+9 more)
 
 ### Community 75 - "Legacy Session Records Weekly Minutes"
-Cohesion: 0.12
-Nodes (15): CompositeTypes, Constants, Database, DatabaseWithoutInternals, DefaultSchema, Enums, Json, Tables (+7 more)
+Cohesion: 0.13
+Nodes (14): ScholarFollowUpTable(), rows, baseMemoData, mockFollowUpIssues(), scholarCombinedCompletion(), sortScholars(), sortTeamLeaders(), STATUS_SCORE (+6 more)
 
 ### Community 76 - "Architectural Alerts Issue Templates"
 Cohesion: 0.14
-Nodes (24): WahfFormLogRow, MeetingPreferenceOutput, MenteeReview, MenteeReviewIdentity, SectionResult, SemesterCalendar, TutorReportLogRow, TutorReportWeekRow (+16 more)
+Nodes (24): WahfFormLogRow, MeetingPreferenceOutput, MenteeReview, MenteeReviewIdentity, SectionResult, SemesterCalendar, buildGradesEvidence(), buildSemesterCalendar() (+16 more)
 
 ### Community 77 - "Frontend App Auth/Traffic Docs"
 Cohesion: 0.15
@@ -688,20 +686,20 @@ Cohesion: 0.19
 Nodes (13): Ubiquitous Language (domain glossary), docs/dev/backend/api.md (REST API), docs/dev/README.md (handbook home), CSS Atlas Docs landing/redirect page, API Reference (TypeDoc generated), frontend/components/mentee-monitoring/utils.ts, frontend/components/personal/utils.ts, CSS Atlas Docs (MkDocs site config) (+5 more)
 
 ### Community 79 - "Auth Confirm/Set-Password Routes"
-Cohesion: 0.22
-Nodes (17): Backend Middleware README, Ask / don't touch, High-risk areas requiring ask-before-change, Auth & RLS runbook, Branching & reviews, CODEOWNERS senior-developer review requirement, develop/main branch ruleset policy, Day 0 setup (+9 more)
+Cohesion: 0.12
+Nodes (15): CompositeTypes, Constants, Database, DatabaseWithoutInternals, DefaultSchema, Enums, Json, Tables (+7 more)
 
 ### Community 80 - "Team Leader Performance Table"
-Cohesion: 0.10
-Nodes (20): columns, filterBar, requiresFollowUp(), STATUS_SORT_ORDER, statusClassName, TeamLeaderPerformanceTable(), TeamLeaderPerformanceTableProps, baseMemoData (+12 more)
+Cohesion: 0.29
+Nodes (7): Weekly Memo Week Navigation Polish, Weekly Memo Tutoring Log, TutoringLogSection component, WeeklyMemoDataSkeleton component, WeeklyMemoNavContext (client nav context), WeeklyMemoWeekNav component, computeWeekNavigation helper
 
 ### Community 81 - "Root Layout & Theme Provider"
-Cohesion: 0.17
-Nodes (18): FollowUpDraft, HourSummaryCard(), HourSummaryCardProps, ROW_TONE_CLASSES, RowTone, shiftRow(), TutoringSummaryCard(), formatClock() (+10 more)
+Cohesion: 0.18
+Nodes (15): FollowUpDraft, MenteeMonitoringClient(), columnBackground(), SemesterGrid(), formatAsOf(), formatClock(), formatDayMonth(), formatWeekdayDate() (+7 more)
 
 ### Community 82 - "Traffic Layout Idle Reset"
-Cohesion: 0.28
-Nodes (8): ALL_COHORTS, ALL_PROGRAM_ROLES, ALL_TEAMS, fetchDirectoryRoster(), toScholarRow(), toTLRow(), USER_ROSTER, UserRosterRecord
+Cohesion: 0.26
+Nodes (13): buildAttendanceEvidence(), buildKindEvidence(), easternDateKey(), expandShiftOccurrences(), fetchAssignmentsForScholar(), fetchMenteeAttendanceEvidence(), SHIFT_KINDS, shortTime() (+5 more)
 
 ### Community 83 - "Auth Button & Legacy API Routes"
 Cohesion: 0.15
@@ -716,12 +714,12 @@ Cohesion: 0.26
 Nodes (11): build_rows(), get_field(), is_umd_email(), main(), map_headers(), norm_header(), post_batch(), print_tsv() (+3 more)
 
 ### Community 86 - "Onboarding Docs"
-Cohesion: 0.12
-Nodes (23): menteeHref(), MenteePage(), PageProps, Page(), DefaultDashboard(), ScholarDashboard(), baseOverviewLinks, menteesOverviewLink (+15 more)
+Cohesion: 0.11
+Nodes (24): CompleteProfilePage(), DashboardLayout(), menteeHref(), MenteePage(), PageProps, Page(), DevLayout(), DefaultDashboard() (+16 more)
 
 ### Community 87 - "Legacy Traffic Session Utils"
-Cohesion: 0.22
-Nodes (17): completionPct(), effectiveMinutes(), toPrintTrafficSeries(), compareRosterCohort(), createWeeklyMemoReport(), part(), rosterCompletionPercent(), snapshotHoursOverview() (+9 more)
+Cohesion: 0.19
+Nodes (19): completionPct(), effectiveMinutes(), toPrintTrafficSeries(), compareRosterCohort(), createWeeklyMemoReport(), getWeeklyMemoReport(), part(), rosterCompletionPercent() (+11 more)
 
 ### Community 88 - "Shared package.json"
 Cohesion: 0.27
@@ -744,16 +742,16 @@ Cohesion: 0.31
 Nodes (7): Fail-Closed Session Check, Doc Review + Security Audit + Remove hasEnvVars, isDeveloperProfile (frontend/lib/auth.ts), IMPORTANT: You *must* return the supabaseResponse object as it is., IMPORTANT: If you remove getClaims() and you use server-side rendering, updateSession(), hasEnvVars (frontend/lib/utils.ts, removed)
 
 ### Community 93 - "Docs Link Rewrite Script"
-Cohesion: 0.21
-Nodes (8): Supabase Email-Confirmation Template Fix, Fix Signup Email Confirm Token Hash, GET(), Page(), PageProps, UpdatePasswordForm(), getSafeInternalPath(), configure-supabase-confirm-email-template.sh script
+Cohesion: 0.27
+Nodes (7): Supabase Email-Confirmation Template Fix, Fix Signup Email Confirm Token Hash, GET(), Page(), PageProps, getSafeInternalPath(), configure-supabase-confirm-email-template.sh script
 
 ### Community 94 - "Vercel Deployment Config"
 Cohesion: 0.07
-Nodes (39): Avatar(), AVATAR_STYLES, avatarClassName(), DirectoryDashboard(), DirectoryFacets, DirectoryFiltersForm(), DirectoryFlatResponse, DirectoryGroup (+31 more)
+Nodes (41): ScholarNameLink(), ScholarNameLinkProps, Avatar(), AVATAR_STYLES, avatarClassName(), DirectoryDashboard(), DirectoryFacets, DirectoryFiltersForm() (+33 more)
 
 ### Community 95 - "Domain Docs & ADR Conventions"
 Cohesion: 0.16
-Nodes (20): MCF_ENTRY_IDS, MCF_OMITTED_ENTRY_IDS, MCF_TASK_LABELS, McfPrefill, WeekReviewSummary, block(), buildMcfPrefill(), BuildMcfPrefillInput (+12 more)
+Nodes (21): MCF_ENTRY_IDS, MCF_OMITTED_ENTRY_IDS, MCF_TASK_LABELS, McfPrefill, HourWeekSummary, WeekReviewSummary, block(), buildMcfPrefill() (+13 more)
 
 ### Community 96 - "Daily Scholar Activity Backend"
 Cohesion: 0.16
@@ -776,8 +774,8 @@ Cohesion: 0.18
 Nodes (10): devDependencies, typescript, typescript, name, private, scripts, build, test (+2 more)
 
 ### Community 101 - "Weekly Memo Nav Polish Agent Logs"
-Cohesion: 0.16
-Nodes (15): addMentee(), attendanceExcuseSchema, basicInfoSchema, deleteTutorReportAction(), getMenteeMutationContext(), MenteeMutationContext, MenteeMutationResult, menteeUidSchema (+7 more)
+Cohesion: 0.13
+Nodes (19): Fix Complete Profile Invalid Base URL, complete-profile-form.tsx, addMentee(), attendanceExcuseSchema, basicInfoSchema, createScholarProfile(), deleteTutorReportAction(), getMenteeMutationContext() (+11 more)
 
 ### Community 102 - "Traffic Kiosk Public Access Agent Logs"
 Cohesion: 0.26
@@ -796,12 +794,12 @@ Cohesion: 0.22
 Nodes (8): author, description, keywords, license, main, name, type, version
 
 ### Community 106 - "page.tsx"
-Cohesion: 0.15
-Nodes (18): comparisonText(), RecentGradesSummaryCard(), RecentGradesSummaryCardProps, SectionError(), cellFor(), CellTone, columnBackground(), GridCell (+10 more)
+Cohesion: 0.24
+Nodes (10): ChartContext, ChartContextProps, ChartLegendContent(), ChartTooltipContent(), getPayloadConfigFromPayload(), THEMES, useChart(), SidebarMenuSkeleton() (+2 more)
 
 ### Community 107 - "app-sidebar.tsx"
-Cohesion: 0.17
-Nodes (20): RoomPageToolbar(), RoomSessionPanel(), RoomSummaryCards(), formatDurationShort(), formatEnteredTime(), formatSnapshotLabel(), RoomMonitoringPage(), SessionLogsTestPage() (+12 more)
+Cohesion: 0.27
+Nodes (10): RoomPageToolbar(), RoomSessionPanel(), RoomSummaryCards(), formatDurationShort(), formatEnteredTime(), formatSnapshotLabel(), RoomMonitoringPage(), getStudySessionScholarsInRoom() (+2 more)
 
 ### Community 108 - "Windows Dev Script (dev.ps1)"
 Cohesion: 0.28
@@ -809,7 +807,7 @@ Nodes (5): geistMono, geistSans, metadata, ThemeProvider(), ThemedToaster()
 
 ### Community 109 - "Mentee Backend Service"
 Cohesion: 0.13
-Nodes (19): Form Log Controller Direct-Supabase-Query Handlers (whafByUids, mcfByUids, wplByUids, tutorReportsByUids, dailyActivityByUids, getFormLog), pageData(), parseWeekNumberFromBody(), pdf(), refreshStats(), sync(), weeklyMemo(), MemoDefaultWeekResolution (+11 more)
+Nodes (19): Form Log Controller Direct-Supabase-Query Handlers (whafByUids, mcfByUids, wplByUids, tutorReportsByUids, dailyActivityByUids, getFormLog), pageData(), parseWeekNumberFromBody(), pdf(), refreshStats(), sync(), trafficCount(), weeklyMemo() (+11 more)
 
 ### Community 110 - "Auth Role Hierarchy Dedup Agent Log"
 Cohesion: 0.28
@@ -823,65 +821,57 @@ Nodes (8): entrypoint, routePrefix, experimentalServices, backend, frontend, ent
 Cohesion: 0.25
 Nodes (8): Domain Docs (agent skill), docs/adr/ Architecture Decision Records, Flag ADR Conflicts Explicitly, CONTEXT-MAP.md, CONTEXT.md, Domain Docs (how skills consume domain documentation), Use the Glossary's Vocabulary, /grill-with-docs producer skill
 
-### Community 113 - "risk-classifier.ts"
-Cohesion: 0.22
-Nodes (17): buildFollowUpDrafts(), BuildFollowUpDraftsInput, hoursDraft(), KIND_LABELS, shiftLabel(), shortDate(), hours(), input() (+9 more)
-
 ### Community 114 - "Dashboard Breadcrumb Agent Log"
-Cohesion: 0.13
-Nodes (29): AttendanceForUids, AttendanceKind, AttendanceWeekBoard, AttendanceWeekBoardRow, AttendanceWeekBoardSummary, CampusWeekAttendance, CampusWeekAttendanceTotals, ScholarWeekExcuseRow (+21 more)
+Cohesion: 0.15
+Nodes (18): FormLogRowWithLate, McfFormLogRow, filterEligibleForKind(), buildTeamLeaderFormStatsForWeek(), countableFormRequired(), aggregateTeamLeaderMcfStats(), buildGradeBreakdown(), buildMemoScholarAttendanceRows() (+10 more)
 
 ### Community 115 - "Dark Mode Color Token Agent Logs"
-Cohesion: 0.42
-Nodes (8): paramStr(), parseUidList(), parseWeekNum(), patchExcuse(), weekAttendanceByUids(), weekBoard(), getWeekBoard(), parseAttendanceKind()
+Cohesion: 0.11
+Nodes (37): paramStr(), parseUidList(), parseWeekNum(), patchExcuse(), weekAttendanceByUids(), weekBoard(), AttendanceForUids, AttendanceKind (+29 more)
 
 ### Community 116 - "Architecture Alerts Skill Agent Logs"
-Cohesion: 0.23
-Nodes (10): DirectoryViewerRole, displayName(), fetchDirectoryRoster(), teamsFor(), UserRosterRow, AuthButton(), GET(), Params (+2 more)
+Cohesion: 0.25
+Nodes (9): DirectoryViewerRole, displayName(), fetchDirectoryRoster(), teamsFor(), UserRosterRow, AuthButton(), GET(), Params (+1 more)
 
 ### Community 117 - "supabase.ts"
-Cohesion: 0.14
-Nodes (20): DirectoryScholarPage(), PageProps, scholarHref(), WeeklyMemoLayout(), PersonalPage(), SettingsPage(), TeamsLayout(), MenteeCandidate (+12 more)
+Cohesion: 0.25
+Nodes (13): applyWeekTiers(), getClassYear(), getSummaryTier(), getWeekTier(), FALL_2026, hour(), review(), SPRING_2027 (+5 more)
 
 ### Community 118 - "Supabase CLI Migrations Docs"
 Cohesion: 0.25
 Nodes (5): API_ROOT, generated, missing, ROOT, ROOTS
 
 ### Community 119 - "settings-client.tsx"
-Cohesion: 0.36
-Nodes (3): DashboardHeader(), Separator(), SidebarInset()
+Cohesion: 0.20
+Nodes (9): columns, filterBar, requiresFollowUp(), STATUS_SORT_ORDER, statusClassName, TeamLeaderPerformanceTable(), TeamLeaderPerformanceTableProps, FormStatus (+1 more)
 
-### Community 120 - "shift-occurrence.service.ts"
-Cohesion: 0.18
-Nodes (13): ChartContainer(), ChartContext, ChartContextProps, ChartLegendContent(), ChartTooltipContent(), getPayloadConfigFromPayload(), THEMES, useChart() (+5 more)
-
-### Community 121 - "Frontend ESLint Config"
-Cohesion: 0.17
-Nodes (18): ActivityLogClient(), formatSubmittedAt(), FilterType, formatSubmittedAt(), PersonalActivityLogClient(), buildActivitySummary(), countAssignmentGrades(), countProjects() (+10 more)
+### Community 121 - "tutoring-log-section.tsx"
+Cohesion: 0.24
+Nodes (8): DAY_SORT_MAP, emptySessionColumns, sessionColumns, data, TutoringLogSection(), TutoringLogSectionProps, TutoringLogRow, TutoringLogSectionData
 
 ### Community 122 - "Issue Tracker Config Docs"
 Cohesion: 0.33
 Nodes (7): CSS Atlas Docker Compose Stack, CI Job: backend-test, CI Job: docker-build, CI Job: frontend-test, CI Job: shared-build, CI Job: smoke-test, scripts/smoke-test.sh
 
 ### Community 123 - "team-leader-performance-table.tsx"
-Cohesion: 0.14
-Nodes (11): WahfFormLogRow, ActivityRow, McfRow, MenteeWithCompliance, PersonalClientProps, SemesterRow, ShiftCompliancePerDate, ShiftComplianceSession (+3 more)
+Cohesion: 0.12
+Nodes (19): PersonalPage(), SettingsPage(), MenteeCandidate, candidates, mentees, mocks, profile, getMyMentees (+11 more)
 
 ### Community 124 - "sheet.tsx"
-Cohesion: 0.11
-Nodes (21): KpiTrack(), LandingFeatureCards(), LandingHeader(), LandingHero(), AccordionContent(), AccordionItem(), AccordionTrigger(), Alert() (+13 more)
+Cohesion: 0.20
+Nodes (13): DashboardBreadcrumb(), Breadcrumb(), BreadcrumbEllipsis(), BreadcrumbItem(), BreadcrumbLink(), BreadcrumbList(), BreadcrumbPage(), BreadcrumbSeparator() (+5 more)
 
 ### Community 125 - "Scripts README"
 Cohesion: 0.38
 Nodes (7): Scripts README, alert.sh (open architecture-alert GitHub Issue), dev.sh / dev.ps1 local dev-stack scripts, ensure-issue-labels.sh (idempotent label creation), log-agent-session.sh (records agent/AI session), migrate-alerts-to-issues.sh (legacy alert markdown → Issues), resolve-alert.sh (close/resolve an alert issue)
 
 ### Community 126 - "API Contract Normalization Agent Log"
-Cohesion: 0.62
-Nodes (6): NavMain(), getActiveSubUrl(), isLinkActive(), isNavItemActive(), isNavSubItemActive(), normalizePath()
+Cohesion: 0.10
+Nodes (38): Ubiquitous Language (docs/agents/ubiquitous_language.md), Backend README, Backend Middleware README, Deployment README, CI/CD Workflows (ci.yml, docs.yml), Same-Origin Vercel (experimentalServices), Split Deploy (Railway Services), recordTrafficEntry public unauthenticated endpoint (+30 more)
 
-### Community 127 - "CODEOWNERS Branching Policy Agent Logs"
+### Community 127 - "mentee-monitoring-client.test.tsx"
 Cohesion: 0.29
-Nodes (7): Weekly Memo Week Navigation Polish, Weekly Memo Tutoring Log, TutoringLogSection component, WeeklyMemoDataSkeleton component, WeeklyMemoNavContext (client nav context), WeeklyMemoWeekNav component, computeWeekNavigation helper
+Nodes (8): hours(), makeProps(), makeReview(), mocks, ok(), WEEKS, weekSummary(), MenteeReviewClientProps
 
 ### Community 128 - "Docs Site Generation Agent Log"
 Cohesion: 0.29
@@ -1052,8 +1042,8 @@ Cohesion: 0.33
 Nodes (5): Agent Response Summary, Code Changes, Purpose, sync-mentee-count-no-mentee-pill, User Prompt
 
 ### Community 170 - "Ubiquitous Language: Scholar ID"
-Cohesion: 0.31
-Nodes (9): Confirm Signup Email Template, Frontend App Auth README, Frontend App Dev README, Frontend App README, Frontend App Traffic README, app/auth/confirm/route.ts (email confirmation handler), Developer Scratchpad Pattern (app/dev, requireDeveloper-gated), Traffic Kiosk Public Contract (always-public rule) (+1 more)
+Cohesion: 0.21
+Nodes (12): buildScholarProfileInsertRow(), Agent Documentation README, Confirm Signup Email Template, Frontend App Auth README, Frontend App Dev README, Frontend App README, Frontend App Traffic README, Scholar Onboarding / Complete-Profile Flow (+4 more)
 
 ### Community 171 - "Orphaned Starter File: Deploy Button"
 Cohesion: 0.33
@@ -1072,12 +1062,12 @@ Cohesion: 0.33
 Nodes (5): body, dest, ROOT, src, stripped
 
 ### Community 175 - "Dev Effective UID Util"
-Cohesion: 0.19
-Nodes (10): ScholarNameLink(), ScholarNameLinkProps, DAY_SORT_MAP, emptySessionColumns, sessionColumns, data, TutoringLogSection(), TutoringLogSectionProps (+2 more)
+Cohesion: 0.11
+Nodes (21): BAND_STYLE, RecognitionBand(), RecognitionBoardSection(), RecognitionBoardSectionProps, censusData, FullAttendanceDetailTab, MemoPieData, MemoTLRow (+13 more)
 
-### Community 176 - "Server Data Scholar UID Helper"
-Cohesion: 0.24
-Nodes (10): Home(), AppSidebarProps, getRoleBasedNav(), SidebarNavItem, getRoleBasedTeams(), SidebarContent(), SidebarFooter(), SidebarHeader() (+2 more)
+### Community 176 - "mock-user-roster.ts"
+Cohesion: 0.28
+Nodes (8): ALL_COHORTS, ALL_PROGRAM_ROLES, ALL_TEAMS, fetchDirectoryRoster(), toScholarRow(), toTLRow(), USER_ROSTER, UserRosterRecord
 
 ### Community 177 - "Frontend Time Type"
 Cohesion: 0.50
@@ -1092,12 +1082,12 @@ Cohesion: 0.60
 Nodes (5): Agent Log: scan-architecture-alerts-skill, scan-architecture-alerts Skill, Agent Log: scan-architecture-alerts, Agent Log: github-issues-alerts-workflow-wt, GitHub-only Issues Alerts Workflow
 
 ### Community 180 - "Next.js Logo Asset"
-Cohesion: 0.22
-Nodes (13): Backend README, Deployment README, CI/CD Workflows (ci.yml, docs.yml), Same-Origin Vercel (experimentalServices), Split Deploy (Railway Services), Campus weeks, Campus week numbering system, CSS Atlas — Developer Documentation (+5 more)
+Cohesion: 0.29
+Nodes (7): SemesterGridProps, WeekDescriptor, App(), hours(), summaries, tiers, weeks
 
 ### Community 181 - "UMD McKeldin Library Photo"
-Cohesion: 0.12
-Nodes (17): MemoAccordionSectionProps, RosterAccordionSectionProps, COLOR_CONFIG, HoursCard(), HoursCardProps, emptyWeek, MOCK_SEMINARS, TutoringSummaryCardProps (+9 more)
+Cohesion: 0.42
+Nodes (6): ActivityLogClient(), formatSubmittedAt(), isWahfFormType(), toScholarHomeActivityEntries(), FormLogRowWithLate, RecentFormSubmission
 
 ### Community 182 - "UMD Trees Walkway Photo (2)"
 Cohesion: 0.40
@@ -1260,56 +1250,52 @@ Cohesion: 0.33
 Nodes (5): Agent Response Summary, Code Changes, Purpose, scholar-schedule-cli, User Prompt
 
 ### Community 279 - "full-attendance-detail-section.tsx"
-Cohesion: 0.25
-Nodes (8): columns, FullAttendanceDetailSection(), FullAttendanceDetailSectionProps, data, AttendanceDetailRow, FullAttendanceDetailSectionData, completionColor(), CompletionMeter()
+Cohesion: 0.33
+Nodes (5): dailyActivityByUids(), DailyScholarActivityMinutesRow, DailyScholarLogSource, getDailyActivityByUids(), MINUTES_COLUMN
 
 ### Community 280 - "Slack Sign-In Notifications"
 Cohesion: 0.40
 Nodes (4): Detection Rules, Pipeline, Railway Setup, Slack Sign-In Notifications
 
-### Community 281 - "weekly-memo-export-button.tsx"
-Cohesion: 0.60
-Nodes (4): downloadWeeklyMemoPdf(), WeeklyMemoExportButton(), WeeklyMemoExportButtonProps, weeklyMemoPdfFilename()
+### Community 281 - "weekly-kpi-cards.tsx"
+Cohesion: 0.40
+Nodes (4): KPI_TRACK_COLOR, KpiTrack(), WeeklyKpiCards(), WeeklyKpiCardsProps
 
 ### Community 282 - "getWeeklyMemoPdf"
-Cohesion: 0.42
-Nodes (11): getFormStatusForWeek(), getMcfWplDeadlineForWeek(), getWhafDeadlineForWeek(), isLateAfterDeadline(), isMcfLate(), isMcfLateForWeek(), isWhafLate(), isWhafLateForWeek() (+3 more)
+Cohesion: 0.47
+Nodes (5): mentee-wahf-card.tsx (duplicate, removed), WahfStatus, formatSubmittedAt(), WahfCard(), WahfCardProps
 
 ### Community 283 - "isUmdEmail"
 Cohesion: 0.50
 Nodes (5): POST/GET /api/auth/profile endpoints, General Sign-Up Flow (docs/agents/general-sign-up-flow.md), UMD Email Restriction (sign-up), Scholar Onboarding UMD Email, isUmdEmail()
 
 ### Community 284 - "PersonalClient"
-Cohesion: 0.17
-Nodes (25): assembleRecentFormSubmissions(), findTeamLeaderUidByFuzzyName(), getMcfWplDeadlineForWeek(), getWhafDeadlineForWeek(), isLateAfterDeadline(), isMcfLate(), isMcfLateForWeek(), isWhafLate() (+17 more)
+Cohesion: 0.83
+Nodes (4): findTeamLeaderUidByFuzzyName(), nameTokens(), nameVariants(), normalizeName()
 
 ### Community 285 - "Auth Semester Sparingly Docs"
 Cohesion: 1.00
 Nodes (4): Campus Week Calendar Preferred Over /api/auth/semester, Auth Semester Sparingly Docs, Auth Semester: When Calendar Unfit, getActiveSemester
 
-### Community 290 - "@radix-ui/react-avatar"
-Cohesion: 0.24
-Nodes (8): CompleteProfilePage(), DashboardLayout(), DevLayout(), metadata, DevActingBanner(), DevActingBannerProps, ProfileSwitcher(), getCurrentUser
-
 ### Community 294 - "API Contract Normalization"
-Cohesion: 0.22
-Nodes (10): API Wire Boundary Normalization, API Contract Normalization, Frontend Component Reorganization, Ubiquitous Language (docs/agents/ubiquitous_language.md), /memo route (thin redirect to /dashboard/memo), mentee-wahf-card.tsx (duplicate, removed), formatSubmittedAt(), WahfCard() (+2 more)
-
-### Community 295 - "page.tsx"
-Cohesion: 0.29
-Nodes (9): DevTrafficPage(), metadata, PageProps, parseSlotMinutes(), SLOT_MINUTES_OPTIONS, TrafficWeeklyLineChartBySemester(), getTrafficEntryCountForWeek(), getTrafficEntryCountsForWeeks() (+1 more)
+Cohesion: 0.25
+Nodes (8): columns, FullAttendanceDetailSection(), FullAttendanceDetailSectionProps, data, AttendanceDetailRow, FullAttendanceDetailSectionData, completionColor(), CompletionMeter()
 
 ### Community 296 - "reject-writes-when-acting.ts"
-Cohesion: 0.43
-Nodes (4): ACTING_BLOCKED_POST_PATHS, isActingWriteRequest(), rejectWritesWhenActing(), requestPath()
+Cohesion: 0.13
+Nodes (18): minutes(), AuthedRequest, authenticate(), AuthenticatedRequest, buildAuthMiddleware(), requireDeveloper, requireSelfOrTeamLeader(), requireSelfScholarIdOrTeamLeader() (+10 more)
 
-### Community 297 - "progress-cell.tsx"
-Cohesion: 0.38
-Nodes (6): formatRequiredAsHours(), getPctBgClass(), ProgressCell(), ProgressCellCountProps, ProgressCellProps, ProgressCellTimeProps
+### Community 301 - "getTeamLeaderOrAboveUser"
+Cohesion: 0.60
+Nodes (3): POST(), GET(), getTeamLeaderOrAboveUser()
 
-### Community 298 - "Test persona acting-as mechanism"
-Cohesion: 0.50
-Nodes (4): recordTrafficEntry public unauthenticated endpoint, Test persona acting-as mechanism, Developer test profiles summary, Dev test profiles setup run order (001-004 SQL scripts)
+### Community 306 - "API Contract Normalization"
+Cohesion: 0.13
+Nodes (19): API Wire Boundary Normalization, API Contract Normalization, Frontend Component Reorganization, /memo route (thin redirect to /dashboard/memo), formatRequiredAsHours(), getPctBgClass(), ProgressCell(), ProgressCellCountProps (+11 more)
+
+### Community 309 - "layout.tsx"
+Cohesion: 0.07
+Nodes (36): AddOpportunityForm, getUniqueCompanies(), getUniqueTags(), InternshipBoardPage(), mockOpportunities, Opportunity, metadata, ForgotPasswordForm() (+28 more)
 
 ## Ambiguous Edges - Review These
 - `canAccessWeeklyMemo()` → `tl-pages-effective-role-redirect (agent log)`  [AMBIGUOUS]
@@ -1324,9 +1310,9 @@ Nodes (4): recordTrafficEntry public unauthenticated endpoint, Test persona acti
   docs/dev/agents/README.md · relation: references
 
 ## Knowledge Gaps
-- **1148 isolated node(s):** `{ join }`, `name`, `version`, `description`, `main` (+1143 more)
+- **1159 isolated node(s):** `npx`, `{ join }`, `name`, `version`, `description` (+1154 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **59 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **60 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
@@ -1341,7 +1327,7 @@ _Questions this graph is uniquely positioned to answer:_
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
 - **What is the exact relationship between `Agent Documentation README` and `Scholar Onboarding / Complete-Profile Flow`?**
   _Edge tagged AMBIGUOUS (relation: references) - confidence is low._
-- **Why does `assembleWeeklyMemo()` connect `Shared Auth Role Hierarchy` to `Form Deadlines Utils`, `Legacy Traffic Session Utils`?**
-  _High betweenness centrality (0.088) - this node is a cross-community bridge._
-- **Why does `completionPct()` connect `Legacy Traffic Session Utils` to `Shared Auth Role Hierarchy`, `Dashboard Breadcrumb Agent Log`, `Dark Mode Color Token Agent Logs`?**
-  _High betweenness centrality (0.088) - this node is a cross-community bridge._
+- **Why does `cn()` connect `Backend Auth Controller/Routes` to `UI Card & Badge Components`, `Session Log Backend`, `Backend package.json Deps`, `Memo Page & User Backend`, `Docs tsconfig`, `weekly-kpi-cards.tsx`, `getWeeklyMemoPdf`, `App Sidebar & Weekly Memo Access`, `Data Table Components`, `API Contract Normalization`, `Dev Effective UID Util`, `Dashboard Breadcrumb`, `Auth/Deployment Agent Logs`, `layout.tsx`, `Dev Session Records Test Page`, `Root Layout & Theme Provider`, `Vercel Deployment Config`, `Traffic Kiosk Public Access Agent Logs`, `page.tsx`, `tutoring-log-section.tsx`, `sheet.tsx`?**
+  _High betweenness centrality (0.065) - this node is a cross-community bridge._
+- **Why does `react` connect `layout.tsx` to `UI Card & Badge Components`, `Session Log Backend`, `Dev Profile Server Data Layer`, `Backend package.json Deps`, `Memo Page & User Backend`, `UI Sidebar/Sheet/Tooltip Primitives`, `Docs tsconfig`, `Backend Routes & App Entry`, `Dev Session Logs & Double-Entry Checker`, `App Sidebar & Weekly Memo Access`, `Data Table Components`, `Frontend package.json Deps (charts/date)`, `Traffic Backend Service/Controller`, `API Contract Normalization`, `Weekly Memo Nav Context`, `Backend Auth Controller/Routes`, `Dev Effective UID Util`, `Dashboard Breadcrumb`, `Auth/Deployment Agent Logs`, `Next.js Logo Asset`, `Dev Session Records Test Page`, `TypeDoc Backend Entry Points`, `Supabase Client & DB Types`, `Form Deadlines Utils`, `Vercel Deployment Config`, `Dev Tools App Docs`, `page.tsx`, `Windows Dev Script (dev.ps1)`, `tutoring-log-section.tsx`, `sheet.tsx`?**
+  _High betweenness centrality (0.058) - this node is a cross-community bridge._

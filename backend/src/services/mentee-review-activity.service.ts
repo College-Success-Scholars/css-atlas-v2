@@ -233,7 +233,7 @@ export function composeMenteeReview(input: ComposeMenteeReviewInput): MenteeRevi
   const latestGrades: SectionResult<ReturnType<typeof deriveLatestGrades>> = input.wahf.ok
     ? {
         ok: true,
-        data: deriveLatestGrades(buildGradesEvidence(input.wahf.data, true)),
+        data: deriveLatestGrades(buildGradesEvidence(input.wahf.data, true), asOf),
         loadedAt,
       }
     : { ok: false, error: input.wahf.error };
