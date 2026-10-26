@@ -91,7 +91,7 @@ All routes under `/api/auth` require **requireAuth**.
 {
   "data": {
     "asOf": "ISO instant",
-    "mentee": { "uid": "string", "fullName": "string", "email": "string | null" },
+    "mentee": { "uid": "string", "fullName": "string", "email": "string | null", "cohort": "number | null" },
     "calendar": { "semesterId": "string | null", "semesterStart": "ISO | null", "semesterEnd": "ISO | null", "currentWeek": 3, "weeks": [ /* WeekDescriptor */ ], "noActiveWeek": false },
     "currentWeek": 3,
     "selectedWeek": 3,

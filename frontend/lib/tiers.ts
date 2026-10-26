@@ -4,14 +4,14 @@
  *
  * Pure completion-tier rules for the mentee weekly review.
  *
- * A tier applies to a whole week only when BOTH the front desk and study
- * session requirements are above their class-year cutoff. Tiers use logged
- * minutes only (excused minutes still affect the existing green/amber/red
- * bands, but never earn a tier). Rules stay free of Supabase, React, and
- * ambient state so they can run on the server or in tests unchanged.
+ * Each hourly requirement earns its own tier against its class-year cutoff.
+ * Front desk never suppresses study-session tiers (or vice versa). Tiers use
+ * logged minutes only (excused minutes still affect the existing green/amber/red
+ * bands, but never earn a tier). Rules stay free of Supabase, React, and ambient
+ * state so they can run on the server or in tests unchanged.
  *
  * ## What belongs here
- * - Cutoffs, class-year derivation, weekly tier calculation
+ * - Cutoffs, class-year derivation, per-requirement tier calculation
  * - Attaching derived tiers to an already-loaded review payload
  *
  * ## What does NOT belong here
@@ -32,16 +32,13 @@ export const TIER_CUTOFFS = {
 // 15% / 5% / 1–2% of a cohort's weeks.
 
 /**
- * Temporary frontend-only fallback. The review payload does not carry cohort
- * yet, so use the freshman cutoffs until that data is available.
+ * Compatibility fallback for older review payloads without a roster cohort.
  */
 export const DEFAULT_CLASS_YEAR = 0
 
-export interface WeekTierInput {
-  fdMinutes: number
-  ssMinutes: number
-  fdRequired: number
-  ssRequired: number
+export interface HourTierInput {
+  loggedMinutes: number
+  targetMinutes: number | null
   classYear: number
 }
 
@@ -61,30 +58,27 @@ export function getClassYear(cohort: number, semesterStart: Date): number {
   return academicStartYear - cohort
 }
 
-/** Highest tier met, or null when either requirement is missing or not both are met. */
-export function getWeekTier({
-  fdMinutes,
-  ssMinutes,
-  fdRequired,
-  ssRequired,
+/** Highest tier earned by this requirement's actual logged minutes. */
+export function getHourTier({
+  loggedMinutes,
+  targetMinutes,
   classYear,
-}: WeekTierInput): WeekTier | null {
+}: HourTierInput): WeekTier | null {
   if (
-    !Number.isFinite(fdMinutes) ||
-    !Number.isFinite(ssMinutes) ||
-    !Number.isFinite(fdRequired) ||
-    !Number.isFinite(ssRequired) ||
+    !Number.isFinite(loggedMinutes) ||
+    targetMinutes == null ||
+    !Number.isFinite(targetMinutes) ||
     !Number.isFinite(classYear)
   ) {
     return null
   }
-  if (fdRequired <= 0 || ssRequired <= 0) return null
+  if (targetMinutes <= 0 || loggedMinutes < 0) return null
 
   const cutoffs =
     classYear === 0 ? TIER_CUTOFFS[0] : classYear === 1 ? TIER_CUTOFFS[1] : null
   if (!cutoffs) return null
 
-  const completion = Math.min(fdMinutes / fdRequired, ssMinutes / ssRequired) * 100
+  const completion = (loggedMinutes / targetMinutes) * 100
   // Binary floating point makes exact cutoffs such as 1.15 * 100 land at
   // 114.99999999999999; a tiny epsilon keeps "exactly at the cutoff" honest.
   const atOrAbove = (cutoff: number) => completion + 1e-9 >= cutoff
@@ -94,34 +88,16 @@ export function getWeekTier({
   return null
 }
 
-/** Tier for one assembled week summary, using the evaluator's logged minutes and targets. */
-export function getSummaryTier(
-  week: WeekReviewSummary,
-  classYear: number,
-): WeekTier | null {
-  const frontDesk = week.hours.find((entry) => entry.kind === "front_desk")
-  const study = week.hours.find((entry) => entry.kind === "study_session")
-  if (!frontDesk || !study) return null
-
-  return getWeekTier({
-    fdMinutes: frontDesk.loggedMinutes,
-    ssMinutes: study.loggedMinutes,
-    fdRequired: frontDesk.targetMinutes ?? 0,
-    ssRequired: study.targetMinutes ?? 0,
-    classYear,
-  })
-}
-
 /**
- * Attach the display-only tier to every already-loaded week. This is the one
- * place the grid and detail cards get their tier from, so they cannot disagree.
+ * Attach display-only tiers to each hourly requirement in the loaded weeks.
+ * The grid and detail cards share this data path so their tiers cannot disagree.
  */
 export function applyWeekTiers(
   review: MenteeReview,
   cohortOverride: number | null = null,
 ): MenteeReview {
   const semesterStart = review.calendar.semesterStart
-  const cohort = cohortOverride ?? review.mentee.cohort ?? null
+  const cohort = review.mentee.cohort ?? cohortOverride ?? null
   const classYear =
     semesterStart == null
       ? null
@@ -131,7 +107,16 @@ export function applyWeekTiers(
 
   const decorate = (week: WeekReviewSummary): WeekReviewSummary => ({
     ...week,
-    tier: classYear == null ? null : getSummaryTier(week, classYear),
+    hours: week.hours.map((hours) => ({
+      ...hours,
+      tier: classYear == null || week.phase === "future"
+        ? null
+        : getHourTier({
+            loggedMinutes: hours.loggedMinutes,
+            targetMinutes: hours.targetMinutes,
+            classYear,
+          }),
+    })),
   })
 
   return {

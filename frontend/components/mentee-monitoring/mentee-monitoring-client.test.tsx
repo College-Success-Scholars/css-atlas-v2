@@ -50,6 +50,7 @@ const OTHER_UID = "987654321"
 function hours(kind: HourWeekSummary["kind"], overrides: Partial<HourWeekSummary> = {}): HourWeekSummary {
   return {
     kind,
+    tier: null,
     assignmentAvailable: true,
     loggedMinutes: 120,
     targetMinutes: 120,
@@ -395,7 +396,7 @@ describe("MenteeMonitoringClient", () => {
     expect(frontDeskCell.className).not.toContain("bg-card")
   })
 
-  it("applies a week tier to both hourly grid cells and the detail cards", () => {
+  it("applies each hourly requirement's tier to its grid cell and detail card", () => {
     const tieredHours = [
       hours("front_desk", { loggedMinutes: 330, targetMinutes: 300, percent: 110 }),
       hours("study_session", { loggedMinutes: 330, targetMinutes: 300, percent: 110 }),
@@ -425,6 +426,89 @@ describe("MenteeMonitoringClient", () => {
 
     const requirements = screen.getByRole("group", { name: "Weekly requirements" })
     expect(within(requirements).getAllByText("Rare")).toHaveLength(2)
+  })
+
+  it.each([
+    {
+      name: "legendary study hours without a front-desk tier",
+      frontDeskMinutes: 182.83,
+      frontDeskTarget: 180,
+      studyMinutes: 502.06,
+      frontDeskTier: null,
+      studyTier: "legendary",
+      legendTiers: ["rare", "epic", "legendary"],
+    },
+    {
+      name: "rare front-desk hours and epic study hours",
+      frontDeskMinutes: 330,
+      frontDeskTarget: 300,
+      studyMinutes: 360,
+      frontDeskTier: "rare",
+      studyTier: "epic",
+      legendTiers: ["rare", "epic"],
+    },
+  ] as const)("renders independent tiers for $name", ({
+    frontDeskMinutes, frontDeskTarget, studyMinutes, frontDeskTier, studyTier, legendTiers,
+  }) => {
+    const requirementHours = [
+      hours("front_desk", {
+        loggedMinutes: frontDeskMinutes,
+        targetMinutes: frontDeskTarget,
+        percent: frontDeskMinutes / frontDeskTarget * 100,
+      }),
+      hours("study_session", {
+        loggedMinutes: studyMinutes,
+        targetMinutes: 300,
+        percent: studyMinutes / 300 * 100,
+      }),
+    ]
+    const review = applyWeekTiers(makeReview({
+      mentee: { uid: UID, fullName: "Anonymous Scholar", email: "scholar@example.test", cohort: 2026 },
+      semesterGrid: ok([
+        weekSummary(1, { phase: "past" }),
+        weekSummary(2, { hours: requirementHours }),
+        weekSummary(3, { phase: "future" }),
+      ]),
+      selectedWeekReview: ok(weekSummary(2, { hours: requirementHours })),
+    }))
+    render(<MenteeMonitoringClient {...makeProps({ review })} />)
+
+    const frontDesk = screen.getByRole("button", { name: /^Front desk: week 2,/ })
+    const study = screen.getByRole("button", { name: /^Study: week 2,/ })
+    expect(frontDesk.getAttribute("data-tier")).toBe(frontDeskTier)
+    expect(study.getAttribute("data-tier")).toBe(studyTier)
+    expect(study.getAttribute("aria-label")).toContain(`${TIER_UI[studyTier].label} tier`)
+    expect(study.className).toContain(TIER_UI[studyTier].cell)
+    if (frontDeskTier) {
+      expect(frontDesk.getAttribute("aria-label")).toContain(`${TIER_UI[frontDeskTier].label} tier`)
+      expect(frontDesk.className).toContain(TIER_UI[frontDeskTier].cell)
+    } else {
+      expect(frontDesk.getAttribute("aria-label")).not.toContain("tier")
+      expect(frontDesk.className).not.toContain(tierStyles.cell)
+    }
+
+    const requirements = within(screen.getByRole("group", { name: "Weekly requirements" }))
+    const frontDeskCard = requirements.getByText("Front desk").closest('[data-slot="card"]')!
+    const studyCard = requirements.getByText("Study sessions").closest('[data-slot="card"]')!
+    expect(frontDeskCard.getAttribute("data-tier")).toBe(frontDeskTier)
+    expect(studyCard.getAttribute("data-tier")).toBe(studyTier)
+    expect(within(studyCard as HTMLElement).getByText(TIER_UI[studyTier].label)).toBeTruthy()
+    if (frontDeskTier) {
+      expect(within(frontDeskCard as HTMLElement).getByText(TIER_UI[frontDeskTier].label)).toBeTruthy()
+    } else {
+      expect(frontDeskCard.querySelector("[data-tier]")).toBeNull()
+    }
+
+    const legend = screen.getByTestId("semester-legend")
+    expect(Array.from(legend.querySelectorAll("[data-tier]"), (tag) => tag.getAttribute("data-tier"))).toEqual(legendTiers)
+    const heading = screen.getByRole("heading", { name: "Week 2 · Sep 7 – Sep 13" })
+    expect(heading.parentElement!.querySelector("[data-tier]")).toBeNull()
+    expect(screen.getByText("In progress · as of Thursday 3:12pm")).toBeTruthy()
+    for (const title of ["WAHF", "Tutoring"]) {
+      const card = requirements.getByText(title).closest('[data-slot="card"]')!
+      expect(card.getAttribute("data-tier")).toBeNull()
+      expect(card.querySelector("[data-tier]")).toBeNull()
+    }
   })
 
   it("keeps the blue current-week ring outside a legendary tier cell", () => {
@@ -486,18 +570,37 @@ describe("MenteeMonitoringClient", () => {
     expect(within(legend).getByText("<60% / missed")).toBeTruthy()
   })
 
-  it.each(["rare", "epic", "legendary"] as const)("shows only the achieved %s tier in the legend", (achievedTier) => {
+  it("uses solid green and orange completion legend swatches", () => {
+    render(<MenteeMonitoringClient {...makeProps()} />)
+
+    const legend = within(screen.getByTestId("semester-legend"))
+    const green = legend.getByText("90%+").querySelector("span")!
+    const orange = legend.getByText("60–89%").querySelector("span")!
+    expect(green.className).toContain("bg-green-500")
+    expect(green.className).toContain("dark:bg-green-400")
+    expect(green.className).not.toContain("bg-success/20")
+    expect(orange.className).toContain("bg-orange-500")
+    expect(orange.className).toContain("dark:bg-orange-400")
+    expect(orange.className).not.toContain("bg-warning/25")
+  })
+
+  it.each([
+    { achievedTier: "rare", expectedTiers: ["rare"] },
+    { achievedTier: "epic", expectedTiers: ["rare", "epic"] },
+    { achievedTier: "legendary", expectedTiers: ["rare", "epic", "legendary"] },
+  ] as const)("shows every legend tier through $achievedTier", ({ achievedTier, expectedTiers }) => {
     const review = makeReview({ semesterGrid: ok([
-      weekSummary(1, { phase: "past", tier: achievedTier }),
+      weekSummary(1, { phase: "past", hours: [hours("front_desk"), hours("study_session", { tier: achievedTier })] }),
       weekSummary(2),
       weekSummary(3, { phase: "future" }),
     ]) })
     render(<MenteeMonitoringClient {...makeProps({ review })} />)
 
     const legend = screen.getByTestId("semester-legend")
+    expect(Array.from(legend.querySelectorAll("[data-tier]"), (tag) => tag.getAttribute("data-tier"))).toEqual(expectedTiers)
     for (const tier of ["rare", "epic", "legendary"] as const) {
       const tag = legend.querySelector(`[data-tier="${tier}"]`)
-      if (tier !== achievedTier) {
+      if (!(expectedTiers as readonly string[]).includes(tier)) {
         expect(tag).toBeNull()
         continue
       }
@@ -513,12 +616,37 @@ describe("MenteeMonitoringClient", () => {
       ] },
       semesterGrid: ok([
         weekSummary(1), weekSummary(2),
-        weekSummary(3, { phase: "future", tier: "epic" }),
-        weekSummary(4, { tier: "legendary" }),
+        weekSummary(3, { phase: "future", hours: [hours("study_session", { tier: "epic" })] }),
+        weekSummary(4, { hours: [hours("front_desk", { tier: "legendary" })] }),
       ]),
     })
     render(<MenteeMonitoringClient {...makeProps({ review })} />)
     expect(screen.getByTestId("semester-legend").querySelector("[data-tier]")).toBeNull()
+  })
+
+  it("uses the highest rendered tier even when a lower tier appears later", () => {
+    const review = makeReview({ semesterGrid: ok([
+      weekSummary(1, { phase: "past", hours: [hours("study_session", { tier: "epic" })] }),
+      weekSummary(2, { hours: [hours("front_desk", { tier: "rare" })] }),
+      weekSummary(3, { phase: "future", hours: [hours("study_session", { tier: "legendary" })] }),
+    ]) })
+    render(<MenteeMonitoringClient {...makeProps({ review })} />)
+
+    const legend = screen.getByTestId("semester-legend")
+    expect(Array.from(legend.querySelectorAll("[data-tier]"), (tag) => tag.getAttribute("data-tier"))).toEqual(["rare", "epic"])
+  })
+
+  it("ignores unavailable hourly cells and tiered summaries outside the rendered weeks", () => {
+    const review = makeReview({ semesterGrid: ok([
+      weekSummary(1, { phase: "past", hours: [] }),
+      weekSummary(2),
+      weekSummary(3, { phase: "future" }),
+      weekSummary(4, { hours: [hours("study_session", { tier: "legendary" })] }),
+    ]) })
+    render(<MenteeMonitoringClient {...makeProps({ review })} />)
+
+    expect(screen.getByTestId("semester-legend").querySelector("[data-tier]")).toBeNull()
+    expect(screen.getByRole("button", { name: /^Front desk: week 1, unavailable/ }).getAttribute("data-tier")).toBeNull()
   })
 
   it("keeps future week cells non-actionable", () => {
@@ -598,6 +726,29 @@ describe("MenteeMonitoringClient", () => {
     render(<MenteeMonitoringClient {...makeProps()} />)
 
     expect(screen.getByText("In progress · as of Thursday 3:12pm")).toBeTruthy()
+  })
+
+  it.each(["rare", "epic", "legendary"] as const)("omits the %s badge from the selected-week header but keeps the status and card badges", (tier) => {
+    const review = makeReview({ selectedWeekReview: ok(weekSummary(2, {
+      hours: [hours("front_desk", { tier }), hours("study_session", { tier })],
+    })) })
+    render(<MenteeMonitoringClient {...makeProps({ review })} />)
+
+    const status = screen.getByText("In progress · as of Thursday 3:12pm")
+    const heading = screen.getByRole("heading", { name: "Week 2 · Sep 7 – Sep 13" })
+    expect(heading.parentElement!.querySelector("[data-tier]")).toBeNull()
+    expect(heading.parentElement!.contains(status)).toBe(true)
+
+    const requirements = screen.getByRole("group", { name: "Weekly requirements" })
+    const badges = within(requirements).getAllByText(TIER_UI[tier].label)
+    expect(badges).toHaveLength(2)
+    for (const badge of badges) {
+      const metrics = badge.parentElement!
+      expect(metrics.getAttribute("data-slot")).toBe("completion-metrics")
+      expect(metrics.className).toContain("flex-nowrap")
+      expect(within(metrics).getByText("100.0%")).toBeTruthy()
+      expect(metrics.parentElement!.parentElement!.querySelector("h3")).toBeTruthy()
+    }
   })
 
   it("uses compact shadcn cards without stacking default card and content padding", () => {

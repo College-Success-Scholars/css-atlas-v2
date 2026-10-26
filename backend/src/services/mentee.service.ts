@@ -139,7 +139,7 @@ export async function fetchMenteeTeamLeaderIndex(): Promise<MenteeTeamLeaderInde
   };
 }
 
-const MENTEE_SELECT = "mentee_uid, user_roster(first_name, last_name, email, fd_required, ss_required)" as const;
+const MENTEE_SELECT = "mentee_uid, user_roster(first_name, last_name, email, cohort, fd_required, ss_required)" as const;
 
 function mapMenteeRow(row: Record<string, unknown>): MenteeRow {
   const roster = row.user_roster as Record<string, unknown> | null;
@@ -148,6 +148,7 @@ function mapMenteeRow(row: Record<string, unknown>): MenteeRow {
     first_name: (roster?.first_name as string) ?? null,
     last_name: (roster?.last_name as string) ?? null,
     email: (roster?.email as string) ?? null,
+    cohort: (roster?.cohort as number) ?? null,
     fd_required: roster?.fd_required != null ? Number(roster.fd_required) : null,
     ss_required: roster?.ss_required != null ? Number(roster.ss_required) : null,
   };
@@ -195,7 +196,7 @@ export async function getMenteesWithComplianceByMentorKey(
 
   return mentees.map((mentee) => {
     const compliance = mentee.scholar_uid ? complianceByScholar.get(mentee.scholar_uid) : undefined;
-    // Explicit mapping keeps the compliance response free of contact fields.
+    // Explicit mapping keeps contact and cohort fields out of the compliance response.
     return {
       scholar_uid: mentee.scholar_uid,
       first_name: mentee.first_name,

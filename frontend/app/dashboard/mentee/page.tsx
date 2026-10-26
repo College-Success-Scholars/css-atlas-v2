@@ -6,7 +6,6 @@ import { getCurrentProfile } from "@/lib/server/queries";
 import { fetchMenteeReview, fetchMentees } from "@/lib/server/data";
 import { dateToCampusWeek } from "@/lib/format/time";
 import { parseWeekParam } from "@/lib/format/campus-week";
-import { applyWeekTiers } from "@/lib/tiers";
 import type { MenteeReview } from "@/lib/types/mentee-review";
 import styles from "@/components/mentee-monitoring/mentee-review.module.css";
 
@@ -53,7 +52,8 @@ export default async function MenteePage({ searchParams }: PageProps) {
 
   let review: MenteeReview | null = null;
   if (selectedUid) {
-    review = applyWeekTiers(await fetchMenteeReview(selectedUid, selectedWeek));
+    // Tiers are temporarily disabled; keep the standard completion bands.
+    review = await fetchMenteeReview(selectedUid, selectedWeek);
   }
 
   return (

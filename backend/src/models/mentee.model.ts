@@ -21,6 +21,8 @@ export interface MenteeRow {
   last_name: string | null;
   /** Roster contact for follow-up drafts; null disables launch. */
   email: string | null;
+  /** Entering cohort year for class-year-specific tier thresholds. */
+  cohort?: number | null;
   fd_required: number | null;
   ss_required: number | null;
 }
@@ -33,9 +35,9 @@ export type MenteeTeamLeaderRow = {
 
 /**
  * Mentee roster row enriched only by the compliance read operation. Contact
- * fields are deliberately excluded to keep the compliance response unchanged.
+ * and cohort fields are excluded to keep the compliance response unchanged.
  */
-export interface MenteeWithCompliance extends Omit<MenteeRow, "email"> {
+export interface MenteeWithCompliance extends Omit<MenteeRow, "email" | "cohort"> {
   fdCompliance: ShiftComplianceByKind | null;
   ssCompliance: ShiftComplianceByKind | null;
 }

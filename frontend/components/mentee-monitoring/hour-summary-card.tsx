@@ -19,7 +19,7 @@ import {
 
 interface HourSummaryCardProps {
   summary: HourWeekSummary
-  /** Whole-week tier; both hourly cards in a tiered week share it. */
+  /** Tier earned independently by this hourly requirement. */
   tier?: WeekTier | null
 }
 
@@ -36,7 +36,7 @@ export function HourSummaryCard({ summary, tier = null }: HourSummaryCardProps) 
 
   const percentEl =
     completionPercent != null ? (
-      <span className={cn("text-sm font-semibold tabular-nums", tierUi?.text ?? styles?.text)}>
+      <span className={cn("text-sm font-semibold tabular-nums @max-[340px]:text-xs", tierUi?.text ?? styles?.text)}>
         {formatPercent(completionPercent)}
       </span>
     ) : null
@@ -69,14 +69,18 @@ export function HourSummaryCard({ summary, tier = null }: HourSummaryCardProps) 
   return (
     <Card
       data-tier={tier ?? undefined}
-      className={cn("h-full min-w-0 gap-0 py-0 shadow-none", tierUi?.card)}
+      className={cn("@container h-full min-w-0 gap-0 py-0 shadow-none", tierUi?.card)}
     >
       <CardContent className="relative z-10 space-y-3 px-[18px] py-4">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="text-[15px] font-semibold">{title}</h3>
+        <div className="flex items-start justify-between gap-1.5">
+          <h3 className="text-[15px] font-semibold @max-[340px]:text-sm">{title}</h3>
           <div className="flex shrink-0 flex-col items-end gap-1" data-slot="completion-status">
-            {tier ? <TierBadge tier={tier} /> : null}
-            {percentEl}
+            {tier || percentEl ? (
+              <div className="flex min-h-6 flex-nowrap items-center gap-1.5" data-slot="completion-metrics">
+                {tier ? <TierBadge tier={tier} className="@max-[340px]:gap-0.5 @max-[340px]:text-[11px] @max-[340px]:[&_svg]:size-3" /> : null}
+                {percentEl}
+              </div>
+            ) : null}
             {statusEl}
           </div>
         </div>

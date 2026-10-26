@@ -22,7 +22,6 @@ import { MenteeDetailsSkeleton } from "./mentee-details-skeleton"
 import { RecentGradesSummaryCard } from "./recent-grades-summary-card"
 import { SectionError } from "./section-error"
 import { SemesterGrid } from "./semester-grid"
-import { TierBadge } from "./tier-badge"
 import { TutoringSummaryCard } from "./tutoring-summary-card"
 import { WahfSummaryCard } from "./wahf-summary-card"
 import { formatAsOf, formatWeekTitle, menteeFirstName } from "./utils"
@@ -218,7 +217,6 @@ export function MenteeMonitoringClient({
                   : "This week"}
             </h2>
             <div className="flex flex-wrap items-center justify-end gap-2">
-              {selectedSummary?.tier ? <TierBadge tier={selectedSummary.tier} /> : null}
               {phase === "current" && titleWeek != null && (
                 <p className="text-[13px] text-info-muted-foreground">
                   In progress · as of {formatAsOf(review.asOf)}
@@ -249,7 +247,7 @@ export function MenteeMonitoringClient({
                     <HourSummaryCard
                       key={hours.kind}
                       summary={hours}
-                      tier={selectedSummary.tier}
+                      tier={hours.tier}
                     />
                   ))}
                   <WahfSummaryCard

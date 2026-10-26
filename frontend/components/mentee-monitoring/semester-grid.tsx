@@ -26,6 +26,8 @@ const ROWS: { id: RowId; label: string }[] = [
   { id: "tutoring", label: "Tutoring" },
 ]
 
+const TIER_ORDER: WeekTier[] = ["rare", "epic", "legendary"]
+
 type CellTone = "green" | "orange" | "red" | "pending" | "neutral" | "future" | "break"
 
 const TONE_CLASSES: Record<CellTone, string> = {
@@ -114,7 +116,7 @@ function cellFor(row: RowId, label: string, week: WeekDescriptor, summary: WeekR
   const notes = [
     target ? `${logged} of ${target} hours` : `${logged} hours`,
     hours.percent != null ? formatPercent(hours.percent) : null,
-    summary.tier ? `${TIER_UI[summary.tier].label} tier` : null,
+    hours.tier ? `${TIER_UI[hours.tier].label} tier` : null,
     hours.noShowCount > 0 ? `${hours.noShowCount} no-show` : null,
     hours.pending ? "in progress" : null,
   ]
@@ -125,7 +127,7 @@ function cellFor(row: RowId, label: string, week: WeekDescriptor, summary: WeekR
     tone,
     disabled: false,
     description: `${label}: ${base}, ${notes}`,
-    tier: summary.tier ?? null,
+    tier: hours.tier ?? null,
   }
 }
 
@@ -174,6 +176,11 @@ export function SemesterGrid({
       })
     }),
   )
+  const highestTierIndex = TIER_ORDER.reduce(
+    (highest, tier, index) => achievedTiers.has(tier) ? index : highest,
+    -1,
+  )
+  const legendTiers = TIER_ORDER.slice(0, highestTierIndex + 1)
 
   return (
     <Card className="min-w-0 gap-0 py-0 shadow-none">
@@ -185,11 +192,11 @@ export function SemesterGrid({
             className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[13px] text-muted-foreground"
           >
             <li className="inline-flex items-center gap-1.5">
-              <span className="size-3.5 rounded-sm border border-success/45 bg-success/20" aria-hidden />
+              <span className="size-3.5 shrink-0 rounded-sm border border-green-600 bg-green-500 dark:border-green-300 dark:bg-green-400" aria-hidden />
               90%+
             </li>
             <li className="inline-flex items-center gap-1.5">
-              <span className="size-3.5 rounded-sm border border-warning/50 bg-warning/25" aria-hidden />
+              <span className="size-3.5 shrink-0 rounded-sm border border-orange-600 bg-orange-500 dark:border-orange-300 dark:bg-orange-400" aria-hidden />
               60–89%
             </li>
             <li className="inline-flex items-center gap-1.5">
@@ -200,8 +207,8 @@ export function SemesterGrid({
               <span className="size-3.5 rounded-sm bg-info-muted ring-1 ring-info/30" aria-hidden />
               Current week
             </li>
-            {(["rare", "epic", "legendary"] as const).filter((tier) => achievedTiers.has(tier)).map((tier) => (
-              <li key={tier}>
+            {legendTiers.map((tier) => (
+              <li key={tier} className="inline-flex items-center">
                 <TierBadge tier={tier} className="text-[11px]" />
               </li>
             ))}

@@ -75,8 +75,8 @@
     "semantic_hash": "2adaabc0e5a7400b57d1613bb8396cfc"
   },
   "backend/src/models/mentee.model.ts": {
-    "mtime": 1792817629.1492121,
-    "ast_hash": "785e6cb0560cdecbd45d5092c14f0dd9",
+    "mtime": 1792978243.326947,
+    "ast_hash": "ea61efe5b7c99d4269268a31b9b07042",
     "semantic_hash": ""
   },
   "backend/src/models/session-log.model.ts": {
@@ -180,8 +180,8 @@
     "semantic_hash": "634fee9b3e45001f1876c7a815a9406e"
   },
   "backend/src/services/mentee.service.ts": {
-    "mtime": 1792817629.149212,
-    "ast_hash": "64455580f91aaafbd9ff1de595d878ae",
+    "mtime": 1792978243.3275945,
+    "ast_hash": "e2af1a7c5e316f70b1567d07f1cbd1a3",
     "semantic_hash": ""
   },
   "backend/src/services/session-log.service.ts": {
@@ -495,8 +495,8 @@
     "semantic_hash": ""
   },
   "frontend/app/dashboard/mentee/page.tsx": {
-    "mtime": 1792816487.890611,
-    "ast_hash": "a71f999c41cb350129de57589328f62f",
+    "mtime": 1792980109.3399124,
+    "ast_hash": "2ab56f9f3e14fbe4ba5dbfb9c71dcf60",
     "semantic_hash": ""
   },
   "frontend/app/dashboard/page.tsx": {
@@ -915,8 +915,8 @@
     "semantic_hash": ""
   },
   "frontend/components/mentee-monitoring/mentee-monitoring-client.tsx": {
-    "mtime": 1792977003.486699,
-    "ast_hash": "e3bd49dafb2740326e6ff3c141bab53d",
+    "mtime": 1792978230.8368437,
+    "ast_hash": "d919f06081b7f8140b140fb8ec58b08e",
     "semantic_hash": ""
   },
   "frontend/components/mentee-monitoring/seminars-card.tsx": {
@@ -1695,8 +1695,8 @@
     "semantic_hash": ""
   },
   "backend/API.md": {
-    "mtime": 1792977255.5153143,
-    "ast_hash": "cefee55b8a5817641905f1b5ff84f5ef",
+    "mtime": 1792978243.328056,
+    "ast_hash": "9ad5ef04face93192a435cdd596f7094",
     "semantic_hash": ""
   },
   "backend/src/middleware/README.md": {
@@ -2365,9 +2365,9 @@
     "semantic_hash": "d47fe54866b28eafe01fefeec3b9c45d"
   },
   "backend/src/tests/mentee.service.test.ts": {
-    "mtime": 1792792108.9553618,
-    "ast_hash": "1b8b2a5f20bfb9e3c39d010f837bf374",
-    "semantic_hash": "1b8b2a5f20bfb9e3c39d010f837bf374"
+    "mtime": 1792978227.9868639,
+    "ast_hash": "2b0a5e328958dc1268c78f84c072971e",
+    "semantic_hash": ""
   },
   "backend/src/tests/session-log-compliance.test.ts": {
     "mtime": 1792792108.9576254,
@@ -3200,8 +3200,8 @@
     "semantic_hash": ""
   },
   "frontend/components/mentee-monitoring/mentee-monitoring-client.test.tsx": {
-    "mtime": 1792977194.0608215,
-    "ast_hash": "2b2dfe38072cb1c70740b77e0f56b097",
+    "mtime": 1792979971.7679193,
+    "ast_hash": "79361147e49d3490c52e529ce02101af",
     "semantic_hash": ""
   },
   "frontend/components/personal/personal-client.test.tsx": {
@@ -3460,8 +3460,8 @@
     "semantic_hash": ""
   },
   "backend/src/models/mentee-review.model.ts": {
-    "mtime": 1792977185.2904444,
-    "ast_hash": "5c368c5b26225ee9d614a410de6aded7",
+    "mtime": 1792978243.3273773,
+    "ast_hash": "f4beab0750796089890e868a482775f0",
     "semantic_hash": ""
   },
   "backend/src/services/mentee-mcf-prefill.service.ts": {
@@ -3475,8 +3475,8 @@
     "semantic_hash": ""
   },
   "backend/src/services/mentee-review-activity.service.ts": {
-    "mtime": 1792977123.820002,
-    "ast_hash": "98f4cd2196d67eb7a86c61e5f7e35c50",
+    "mtime": 1792978243.3278184,
+    "ast_hash": "0e3dc86bb2926684381f2385be09e9fc",
     "semantic_hash": ""
   },
   "backend/src/services/mentee-review-attendance.adapter.ts": {
@@ -3530,8 +3530,8 @@
     "semantic_hash": ""
   },
   "frontend/lib/types/mentee-review.ts": {
-    "mtime": 1792977185.2909536,
-    "ast_hash": "24f9883357a1f3d4a9347298b69ee223",
+    "mtime": 1792978189.5184858,
+    "ast_hash": "9f2ea5ad2f45f5c6243fac7d25f0a185",
     "semantic_hash": ""
   },
   "supabase/migrations/20261023120000_mentee_meeting_preferences.sql": {
@@ -3540,8 +3540,8 @@
     "semantic_hash": ""
   },
   "frontend/components/mentee-monitoring/hour-summary-card.tsx": {
-    "mtime": 1792977182.7260137,
-    "ast_hash": "15862c3cc59abf899a62985741f0af27",
+    "mtime": 1792979971.7224724,
+    "ast_hash": "dcd5c1f9dfe2d72d4d700d3a10ce7141",
     "semantic_hash": ""
   },
   "frontend/components/mentee-monitoring/mcf-bar.tsx": {
@@ -3565,8 +3565,8 @@
     "semantic_hash": ""
   },
   "frontend/components/mentee-monitoring/semester-grid.tsx": {
-    "mtime": 1792977173.8645732,
-    "ast_hash": "b7e9e3877a876bd4e8bc6e6f4b6ba445",
+    "mtime": 1792979971.7686777,
+    "ast_hash": "353b9f390ee3a984f90c9b5a05be5ad1",
     "semantic_hash": ""
   },
   "frontend/components/mentee-monitoring/tutoring-summary-card.tsx": {
@@ -3590,8 +3590,8 @@
     "semantic_hash": ""
   },
   "frontend/app/dashboard/directory/[uid]/page.tsx": {
-    "mtime": 1792818329.861403,
-    "ast_hash": "d41df919cf647d4acb9da7115ff3e8a9",
+    "mtime": 1792980109.3406942,
+    "ast_hash": "e41d08858c8afc28af74f6d5633f5576",
     "semantic_hash": ""
   },
   "frontend/app/dashboard/memo/_components/full-attendance-detail-section.test.tsx": {
@@ -3615,23 +3615,23 @@
     "semantic_hash": ""
   },
   "frontend/components/mentee-monitoring/hour-summary-card.test.tsx": {
-    "mtime": 1792977003.4869423,
-    "ast_hash": "5720a015c00296a4179cafb62ad3d529",
+    "mtime": 1792979971.7219598,
+    "ast_hash": "3c63d0abbfb8813dc56e19cad20aeff6",
     "semantic_hash": ""
   },
   "frontend/components/mentee-monitoring/tier-badge.tsx": {
-    "mtime": 1792975888.846917,
-    "ast_hash": "919c2cb599dbde390a750a4a5a5744fe",
+    "mtime": 1792979971.7229145,
+    "ast_hash": "378c10ea301f9aaf8880f494d6cd9e9b",
     "semantic_hash": ""
   },
   "frontend/lib/tiers.test.ts": {
-    "mtime": 1792818337.7071762,
-    "ast_hash": "999aba6e4973188fb12d43af7f931f5e",
+    "mtime": 1792978189.5189068,
+    "ast_hash": "ab0db19c00d49d4c3ff8b3ce63572c1a",
     "semantic_hash": ""
   },
   "frontend/lib/tiers.ts": {
-    "mtime": 1792818324.3085928,
-    "ast_hash": "8aa8b220e6cf8dc4d513b4a5f6d0c64c",
+    "mtime": 1792978213.4162123,
+    "ast_hash": "c0b41218f97e772489d8d35c326a958b",
     "semantic_hash": ""
   },
   ".mcp.json": {
@@ -3640,13 +3640,13 @@
     "semantic_hash": ""
   },
   "frontend/scripts/check-tier-navigation.mjs": {
-    "mtime": 1792977216.6443818,
-    "ast_hash": "4985ed8e6dd1d16173177afc4de6c315",
+    "mtime": 1792979971.7439692,
+    "ast_hash": "ca054a95b013d0522b022b3b714b1c68",
     "semantic_hash": ""
   },
   "frontend/scripts/fixtures/tier-navigation.tsx": {
-    "mtime": 1792977216.638582,
-    "ast_hash": "561445bee008ac6d28a5823006356d51",
+    "mtime": 1792979971.744436,
+    "ast_hash": "26b2b7e348a892182d34a45092bd12f8",
     "semantic_hash": ""
   },
   "frontend/components/mentee-monitoring/meeting-preference-editor.test.tsx": {
@@ -3662,6 +3662,21 @@
   "frontend/scripts/fixtures/mentee-api.ts": {
     "mtime": 1792977216.6376047,
     "ast_hash": "7e28258691880d71c90b25fa8e66044d",
+    "semantic_hash": ""
+  },
+  "backend/src/tests/mentee-review-cohort.test.ts": {
+    "mtime": 1792978223.4218612,
+    "ast_hash": "6aa6a229b4b33a3853144193a018dc43",
+    "semantic_hash": ""
+  },
+  "frontend/components/mentee-monitoring/tier-badge.test.tsx": {
+    "mtime": 1792979114.9480152,
+    "ast_hash": "40d59f6ee5b081d3a6d3e68f1ace815c",
+    "semantic_hash": ""
+  },
+  "frontend/app/dashboard/mentee/page.test.tsx": {
+    "mtime": 1792980151.4046912,
+    "ast_hash": "dc86165be5edf31de16206913bb02444",
     "semantic_hash": ""
   }
 }
