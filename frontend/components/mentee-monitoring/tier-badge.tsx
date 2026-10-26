@@ -9,7 +9,7 @@ import styles from "./tier-styles.module.css"
 interface TierUi {
   label: string
   Icon: LucideIcon
-  /** Compact pill for the week header and requirement cards. */
+  /** Compact pill for the legend and requirement cards. */
   pill: string
   /** Tier ink for the "+N min extra" line. */
   text: string
@@ -63,7 +63,7 @@ export function TierBadge({
     <span
       data-tier={tier}
       className={cn(
-        "inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-0.5 text-[12px] font-semibold leading-none",
+        "inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.75 text-[12px] font-semibold leading-none",
         pill,
         className,
       )}

@@ -150,7 +150,7 @@ try {
   await page.locator('th[data-week="3"] button').click()
   await page.waitForSelector('[data-selected-week="3"][data-selection-count="3"]')
 
-  for (const width of [1280, 390]) {
+  for (const width of [1280, 390, 290]) {
     await page.setViewport({ width, height: 900 })
     const heightBefore = await page.$eval('[data-testid="mcf-banner"]', el => el.getBoundingClientRect().height)
     await page.locator('button[aria-label="Change meeting time"]').click()
@@ -167,10 +167,55 @@ try {
     await page.keyboard.press("Escape")
     await page.waitForSelector('[role="dialog"]', { hidden: true })
     await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "Change meeting time")
+
+    const badges = await page.evaluate(() => [...document.querySelectorAll('[data-slot="completion-metrics"]')].map(metrics => {
+      const badge = metrics.querySelector("[data-tier]")
+      const percent = badge.nextElementSibling
+      const badgeRect = badge.getBoundingClientRect()
+      const percentRect = percent.getBoundingClientRect()
+      const card = metrics.closest('[data-slot="card"]')
+      const header = metrics.parentElement.parentElement
+      const headerRect = header.getBoundingClientRect()
+      const titleRect = header.querySelector('h3').getBoundingClientRect()
+      const before = card.getBoundingClientRect().height
+      const headerBefore = header.getBoundingClientRect().height
+      badge.remove()
+      const withoutBadge = card.getBoundingClientRect().height
+      const headerWithoutBadge = header.getBoundingClientRect().height
+      metrics.prepend(badge)
+      return {
+        tier: badge.dataset.tier,
+        gap: percentRect.left - badgeRect.right,
+        centerDifference: Math.abs((badgeRect.top + badgeRect.height / 2) - (percentRect.top + percentRect.height / 2)),
+        fits: titleRect.right <= badgeRect.left && percentRect.right <= headerRect.right + 1,
+        before, withoutBadge, headerBefore, headerWithoutBadge,
+        paddingX: parseFloat(getComputedStyle(badge).paddingLeft),
+        paddingY: parseFloat(getComputedStyle(badge).paddingTop),
+      }
+    }))
+    for (const badge of badges) {
+      assert.ok(badge.gap >= 6, `${width}px ${badge.tier} badge needs breathing room beside the percentage`)
+      assert.ok(badge.centerDifference < 1, `${width}px ${badge.tier} badge must be beside, not above, the percentage`)
+      assert.ok(badge.fits, `${width}px ${badge.tier} badge must fit without overlapping the title or overflowing`)
+      assert.equal(badge.before, badge.withoutBadge, `${width}px ${badge.tier} badge must not make the card taller`)
+      assert.equal(badge.headerBefore, badge.headerWithoutBadge, `${width}px ${badge.tier} badge must not add header height`)
+      assert.ok(badge.paddingX >= 8 && badge.paddingY >= 3, "Tier badges need comfortable internal padding")
+    }
   }
+
+  await page.goto(`${origin}/dashboard/mentee?independent=1`, { waitUntil: "networkidle0" })
+  const independent = await page.evaluate(() => ({
+    gridTiers: [...document.querySelectorAll('td[data-week="3"] button')].slice(0, 2).map(el => el.dataset.tier ?? null),
+    cardTiers: [...document.querySelectorAll('[data-testid="hour-cards"] [data-slot="card"]')].map(el => el.dataset.tier ?? null),
+    legend: [...document.querySelectorAll('[data-testid="semester-legend"] [data-tier]')].map(el => el.dataset.tier),
+  }))
+  assert.deepEqual(independent.gridTiers, [null, "legendary"], "High study hours must not be suppressed by front desk")
+  assert.deepEqual(independent.cardTiers, [null, "legendary"], "Each card must match its own grid cell")
+  assert.deepEqual(independent.legend, ["rare", "epic", "legendary"], "Legend must include every tier up to Legendary")
   console.log(`Tier navigation: ${checks} computed-color checks passed (both entry points, return/back, light/dark, reduced motion, missing root tokens).`)
   console.log("Column interaction: continuous hover, row-gap and column-gap clicks, and single activation passed in Chrome.")
   console.log("Meeting editor: stable banner height and restored focus passed at desktop and mobile widths.")
+  console.log("Tier layout: padded badges beside percentages without taller cards; independent study/front-desk tiers and cumulative legend passed.")
 } finally {
   await browser?.close()
   await server.close()

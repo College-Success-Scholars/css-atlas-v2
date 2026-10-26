@@ -308,6 +308,8 @@ export interface MenteeReviewIdentity {
   fullName: string;
   /** Roster contact for follow-up drafts; null disables launch. */
   email: string | null;
+  /** Entering cohort year for class-year-specific tier thresholds. */
+  cohort?: number | null;
 }
 
 /** Authorized selected-week review DTO, including the caller's own meeting preference. */

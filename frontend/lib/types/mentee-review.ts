@@ -17,7 +17,7 @@ export type ShiftStatus =
   /** Would be a no-show but the day has open/unmatched evidence; never a confirmed miss. */
   | "unconfirmed";
 export type WeekPhase = "current" | "past" | "future";
-/** Display-only completion tier for a week where both hourly requirements are over the cutoff. */
+/** Display-only completion tier earned independently by an hourly requirement. */
 export type WeekTier = "rare" | "epic" | "legendary";
 export type WahfStatus = "pending" | "submitted" | "missing" | "unknown";
 export type TutoringStatus = "recorded" | "none" | "unknown";
@@ -53,6 +53,8 @@ export interface OffShiftLogEvidence {
 
 export interface HourWeekSummary {
   kind: ShiftSessionKind;
+  /** Derived from this requirement's logged minutes by `applyWeekTiers`; not an API field. */
+  tier?: WeekTier | null;
   assignmentAvailable: boolean;
   loggedMinutes: number;
   targetMinutes: number | null;
@@ -95,8 +97,6 @@ export interface WeekReviewSummary {
   weekStart: string;
   weekEnd: string;
   phase: WeekPhase;
-  /** Derived in the page data path by `applyWeekTiers`; never sent by the API. */
-  tier?: WeekTier | null;
   /** [front_desk, study_session] in stable order. */
   hours: HourWeekSummary[];
   wahf: WahfWeekSummary;
@@ -157,8 +157,8 @@ export interface MenteeReviewIdentity {
   /** Roster contact for follow-up drafts; null disables launch. */
   email: string | null;
   /**
-   * Optional entering cohort year. The current frontend-only tier path uses
-   * freshman cutoffs when this is absent, so no backend field is required yet.
+   * Entering cohort year from the roster. Optional for older API responses;
+   * those retain the freshman-cutoff fallback.
    */
   cohort?: number | null;
 }

@@ -3,8 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
   applyWeekTiers,
   getClassYear,
-  getSummaryTier,
-  getWeekTier,
+  getHourTier,
 } from "./tiers"
 import type {
   HourWeekSummary,
@@ -101,90 +100,117 @@ describe("getClassYear", () => {
   })
 })
 
-describe("getWeekTier", () => {
+describe("getHourTier", () => {
   const base = {
-    fdMinutes: 0,
-    ssMinutes: 0,
-    fdRequired: 100,
-    ssRequired: 100,
+    loggedMinutes: 0,
+    targetMinutes: 100,
     classYear: 0,
   }
 
-  it("counts a week exactly at the cutoff", () => {
-    expect(getWeekTier({ ...base, fdMinutes: 105, ssMinutes: 105 })).toBe("rare")
+  it.each([
+    [104.99, null], [105, "rare"], [114.99, "rare"],
+    [115, "epic"], [124.99, "epic"], [125, "legendary"],
+  ] as const)("awards the highest freshman tier at %f percent", (loggedMinutes, expected) => {
+    expect(getHourTier({ ...base, loggedMinutes })).toBe(expected)
   })
 
-  it("uses the weakest link, never the stronger requirement", () => {
-    expect(getWeekTier({ ...base, fdMinutes: 200, ssMinutes: 104 })).toBeNull()
+  it.each([
+    [114.99, null], [115, "rare"], [134.99, "rare"],
+    [135, "epic"], [154.99, "epic"], [155, "legendary"],
+  ] as const)("awards the highest sophomore tier at %f percent", (loggedMinutes, expected) => {
+    expect(getHourTier({ ...base, loggedMinutes, classYear: 1 })).toBe(expected)
   })
 
-  it("requires both requirements to be positive", () => {
-    expect(getWeekTier({ ...base, fdMinutes: 500, ssMinutes: 500, ssRequired: 0 })).toBeNull()
-    expect(getWeekTier({ ...base, fdMinutes: 500, ssMinutes: 500, fdRequired: 0 })).toBeNull()
+  it.each([0, -1, null, Number.NaN, Number.POSITIVE_INFINITY])("ignores invalid target %s", (targetMinutes) => {
+    expect(getHourTier({ ...base, loggedMinutes: 500, targetMinutes })).toBeNull()
   })
 
-  it("does not tier juniors or above", () => {
-    expect(getWeekTier({ ...base, fdMinutes: 500, ssMinutes: 500, classYear: 2 })).toBeNull()
+  it.each([Number.NaN, Number.POSITIVE_INFINITY, -10])("ignores invalid logged minutes %s", (loggedMinutes) => {
+    expect(getHourTier({ ...base, loggedMinutes })).toBeNull()
   })
 
-  it("applies the sophomore cutoffs", () => {
-    expect(getWeekTier({ ...base, fdMinutes: 154.9, ssMinutes: 154.9, classYear: 1 })).toBe("epic")
-    expect(getWeekTier({ ...base, fdMinutes: 155, ssMinutes: 155, classYear: 1 })).toBe("legendary")
-  })
-
-  it("takes the highest tier met", () => {
-    expect(getWeekTier({ ...base, fdMinutes: 115, ssMinutes: 115 })).toBe("epic")
-    expect(getWeekTier({ ...base, fdMinutes: 125, ssMinutes: 125 })).toBe("legendary")
-  })
-})
-
-describe("getSummaryTier", () => {
-  it("uses logged minutes and the evaluator's targets", () => {
-    expect(getSummaryTier(week(1, 330, 330), 0)).toBe("rare")
-    expect(getSummaryTier(week(1, 350, 320), 0)).toBe("rare")
-  })
-
-  it("tiers the done-when freshman week: 3.3 of 3h front desk + 5.3 of 5h study", () => {
-    expect(getSummaryTier(week(1, 198, 318, 180, 300), 0)).toBe("rare")
-  })
-
-  it("does not tier a week with a missing target", () => {
-    const summary = week(1, 330, 330)
-    summary.hours = [
-      hour("front_desk", 330, 300),
-      { ...hour("study_session", 330, 300), targetMinutes: null, percent: null, band: null },
-    ]
-    expect(getSummaryTier(summary, 0)).toBeNull()
+  it.each([2, 3, -1, Number.NaN])("does not tier unsupported class year %s", (classYear) => {
+    expect(getHourTier({ ...base, loggedMinutes: 500, classYear })).toBeNull()
   })
 })
 
 describe("applyWeekTiers", () => {
-  it("attaches the same tier to the grid and the selected week", () => {
-    const tiered = applyWeekTiers(review([week(1, 330, 330)]))
-    expect(tiered.semesterGrid.ok && tiered.semesterGrid.data[0]?.tier).toBe("rare")
-    expect(tiered.selectedWeekReview.ok && tiered.selectedWeekReview.data?.tier).toBe("rare")
+  function tiers(result: MenteeReview) {
+    return {
+      grid: result.semesterGrid.ok ? result.semesterGrid.data[0]?.hours.map((h) => h.tier) : null,
+      cards: result.selectedWeekReview.ok ? result.selectedWeekReview.data?.hours.map((h) => h.tier) : null,
+    }
+  }
+
+  it.each([
+    [360, "epic"], [504, "legendary"], [502.06, "legendary"],
+  ] as const)("tiers %f study minutes independently of front desk", (studyMinutes, expected) => {
+    const source = review([week(1, 182.83, studyMinutes, 180, 300)])
+    expect(tiers(applyWeekTiers(source))).toEqual({ grid: [null, expected], cards: [null, expected] })
+    expect(source.semesterGrid.ok && source.semesterGrid.data[0]?.hours[1]?.tier).toBeUndefined()
+  })
+
+  it("does not let low study hours suppress an earned front-desk tier", () => {
+    expect(tiers(applyWeekTiers(review([week(1, 225, 60, 180, 300)])))).toEqual({
+      grid: ["legendary", null], cards: ["legendary", null],
+    })
+  })
+
+  it("can award different tiers to the two requirements", () => {
+    expect(tiers(applyWeekTiers(review([week(1, 198, 360, 180, 300)])))).toEqual({
+      grid: ["rare", "epic"], cards: ["rare", "epic"],
+    })
+  })
+
+  it("ignores excuse-adjusted percent and uses exact logged minutes", () => {
+    const summary = week(1, 180, 300, 180, 300)
+    summary.hours.forEach((h) => { h.percent = 150 })
+    expect(tiers(applyWeekTiers(review([summary])))).toEqual({ grid: [null, null], cards: [null, null] })
+  })
+
+  it("a missing front-desk target does not suppress study tiers", () => {
+    const summary = week(1, 0, 360, 180, 300)
+    summary.hours[0] = { ...summary.hours[0]!, targetMinutes: null, percent: null, band: null }
+    expect(tiers(applyWeekTiers(review([summary])))).toEqual({ grid: [null, "epic"], cards: [null, "epic"] })
   })
 
   it("defaults to freshman cutoffs when the API omits cohort", () => {
-    const tiered = applyWeekTiers(review([week(1, 330, 330)], null))
-    expect(tiered.semesterGrid.ok && tiered.semesterGrid.data[0]?.tier).toBe("rare")
-    expect(tiered.selectedWeekReview.ok && tiered.selectedWeekReview.data?.tier).toBe("rare")
+    expect(tiers(applyWeekTiers(review([week(1, 330, 330)], null)))).toEqual({
+      grid: ["rare", "rare"], cards: ["rare", "rare"],
+    })
   })
 
   it("does not tier weeks without a semester start", () => {
     const source = review([week(1, 330, 330)])
     source.calendar.semesterStart = null
-    const tiered = applyWeekTiers(source)
-    expect(tiered.semesterGrid.ok && tiered.semesterGrid.data[0]?.tier).toBeNull()
+    expect(tiers(applyWeekTiers(source))).toEqual({ grid: [null, null], cards: [null, null] })
   })
 
-  it("uses the cohort passed from the weekly memo", () => {
+  it("uses the roster cohort for sophomore cutoffs", () => {
+    expect(tiers(applyWeekTiers(review([week(1, 330, 405)], 2025)))).toEqual({
+      grid: [null, "epic"], cards: [null, "epic"],
+    })
+  })
+
+  it("uses the cohort passed from the weekly memo as a legacy fallback", () => {
     const source = review([week(1, 330, 330)], null)
 
     const freshman = applyWeekTiers(source, 2026)
-    expect(freshman.semesterGrid.ok && freshman.semesterGrid.data[0]?.tier).toBe("rare")
+    expect(tiers(freshman)).toEqual({ grid: ["rare", "rare"], cards: ["rare", "rare"] })
 
     const sophomore = applyWeekTiers(source, 2025)
-    expect(sophomore.semesterGrid.ok && sophomore.semesterGrid.data[0]?.tier).toBeNull()
+    expect(tiers(sophomore)).toEqual({ grid: [null, null], cards: [null, null] })
+  })
+
+  it("prefers the authoritative roster cohort over a stale URL cohort", () => {
+    expect(tiers(applyWeekTiers(review([week(1, 330, 405)], 2025), 2026))).toEqual({
+      grid: [null, "epic"], cards: [null, "epic"],
+    })
+  })
+
+  it("never awards a future week's tiers", () => {
+    const summary = week(1, 500, 500)
+    summary.phase = "future"
+    expect(tiers(applyWeekTiers(review([summary])))).toEqual({ grid: [null, null], cards: [null, null] })
   })
 })

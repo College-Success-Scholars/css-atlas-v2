@@ -288,6 +288,7 @@ async function composeReviewForMentee(params: {
     uid: menteeUid,
     fullName: [mentee.first_name, mentee.last_name].filter(Boolean).join(" ").trim(),
     email: mentee.email ?? null,
+    cohort: mentee.cohort ?? null,
   };
   const targets: Partial<Record<ShiftSessionKind, number | null>> = {
     front_desk: mentee.fd_required,

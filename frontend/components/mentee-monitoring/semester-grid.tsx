@@ -26,6 +26,8 @@ const ROWS: { id: RowId; label: string }[] = [
   { id: "tutoring", label: "Tutoring" },
 ]
 
+const TIER_ORDER: WeekTier[] = ["rare", "epic", "legendary"]
+
 type CellTone = "green" | "orange" | "red" | "pending" | "neutral" | "future" | "break"
 
 const TONE_CLASSES: Record<CellTone, string> = {
@@ -114,7 +116,7 @@ function cellFor(row: RowId, label: string, week: WeekDescriptor, summary: WeekR
   const notes = [
     target ? `${logged} of ${target} hours` : `${logged} hours`,
     hours.percent != null ? formatPercent(hours.percent) : null,
-    summary.tier ? `${TIER_UI[summary.tier].label} tier` : null,
+    hours.tier ? `${TIER_UI[hours.tier].label} tier` : null,
     hours.noShowCount > 0 ? `${hours.noShowCount} no-show` : null,
     hours.pending ? "in progress" : null,
   ]
@@ -125,7 +127,7 @@ function cellFor(row: RowId, label: string, week: WeekDescriptor, summary: WeekR
     tone,
     disabled: false,
     description: `${label}: ${base}, ${notes}`,
-    tier: summary.tier ?? null,
+    tier: hours.tier ?? null,
   }
 }
 
@@ -174,6 +176,11 @@ export function SemesterGrid({
       })
     }),
   )
+  const highestTierIndex = TIER_ORDER.reduce(
+    (highest, tier, index) => achievedTiers.has(tier) ? index : highest,
+    -1,
+  )
+  const legendTiers = TIER_ORDER.slice(0, highestTierIndex + 1)
 
   return (
     <Card className="min-w-0 gap-0 py-0 shadow-none">
@@ -200,7 +207,7 @@ export function SemesterGrid({
               <span className="size-3.5 rounded-sm bg-info-muted ring-1 ring-info/30" aria-hidden />
               Current week
             </li>
-            {(["rare", "epic", "legendary"] as const).filter((tier) => achievedTiers.has(tier)).map((tier) => (
+            {legendTiers.map((tier) => (
               <li key={tier}>
                 <TierBadge tier={tier} className="text-[11px]" />
               </li>

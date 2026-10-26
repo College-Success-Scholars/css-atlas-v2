@@ -124,6 +124,24 @@ describe("HourSummaryCard", () => {
     expect(html).toContain("+40 min extra")
   })
 
+  it.each(TIERS)("keeps the %s badge beside the percentage instead of stacking another header row", (tier) => {
+    const html = renderToStaticMarkup(
+      <HourSummaryCard summary={summary({ pending: true })} tier={tier} />,
+    )
+    const metrics = html.match(/<div class="([^"]+)" data-slot="completion-metrics">(.*?)<\/div>/)
+
+    expect(metrics).not.toBeNull()
+    expect(metrics![1]).toContain("flex-nowrap")
+    expect(metrics![1]).toContain("min-h-6")
+    expect(metrics![1]).not.toContain("flex-col")
+    expect(metrics![2]).toContain(`data-tier="${tier}"`)
+    expect(metrics![2]).toContain("113.3%")
+    expect(metrics![2]).not.toContain("In progress")
+    expect(html).toContain("In progress")
+    expect(metrics![2]).toContain("px-2 py-0.75")
+    expect(metrics![2]).toContain("@max-[340px]:text-[11px]")
+  })
+
   it("adds the legendary text shadow to the hours number", () => {
     const html = renderToStaticMarkup(
       <HourSummaryCard summary={summary()} tier="legendary" />,
