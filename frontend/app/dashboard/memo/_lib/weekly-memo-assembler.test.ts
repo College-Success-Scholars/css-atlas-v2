@@ -14,6 +14,7 @@ const buildMemoData = (): MemoLivePageData =>
         scholarName: "Alice Scholar",
         cohort: freshman,
         teamLeader: "TL One",
+        isMentee: true,
         fdPct: 95,
         ssPct: 91,
         fdRequired: 120,
@@ -32,6 +33,7 @@ const buildMemoData = (): MemoLivePageData =>
         scholarName: "Bob Scholar",
         cohort: sophomore,
         teamLeader: "TL Two",
+        isMentee: false,
         fdPct: 50,
         ssPct: 70,
         fdRequired: 120,
@@ -78,13 +80,13 @@ const buildMemoData = (): MemoLivePageData =>
     trafficComparableLastWeekCount: 80,
     trafficSessions: [{ id: "session-1" }],
     tutorReports: [
-      { id: 1, scholarId: "1", scholarName: "A", tutorName: "T", courses: [], startTime: "", endTime: "", dayOfWeek: "Mon" },
+      { id: 1, scholarId: "2024-001", scholarName: "A", isMentee: true, tutorName: "T", courses: [], startTime: "", endTime: "", dayOfWeek: "Mon" },
       { id: 2, scholarId: null, scholarName: "EMPTY SESSION", tutorName: "T2", courses: [], startTime: "", endTime: "", dayOfWeek: "Tue" },
     ],
     gradeBreakdown: {
-      high: [{ scholarName: "Alice Scholar", course: "CMSC131", assessment: "Quiz", grade: "95%", percent: 95 }],
-      mid: [{ scholarName: "Alice Scholar", course: "MATH140", assessment: "HW 4", grade: "82%", percent: 82 }],
-      low: [{ scholarName: "Bob Scholar", course: "X", assessment: "Y", grade: "60", percent: 60 }],
+      high: [{ scholarName: "Alice Scholar", scholarId: "2024-001", isMentee: true, course: "CMSC131", assessment: "Quiz", grade: "95%", percent: 95 }],
+      mid: [{ scholarName: "Alice Scholar", scholarId: "2024-001", isMentee: true, course: "MATH140", assessment: "HW 4", grade: "82%", percent: 82 }],
+      low: [{ scholarName: "Bob Scholar", scholarId: "2023-010", isMentee: false, course: "X", assessment: "Y", grade: "60", percent: 60 }],
     },
     wahfDonut: { total: 0, completeCount: 0, lateCount: 0, percentComplete: 0 },
     teamLeaderFormStats: [
@@ -153,6 +155,8 @@ describe("weekly-memo-assembler", () => {
       hasNoMentee: false,
     })
     expect(result.scholarRows[0]).toMatchObject({
+      scholarId: "2023-010",
+      isMentee: false,
       scholarName: "Bob Scholar",
       teamLeader: "TL Two",
       flags: ["Low front desk completion", "Low study session completion", "Low grade", "Missing WAHF"],
@@ -171,7 +175,7 @@ describe("weekly-memo-assembler", () => {
       tabs: [
         expect.objectContaining({
           id: "sessions",
-          rows: [expect.objectContaining({ scholarName: "A", tutorName: "T" })],
+          rows: [expect.objectContaining({ scholarId: "2024-001", isMentee: true, scholarName: "A", tutorName: "T" })],
         }),
         expect.objectContaining({
           id: "empty-sessions",
@@ -196,6 +200,8 @@ describe("weekly-memo-assembler", () => {
     expect(fdTab?.rows).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
+          scholarId: "2024-001",
+          isMentee: true,
           scholarName: "Alice Scholar",
           completedMinutes: 114,
           excuseMinutes: 0,
@@ -224,17 +230,17 @@ describe("weekly-memo-assembler", () => {
         {
           id: "high",
           label: "90 – 100%",
-          entries: [{ scholarName: "Alice Scholar", course: "CMSC131", assessment: "Quiz", grade: "95%", percent: 95 }],
+          entries: [{ scholarName: "Alice Scholar", scholarId: "2024-001", cohort: freshman, isMentee: true, course: "CMSC131", assessment: "Quiz", grade: "95%", percent: 95 }],
         },
         {
           id: "mid",
           label: "70 – 89%",
-          entries: [{ scholarName: "Alice Scholar", course: "MATH140", assessment: "HW 4", grade: "82%", percent: 82 }],
+          entries: [{ scholarName: "Alice Scholar", scholarId: "2024-001", cohort: freshman, isMentee: true, course: "MATH140", assessment: "HW 4", grade: "82%", percent: 82 }],
         },
         {
           id: "low",
           label: "Below 70%",
-          entries: [{ scholarName: "Bob Scholar", course: "X", assessment: "Y", grade: "60", percent: 60 }],
+          entries: [{ scholarName: "Bob Scholar", scholarId: "2023-010", cohort: sophomore, isMentee: false, course: "X", assessment: "Y", grade: "60", percent: 60 }],
         },
       ],
     })
@@ -255,6 +261,7 @@ describe("weekly-memo-assembler", () => {
           scholarName: "Cara OnlyWahf",
           cohort: freshman,
           teamLeader: "TL One",
+          isMentee: true,
           fdPct: 100,
           ssPct: 100,
           fdRequired: 120,

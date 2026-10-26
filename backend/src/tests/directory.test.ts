@@ -42,9 +42,16 @@ describe("directory query contract", () => {
       phoneNumber: "555-0100",
       teams: ["Blue"],
       programRole: "Scholar",
+      isMentee: false,
     });
     expect(person).not.toHaveProperty("phone_number");
     expect(person).not.toHaveProperty("app_role");
+  });
+
+  it("marks only people whose UID has a mentor_mentee assignment", () => {
+    const person = mapDirectoryPerson(rows[0]!, new Set(["uid-ada"]));
+    expect(person.isMentee).toBe(true);
+    expect(mapDirectoryPerson(rows[2]!, new Set(["uid-ada"])).isMentee).toBe(false);
   });
 
   it("searches by name, email, or UID and returns the matching UID", () => {

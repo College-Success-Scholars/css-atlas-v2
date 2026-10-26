@@ -46,6 +46,14 @@ describe("resolveDashboardBreadcrumb", () => {
     ]);
   });
 
+  it("labels a directory scholar detail page without exposing the raw UID", () => {
+    expect(resolveDashboardBreadcrumb("/dashboard/directory/123456789")).toEqual([
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Directory", href: "/dashboard/directory" },
+      { label: "Scholar" },
+    ]);
+  });
+
   it("formats unknown path segments as a title", () => {
     expect(resolveDashboardBreadcrumb("/dashboard/some-new-page")).toEqual([
       { label: "Dashboard", href: "/dashboard" },

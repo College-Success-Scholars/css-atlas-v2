@@ -103,8 +103,11 @@ export const classifyScholarFollowUpRisk = (data: MemoLivePageData): ScholarFoll
       const { flags, issues } = buildScholarFollowUpIssues(row, data.gradeBreakdown.low)
 
       return {
+        scholarId: row.scholarId,
+        isMentee: row.isMentee,
         scholarName: row.scholarName,
         scholarYear: toScholarYear(row.cohort),
+        cohort: row.cohort,
         teamLeader: row.teamLeader?.trim() || "Unassigned",
         flags,
         issues,

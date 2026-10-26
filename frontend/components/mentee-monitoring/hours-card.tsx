@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import { format, parseISO } from "date-fns"
+import { CheckCircle2 } from "lucide-react"
 import type { DailyHoursEntry } from "./utils"
 
 const COLOR_CONFIG = {
@@ -42,14 +43,21 @@ export function HoursCard({
   excuseHours = 0,
   excuseDescription = null,
 }: HoursCardProps) {
+  const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1))
   const effective = completed + excuseHours
   const remaining = Math.max(0, total - effective)
+  const hasRequirement = total > 0
+  const requirementMet = hasRequirement && remaining === 0
+  const statusLabel = !hasRequirement
+    ? "No hours required"
+    : requirementMet
+      ? completed >= total ? "Completed" : "Requirement met"
+      : `${fmt(remaining)} hrs left`
   const percentage =
     total > 0 ? Math.min(100, Math.round((effective / total) * 100)) : 0
   const hasExcuse = excuseHours > 0 || Boolean(excuseDescription)
   const onTrack = percentage >= 75
   const cfg = COLOR_CONFIG[color]
-  const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1))
 
   const maxHours = Math.max(
     ...dailyHours.flatMap((day) => [day.hours, day.scheduledHours]),
@@ -79,8 +87,9 @@ export function HoursCard({
                 {fmt(excuseHours)} hrs excused
               </Badge>
             )}
-            <Badge variant="warning" className="shrink-0">
-              {fmt(remaining)} hrs left
+            <Badge variant={requirementMet ? "success" : hasRequirement ? "warning" : "secondary"} className="shrink-0">
+              {requirementMet && <CheckCircle2 aria-hidden />}
+              {statusLabel}
             </Badge>
           </div>
         </div>
@@ -95,8 +104,12 @@ export function HoursCard({
         />
 
         <p className="text-sm text-muted-foreground">
-          <span className={cn("mr-1 inline-block size-2 rounded-full", onTrack ? "bg-success" : "bg-warning")} />
-          {onTrack ? "On track this week" : "Behind target this week"}
+          <span className={cn("mr-1 inline-block size-2 rounded-full", !hasRequirement ? "bg-muted-foreground" : onTrack ? "bg-success" : "bg-warning")} aria-hidden />
+          {!hasRequirement
+            ? "No hours required this week"
+            : requirementMet
+              ? "Weekly requirement met"
+              : onTrack ? "On track this week" : "Behind target this week"}
         </p>
 
         <div>

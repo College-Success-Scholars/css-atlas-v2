@@ -1,11 +1,28 @@
 "use client"
 
-import { useState } from "react"
-import { User, GraduationCap, Briefcase, Users } from "lucide-react"
+import { useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
+import { User, GraduationCap, Briefcase, Users, Plus, Trash2 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -14,6 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { addMentee, removeMentee } from "@/lib/server/actions"
 import type { ProfileRow, MenteeRow } from "@/lib/types/supabase"
 
 const TABS = [
@@ -25,12 +43,31 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"]
 
+export type MenteeCandidate = {
+  uid: string
+  first_name: string | null
+  last_name: string | null
+}
+
+function displayName(person: {
+  first_name: string | null
+  last_name: string | null
+}): string {
+  return [person.first_name, person.last_name].filter(Boolean).join(" ") || "—"
+}
+
 export default function SettingsClient({
   profile,
   mentees,
+  candidates = [],
+  canManageMentees = false,
+  readOnlyReason = null,
 }: {
   profile: ProfileRow
   mentees: MenteeRow[]
+  candidates?: MenteeCandidate[]
+  canManageMentees?: boolean
+  readOnlyReason?: string | null
 }) {
   const [activeTab, setActiveTab] = useState<TabId>("personal")
 
@@ -85,7 +122,14 @@ export default function SettingsClient({
           {activeTab === "personal" && <PersonalTab profile={profile} />}
           {activeTab === "academic" && <AcademicTab profile={profile} />}
           {activeTab === "program" && <ProgramTab profile={profile} />}
-          {activeTab === "mentees" && <MenteesTab mentees={mentees} />}
+          {activeTab === "mentees" && (
+            <MenteesTab
+              mentees={mentees}
+              candidates={candidates}
+              canManageMentees={canManageMentees}
+              readOnlyReason={readOnlyReason}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -195,15 +239,112 @@ function ProgramTab({ profile }: { profile: ProfileRow }) {
   )
 }
 
-function MenteesTab({ mentees }: { mentees: MenteeRow[] }) {
+function MenteesTab({
+  mentees,
+  candidates,
+  canManageMentees,
+  readOnlyReason,
+}: {
+  mentees: MenteeRow[]
+  candidates: MenteeCandidate[]
+  canManageMentees: boolean
+  readOnlyReason: string | null
+}) {
+  const router = useRouter()
+  const [addOpen, setAddOpen] = useState(false)
+  const [query, setQuery] = useState("")
+  const [selectedUid, setSelectedUid] = useState("")
+  const [adding, setAdding] = useState(false)
+  const [addError, setAddError] = useState<string | null>(null)
+  const [removeTarget, setRemoveTarget] = useState<MenteeRow | null>(null)
+  const [removing, setRemoving] = useState(false)
+  const [removeError, setRemoveError] = useState<string | null>(null)
+
+  const available = useMemo(() => {
+    const assigned = new Set(
+      mentees.flatMap((mentee) => (mentee.scholar_uid ? [mentee.scholar_uid] : [])),
+    )
+    return candidates.filter((candidate) => !assigned.has(candidate.uid))
+  }, [candidates, mentees])
+
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase()
+    if (!needle) return available
+    return available.filter((candidate) =>
+      [candidate.first_name, candidate.last_name, candidate.uid]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(needle),
+    )
+  }, [available, query])
+
+  function handleAddOpenChange(open: boolean) {
+    setAddOpen(open)
+    if (!open) {
+      setQuery("")
+      setSelectedUid("")
+      setAddError(null)
+    }
+  }
+
+  function handleRemoveOpenChange(open: boolean) {
+    if (!open) {
+      setRemoveTarget(null)
+      setRemoveError(null)
+    }
+  }
+
+  async function handleAdd() {
+    if (!selectedUid) return
+    setAdding(true)
+    setAddError(null)
+    const result = await addMentee(selectedUid)
+    setAdding(false)
+    if ("error" in result) {
+      setAddError(result.error)
+      return
+    }
+    handleAddOpenChange(false)
+    router.refresh()
+  }
+
+  async function handleRemove() {
+    const uid = removeTarget?.scholar_uid
+    if (!uid) return
+    setRemoving(true)
+    setRemoveError(null)
+    const result = await removeMentee(uid)
+    setRemoving(false)
+    if ("error" in result) {
+      setRemoveError(result.error)
+      return
+    }
+    handleRemoveOpenChange(false)
+    router.refresh()
+  }
+
   return (
     <Card className="gap-0 py-0">
       <CardContent className="p-6 space-y-6">
-        <SectionHeading>Assigned Mentees</SectionHeading>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <SectionHeading>Assigned Mentees</SectionHeading>
+            <p className="text-sm text-muted-foreground">
+              {mentees.length} {mentees.length === 1 ? "mentee" : "mentees"}
+            </p>
+          </div>
+          {canManageMentees && (
+            <Button size="sm" onClick={() => handleAddOpenChange(true)}>
+              <Plus className="size-4" />
+              Add mentee
+            </Button>
+          )}
+        </div>
 
-        <p className="text-sm text-muted-foreground">
-          {mentees.length} {mentees.length === 1 ? "mentee" : "mentees"}
-        </p>
+        {readOnlyReason && (
+          <p className="text-sm text-muted-foreground">{readOnlyReason}</p>
+        )}
 
         {mentees.length === 0 ? (
           <p className="text-sm text-muted-foreground">No mentees assigned.</p>
@@ -215,20 +356,41 @@ function MenteesTab({ mentees }: { mentees: MenteeRow[] }) {
                   <TableHead>Name</TableHead>
                   <TableHead className="text-right">FD Required</TableHead>
                   <TableHead className="text-right">SS Required</TableHead>
+                  {canManageMentees && (
+                    <TableHead className="text-right">Actions</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mentees.map((m) => (
-                  <TableRow key={m.scholar_uid}>
+                {mentees.map((mentee) => (
+                  <TableRow key={mentee.scholar_uid}>
                     <TableCell className="font-medium">
-                      {[m.first_name, m.last_name].filter(Boolean).join(" ") || "—"}
+                      {displayName(mentee)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {m.fd_required ?? "—"}
+                      {mentee.fd_required ?? "—"}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {m.ss_required ?? "—"}
+                      {mentee.ss_required ?? "—"}
                     </TableCell>
+                    {canManageMentees && (
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          disabled={!mentee.scholar_uid}
+                          aria-label={`Remove ${displayName(mentee)}`}
+                          onClick={() => {
+                            setRemoveError(null)
+                            setRemoveTarget(mentee)
+                          }}
+                        >
+                          <Trash2 className="size-4" />
+                          Remove
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -236,6 +398,94 @@ function MenteesTab({ mentees }: { mentees: MenteeRow[] }) {
           </div>
         )}
       </CardContent>
+
+      <Dialog open={addOpen} onOpenChange={handleAddOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add mentee</DialogTitle>
+            <DialogDescription>
+              Choose an enrolled scholar to add to your mentee list.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <Input
+              placeholder="Search by name or UID"
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value)
+                setSelectedUid("")
+              }}
+            />
+            {filtered.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {available.length === 0
+                  ? "Every enrolled scholar is already assigned to you."
+                  : "No matching scholars."}
+              </p>
+            ) : (
+              <Select value={selectedUid} onValueChange={setSelectedUid}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a scholar" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filtered.map((candidate) => (
+                    <SelectItem key={candidate.uid} value={candidate.uid}>
+                      {displayName(candidate)} · {candidate.uid}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {addError && <p className="text-sm text-destructive">{addError}</p>}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => handleAddOpenChange(false)}
+              disabled={adding}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleAdd} disabled={!selectedUid || adding}>
+              {adding ? "Adding…" : "Add mentee"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={removeTarget !== null} onOpenChange={handleRemoveOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove mentee?</DialogTitle>
+            <DialogDescription>
+              {removeTarget
+                ? `${displayName(removeTarget)} will no longer appear in your mentee list or weekly memo. Their logs and history are unchanged.`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {removeError && (
+            <p className="text-sm text-destructive">{removeError}</p>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => handleRemoveOpenChange(false)}
+              disabled={removing}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleRemove}
+              disabled={removing}
+            >
+              {removing ? "Removing…" : "Remove"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }

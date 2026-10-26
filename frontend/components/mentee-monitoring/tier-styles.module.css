@@ -1,0 +1,122 @@
+/* Loaded with the tier UI, not inherited from a possibly retained root CSS chunk. */
+.palette {
+  --tier-rare-bg: #c9f1f8;
+  --tier-rare-border: #1596ad;
+  --tier-rare-text: #064b55;
+  --tier-epic-bg: #e4d6ff;
+  --tier-epic-border: #7b4dff;
+  --tier-epic-text: #3b1d78;
+  --tier-legendary-bg: #fbd0fb;
+  --tier-legendary-border: #cf2bdd;
+  --tier-legendary-text: #6b1475;
+}
+
+:global(.dark) .palette {
+  --tier-rare-bg: #0f2e36;
+  --tier-rare-border: #3fc6dc;
+  --tier-rare-text: #a6f0fb;
+  --tier-epic-bg: #271845;
+  --tier-epic-border: #9b6bff;
+  --tier-epic-text: #dccbff;
+  --tier-legendary-bg: #3a1240;
+  --tier-legendary-border: #e05cff;
+  --tier-legendary-text: #f6c2ff;
+}
+
+.rare {
+  --tier-bg: var(--tier-rare-bg);
+  --tier-border: var(--tier-rare-border);
+  --tier-text: var(--tier-rare-text);
+  --tier-glow: 0 0 8px color-mix(in srgb, var(--tier-border) 35%, transparent);
+}
+
+.epic {
+  --tier-bg: var(--tier-epic-bg);
+  --tier-border: var(--tier-epic-border);
+  --tier-text: var(--tier-epic-text);
+  --tier-glow: 0 0 10px color-mix(in srgb, var(--tier-border) 40%, transparent);
+}
+
+.legendary {
+  --tier-bg: var(--tier-legendary-bg);
+  --tier-border: var(--tier-legendary-border);
+  --tier-text: var(--tier-legendary-text);
+  --tier-glow: 0 0 12px color-mix(in srgb, var(--tier-border) 45%, transparent);
+}
+
+.pill,
+.cell,
+.card {
+  background-color: var(--tier-bg);
+  border-color: var(--tier-border);
+}
+
+.pill,
+.cell,
+.text {
+  color: var(--tier-text);
+}
+
+.cell {
+  border-width: 2px;
+  font-weight: 700;
+}
+
+.bar {
+  background-color: var(--tier-border);
+}
+
+.card {
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--tier-glow);
+}
+
+/* Keep glows below Tailwind's current-week/focus ring utilities in the cascade. */
+@layer components {
+  .cell {
+    box-shadow: var(--tier-glow);
+  }
+
+  .card.epic {
+    animation: breathe-epic 2.6s ease-in-out infinite;
+  }
+}
+
+.sheen {
+  position: relative;
+  overflow: hidden;
+}
+
+.sheen::after {
+  content: "";
+  position: absolute;
+  top: -40%;
+  bottom: -40%;
+  left: -35%;
+  z-index: 0;
+  width: 35%;
+  background: linear-gradient(100deg, transparent, rgb(255 255 255 / 30%), transparent);
+  transform: translateX(-120%) skewX(-18deg);
+  animation: sheen 3.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.legendaryHours {
+  text-shadow: 0 0 10px color-mix(in srgb, var(--tier-border) 45%, transparent);
+}
+
+@keyframes breathe-epic {
+  0%, 100% { box-shadow: 0 0 8px color-mix(in srgb, var(--tier-border) 30%, transparent); }
+  50% { box-shadow: 0 0 14px color-mix(in srgb, var(--tier-border) 50%, transparent); }
+}
+
+@keyframes sheen {
+  0%, 55% { transform: translateX(-120%) skewX(-18deg); }
+  85%, 100% { transform: translateX(420%) skewX(-18deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card.epic { animation: none; }
+  .sheen::after { animation: none; display: none; }
+}

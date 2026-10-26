@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { MemoAccordionSection } from "./memo-accordion-section"
+import { ScholarNameLink } from "./scholar-name-link"
 import type { RecognitionBoardBand, RecognitionBoardBandId, RecognitionBoardSectionData } from "../types"
 
 type RecognitionBoardSectionProps = {
@@ -35,7 +36,11 @@ function RecognitionBand({ band }: { band: RecognitionBoardBand }) {
               className="flex items-center justify-between gap-2"
             >
               <span className="truncate">
-                <span className="font-semibold">{entry.scholarName}</span>
+                <span className="font-semibold">
+                  <ScholarNameLink scholarId={entry.scholarId} isMentee={entry.isMentee} cohort={entry.cohort}>
+                    {entry.scholarName}
+                  </ScholarNameLink>
+                </span>
                 <span className="text-muted-foreground">
                   {" "}
                   · {entry.course} · {entry.assessment}

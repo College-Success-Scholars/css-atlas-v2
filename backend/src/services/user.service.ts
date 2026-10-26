@@ -66,7 +66,10 @@ function directoryName(row: Pick<DirectorySourceRow, "first_name" | "last_name">
   return [row.first_name, row.last_name].filter(Boolean).join(" ").trim() || "Unnamed person";
 }
 
-export function mapDirectoryPerson(row: DirectorySourceRow): DirectoryPerson {
+export function mapDirectoryPerson(
+  row: DirectorySourceRow,
+  menteeUids: ReadonlySet<string> = new Set(),
+): DirectoryPerson {
   return {
     id: String(row.id),
     name: directoryName(row),
@@ -76,6 +79,7 @@ export function mapDirectoryPerson(row: DirectorySourceRow): DirectoryPerson {
     phoneNumber: row.phone_number ?? null,
     teams: [...new Set((row.teams ?? []).map((team) => team.trim()).filter(Boolean))],
     programRole: row.program_role ?? null,
+    isMentee: row.uid != null && menteeUids.has(row.uid),
   };
 }
 
@@ -144,10 +148,14 @@ function matchesDirectorySearch(person: DirectoryPerson, search: string): boolea
 }
 
 /** Applies directory filtering and pagination after the RLS-scoped, restricted projection is read. */
-export function queryDirectoryRows(rows: DirectorySourceRow[], query: DirectoryQuery): DirectoryResponse {
+export function queryDirectoryRows(
+  rows: DirectorySourceRow[],
+  query: DirectoryQuery,
+  menteeUids: ReadonlySet<string> = new Set(),
+): DirectoryResponse {
   const search = query.search.toLocaleLowerCase();
   const people = rows
-    .map((row) => mapDirectoryPerson(row))
+    .map((row) => mapDirectoryPerson(row, menteeUids))
     .filter((person) =>
       matchesDirectorySearch(person, search) &&
       (!query.teams.length || person.teams.some((team) => query.teams.includes(team))) &&
@@ -180,11 +188,23 @@ export function queryDirectoryRows(rows: DirectorySourceRow[], query: DirectoryQ
  */
 export async function getDirectory(query: DirectoryQuery): Promise<DirectoryResponse> {
   const supabase = getSupabaseClient();
-  const { data, error } = await supabase
-    .from("user_roster")
-    .select("id, first_name, last_name, email, cohort, teams, program_role, phone_number, uid");
-  if (error) throw error;
-  return queryDirectoryRows(data ?? [], query);
+  const [rosterResult, assignmentsResult] = await Promise.all([
+    supabase
+      .from("user_roster")
+      .select("id, first_name, last_name, email, cohort, teams, program_role, phone_number, uid"),
+    // RLS returns no rows for viewers below team_leader, so directory browsing by
+    // scholars cannot reveal mentor assignments or open a mentee review.
+    supabase.from("mentor_mentee").select("mentee_uid"),
+  ]);
+  if (rosterResult.error) throw rosterResult.error;
+  if (assignmentsResult.error) throw assignmentsResult.error;
+
+  const menteeUids = new Set(
+    (assignmentsResult.data ?? [])
+      .map((row) => row.mentee_uid)
+      .filter((uid): uid is string => uid != null),
+  );
+  return queryDirectoryRows(rosterResult.data ?? [], query, menteeUids);
 }
 
 /** Distinct team/program-role/cohort values for the Directory filter dropdowns. */

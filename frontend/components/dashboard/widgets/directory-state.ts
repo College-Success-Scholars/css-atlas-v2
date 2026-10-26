@@ -26,6 +26,17 @@ export function activeFilterCount(filters: DirectoryFilters) {
   return Object.values(filters).filter(Boolean).length;
 }
 
+/** Detail-page path for a mentee; null keeps the directory's profile modal. */
+export function directoryMenteePath(
+  uid: string | null,
+  isMentee: boolean,
+  cohort?: number | null,
+): string | null {
+  if (!uid || !isMentee) return null;
+  const path = `/dashboard/directory/${encodeURIComponent(uid)}`;
+  return cohort != null && Number.isFinite(cohort) ? `${path}?cohort=${cohort}` : path;
+}
+
 export function directoryPath(state: DirectoryState, cursor?: string | null, group?: string, limit?: number) {
   const params = new URLSearchParams({ view: state.view, sort: state.sort });
   if (state.search) params.set("search", state.search);

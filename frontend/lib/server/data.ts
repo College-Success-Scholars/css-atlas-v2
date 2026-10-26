@@ -4,7 +4,7 @@
  *
  * Typed wrapper functions for every backend API endpoint.
  * This is the preferred way for Server Components and pages to fetch domain data.
- * Each function calls backendGet/backendPost/backendPatch/backendDelete/backendDownload from api-client.ts
+ * Each function calls backendGet/backendPost/backendPut/backendPatch/backendDelete/backendDownload from api-client.ts
  * and returns a strongly-typed result.
  *
  * ## Responsibilities
@@ -21,7 +21,7 @@
  * - Client-side data fetching (that's lib/client/api-client.ts)
  */
 import "server-only";
-import { backendGet, backendPost, backendPatch, backendDelete, backendDownload } from "./api-client";
+import { backendGet, backendPost, backendPut, backendPatch, backendDelete, backendDownload } from "./api-client";
 import { getEffectiveScholarId } from "../../../shared/dist/auth.js";
 import type {
   SessionLogRow,
@@ -40,6 +40,13 @@ import type {
 } from "@/lib/types/attendance-week";
 import type { RosterRow } from "@/lib/types/roster";
 import type { MenteeWithCompliance } from "@/lib/types/supabase";
+import type {
+  McfPrefill,
+  MeetingPreferenceInput,
+  MeetingPreferenceOutput,
+  MenteeOption,
+  MenteeReview,
+} from "@/lib/types/mentee-review";
 import type {
   TrafficSession,
   WeekEntryCount,
@@ -80,6 +87,68 @@ export async function fetchMenteesWithCompliance(
     endDate: endDate.toISOString(),
   });
   return backendGet<MenteeWithCompliance[]>(`/api/auth/mentees/compliance?${params}`);
+}
+
+type MenteeApiRow = {
+  scholar_uid: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+};
+
+/** GET /api/auth/mentees — the caller's assigned mentees, normalized for the switcher. */
+export async function fetchMentees(): Promise<MenteeOption[]> {
+  const rows = await backendGet<MenteeApiRow[]>("/api/auth/mentees");
+  return rows.flatMap((row) => {
+    if (!row.scholar_uid) return [];
+    const fullName = [row.first_name, row.last_name].filter(Boolean).join(" ").trim();
+    return [{ uid: row.scholar_uid, fullName: fullName || "Unknown", email: row.email ?? null }];
+  });
+}
+
+/** GET /api/auth/mentees/:uid/review — authorized review (own meeting preference included). */
+export async function fetchMenteeReview(uid: string, week?: number | null): Promise<MenteeReview> {
+  const params = new URLSearchParams();
+  if (week != null) params.set("week", String(week));
+  const query = params.toString();
+  return backendGet<MenteeReview>(
+    `/api/auth/mentees/${encodeURIComponent(uid)}/review${query ? `?${query}` : ""}`
+  );
+}
+
+/**
+ * GET /api/auth/mentees/:uid/directory-review — team-leader+ review for any
+ * scholar with a mentor assignment (directory detail page).
+ */
+export async function fetchDirectoryMenteeReview(
+  uid: string,
+  week?: number | null,
+): Promise<MenteeReview> {
+  const params = new URLSearchParams();
+  if (week != null) params.set("week", String(week));
+  const query = params.toString();
+  return backendGet<MenteeReview>(
+    `/api/auth/mentees/${encodeURIComponent(uid)}/directory-review${query ? `?${query}` : ""}`,
+  );
+}
+
+/** PUT /api/auth/mentees/:uid/meeting-preference — save the caller's own weekday/time. */
+export async function saveMenteeMeetingPreference(
+  uid: string,
+  input: MeetingPreferenceInput
+): Promise<MeetingPreferenceOutput> {
+  return backendPut<MeetingPreferenceOutput>(
+    `/api/auth/mentees/${encodeURIComponent(uid)}/meeting-preference`,
+    input
+  );
+}
+
+/**
+ * GET /api/auth/mentees/:uid/mcf-prefill — fresh click-time prefill for the
+ * current week. Call on the user gesture; open the returned URL in a new tab.
+ */
+export async function fetchMenteeMcfPrefill(uid: string): Promise<McfPrefill> {
+  return backendGet<McfPrefill>(`/api/auth/mentees/${encodeURIComponent(uid)}/mcf-prefill`);
 }
 
 export type MemoUserRow = {

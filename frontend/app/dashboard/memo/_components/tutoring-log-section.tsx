@@ -5,6 +5,7 @@ import { useMemo, useState } from "react"
 import { DataTable, type DataTableColumn } from "@/components/data-display/data-table"
 import { cn } from "@/lib/utils"
 import { MemoAccordionSection } from "./memo-accordion-section"
+import { ScholarNameLink } from "./scholar-name-link"
 import type { TutoringLogRow, TutoringLogSectionData } from "../types"
 
 type TutoringLogSectionProps = {
@@ -20,6 +21,11 @@ const sessionColumns: DataTableColumn<TutoringLogRow>[] = [
     field: "scholarName",
     cellClassName: "font-medium",
     sortable: true,
+    renderCell: (row) => (
+      <ScholarNameLink scholarId={row.scholarId} isMentee={row.isMentee} cohort={row.cohort}>
+        {row.scholarName}
+      </ScholarNameLink>
+    ),
   },
   {
     id: "day",

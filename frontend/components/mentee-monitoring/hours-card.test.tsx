@@ -54,6 +54,38 @@ describe("HoursCard", () => {
     )
 
     expect(html).not.toContain("hrs excused")
-    expect(html).toContain("0 hrs left")
+    expect(html).toContain("Completed")
+    expect(html).toContain("Weekly requirement met")
+    expect(html).not.toContain("0 hrs left")
+  })
+
+  it.each([3, 4])("marks the requirement completed at %s logged hours", (completed) => {
+    const html = renderToStaticMarkup(
+      <HoursCard title="Study session hours" completed={completed} total={3} color="emerald" dailyHours={emptyWeek} todayLabel="Mon" />,
+    )
+    expect(html).toContain("Completed")
+    expect(html).toContain("Weekly requirement met")
+    expect(html).not.toContain("hrs left")
+    expect(html).not.toContain("Behind target")
+  })
+
+  it("marks a requirement covered by logged and excused hours as met", () => {
+    const html = renderToStaticMarkup(
+      <HoursCard title="Study session hours" completed={2} total={3} excuseHours={1} color="emerald" dailyHours={emptyWeek} todayLabel="Mon" />,
+    )
+    expect(html).toContain("Requirement met")
+    expect(html).toContain("1 hrs excused")
+    expect(html).not.toContain("Completed")
+    expect(html).not.toContain("hrs left")
+  })
+
+  it("does not mark a scholar with no required hours as behind or completed", () => {
+    const html = renderToStaticMarkup(
+      <HoursCard title="Study session hours" completed={0} total={0} color="emerald" dailyHours={emptyWeek} todayLabel="Mon" />,
+    )
+    expect(html).toContain("No hours required")
+    expect(html).not.toContain("Completed")
+    expect(html).not.toContain("Behind target")
+    expect(html).not.toContain("hrs left")
   })
 })

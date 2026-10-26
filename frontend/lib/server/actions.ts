@@ -8,6 +8,7 @@
  *
  * ## Responsibilities
  * - Handle profile update mutations (basic info, etc.)
+ * - Self-service mentee assignment add/remove (`addMentee`, `removeMentee`)
  * - Public `/traffic` kiosk check-in (`recordTrafficEntry`) — no auth, Zod-validated write
  * - Teams board excuse upsert (`upsertAttendanceExcuseAction`) via backend `BACKEND_URL`
  * - Teams tutoring single-row delete (`deleteTutorReportAction`) via backend `BACKEND_URL`
@@ -28,7 +29,9 @@
 import { createClient } from "@/lib/supabase/server"
 import { backendPost } from "@/lib/server/api-client"
 import { deleteTutorReport, upsertAttendanceExcuse } from "@/lib/server/data"
+import { DEV_ACTIVE_PROFILE_COOKIE, hasRoleAtLeast } from "../../../shared/dist/auth.js"
 import { revalidatePath } from "next/cache"
+import { cookies } from "next/headers"
 import { z } from "zod"
 
 const basicInfoSchema = z.object({
@@ -56,6 +59,109 @@ export async function updateBasicInfo(formData: unknown) {
 
   revalidatePath("/settings")
   return { success: true }
+}
+
+const menteeUidSchema = z.string().trim().min(1).max(50)
+
+type MenteeMutationResult = { error: string } | { success: true }
+
+type MenteeMutationContext =
+  | { error: string }
+  | {
+      supabase: Awaited<ReturnType<typeof createClient>>
+      user: { id: string }
+    }
+
+/**
+ * Shared auth/role gate for mentee mutations. Writes are blocked while a
+ * developer is acting as a test profile so the persona view never edits the
+ * developer's own assignments.
+ */
+async function getMenteeMutationContext(): Promise<MenteeMutationContext> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: "Not authenticated" as const }
+
+  const cookieStore = await cookies()
+  if (cookieStore.get(DEV_ACTIVE_PROFILE_COOKIE)?.value) {
+    return { error: "Switch to My profile to make changes." as const }
+  }
+
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("app_role")
+    .eq("id", user.id)
+    .maybeSingle()
+  if (error) return { error: error.message }
+
+  if (!hasRoleAtLeast(profile?.app_role ?? null, "team_leader")) {
+    return { error: "Team leader access required" as const }
+  }
+
+  return { supabase, user } as const
+}
+
+/** Add an enrolled scholar to the caller's mentee list. */
+export async function addMentee(input: unknown): Promise<MenteeMutationResult> {
+  const parsed = menteeUidSchema.safeParse(input)
+  if (!parsed.success) return { error: "Invalid mentee" }
+
+  const ctx = await getMenteeMutationContext()
+  if ("error" in ctx) return { error: ctx.error }
+
+  const { data: scholar, error: scholarError } = await ctx.supabase
+    .from("user_roster")
+    .select("uid, status, program_role")
+    .eq("uid", parsed.data)
+    .maybeSingle()
+  if (scholarError) return { error: scholarError.message }
+
+  if (
+    !scholar ||
+    (scholar.status ?? "").toLowerCase() !== "enrolled" ||
+    (scholar.program_role ?? "").toLowerCase() !== "scholar"
+  ) {
+    return { error: "Select an enrolled scholar." }
+  }
+
+  const { error } = await ctx.supabase.from("mentor_mentee").insert({
+    mentor_id: ctx.user.id,
+    mentee_uid: parsed.data,
+  })
+  if (error) {
+    if (error.code === "23505") {
+      return { error: "That scholar is already your mentee." }
+    }
+    return { error: error.message }
+  }
+
+  revalidatePath("/dashboard/settings")
+  revalidatePath("/dashboard")
+  return { success: true as const }
+}
+
+/** Remove one of the caller's mentee assignments. */
+export async function removeMentee(input: unknown): Promise<MenteeMutationResult> {
+  const parsed = menteeUidSchema.safeParse(input)
+  if (!parsed.success) return { error: "Invalid mentee" }
+
+  const ctx = await getMenteeMutationContext()
+  if ("error" in ctx) return { error: ctx.error }
+
+  const { error } = await ctx.supabase
+    .from("mentor_mentee")
+    .delete()
+    .eq("mentor_id", ctx.user.id)
+    .eq("mentee_uid", parsed.data)
+  if (error) return { error: error.message }
+
+  revalidatePath("/dashboard/settings")
+  revalidatePath("/dashboard")
+  revalidatePath("/dashboard/memo")
+  revalidatePath("/dashboard/mentee")
+  return { success: true as const }
 }
 
 const scholarProfileSchema = z.object({

@@ -15,6 +15,10 @@ import {
   minutesToHours,
   durationMinutesFromClockTimes,
   clockStringToMinutes,
+  latestWahfWithGrades,
+  wahfGradeEntries,
+  formatClockRange,
+  formatCompactHours,
 } from "./utils"
 import type { ShiftComplianceByKind, WahfRow, TutoringRow } from "@/lib/types/supabase"
 import type { AttendanceWeekBoardRow } from "@/lib/types/attendance-week"
@@ -63,9 +67,32 @@ function mockWahf(
   }
 }
 
+describe("session row formatting", () => {
+  it("renders a compact program-local clock range without meridiem", () => {
+    expect(
+      formatClockRange("2026-09-11T16:00:00.000Z", "2026-09-11T18:00:00.000Z"),
+    ).toBe("12:00pm–2:00pm")
+    expect(
+      formatClockRange("2026-09-10T15:00:00.000Z", "2026-09-10T16:05:00.000Z"),
+    ).toBe("11:00am–12:05pm")
+  })
+
+  it("renders whole hours without a decimal and fractional hours with one", () => {
+    expect(formatCompactHours(120)).toBe("2h")
+    expect(formatCompactHours(65)).toBe("1.1h")
+  })
+})
+
 describe("computeWahfStatus", () => {
   afterEach(() => {
     vi.useRealTimers()
+  })
+
+  it("selects the newest submission in the selected week, scoped to the mentee", () => {
+    const older = mockWahf({ created_at: noonOnDay(dayInCampusWeek(3, 0)).toISOString() })
+    const newer = mockWahf({ id: "newer", created_at: noonOnDay(dayInCampusWeek(3, 2)).toISOString() })
+    const other = mockWahf({ scholar_uid: "other", created_at: noonOnDay(dayInCampusWeek(3, 3)).toISOString() })
+    expect(computeWahfStatus([older, other, newer], UID, 3, 3).latestSubmission).toBe(newer)
   })
 
   it("current campus week Mon before Thu deadline: prior-week submission only -> not overdue", () => {
@@ -126,6 +153,31 @@ describe("computeWahfStatus", () => {
     const status = computeWahfStatus([], UID, current + 1, current)
     expect(status.submitted).toBe(false)
     expect(status.daysOverdue).toBe(0)
+  })
+})
+
+describe("latestWahfWithGrades", () => {
+  it("finds the newest graded submission, skipping newer empty submissions and other scholars", () => {
+    const older = mockWahf({ created_at: "2026-09-01T12:00:00Z", assignment_grades: { MATH: { Exam: "80%" } } })
+    const latest = mockWahf({ created_at: "2026-09-08T12:00:00Z", assignment_grades: { MATH: { Quiz: "A", Blank: " " } } })
+    const rows = [
+      older,
+      mockWahf({ created_at: "2026-09-20T12:00:00Z", assignment_grades: { MATH: { Blank: " " } } }),
+      mockWahf({ created_at: "2026-09-21T12:00:00Z", assignment_grades: { MATH: {} } }),
+      mockWahf({ created_at: "2026-09-22T12:00:00Z", assignment_grades: null }),
+      mockWahf({ ...latest, scholar_uid: "other", created_at: "2026-09-23T12:00:00Z" }),
+      mockWahf({ ...latest, created_at: "invalid" }),
+      latest,
+    ]
+    const original = [...rows]
+    expect(latestWahfWithGrades(rows, UID)).toBe(latest)
+    expect(rows).toEqual(original)
+    expect(wahfGradeEntries(latest)).toEqual([{ course: "MATH", assessment: "Quiz", grade: "A" }])
+  })
+
+  it("returns null when the scholar has no reported grades", () => {
+    expect(latestWahfWithGrades([], UID)).toBeNull()
+    expect(latestWahfWithGrades([mockWahf({ created_at: "2026-09-01T12:00:00Z" })], UID)).toBeNull()
   })
 })
 

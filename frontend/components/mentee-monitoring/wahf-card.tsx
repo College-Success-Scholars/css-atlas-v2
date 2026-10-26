@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import type { WahfStatus } from "./utils"
+import { SubmissionDetailsModal } from "@/components/dashboard/widgets/submission-details-modal"
 
 function formatSubmittedAt(iso: string): string {
   const date = new Date(iso)
@@ -79,6 +80,16 @@ export function WahfCard({ menteeName, status }: WahfCardProps) {
             ? `${menteeName} is up to date on this form.`
             : `Follow up with ${menteeName} to submit this form immediately.`}
         </p>
+        {status.latestSubmission && (
+          <SubmissionDetailsModal
+            key={status.latestSubmission.id}
+            entry={{
+              ...status.latestSubmission,
+              formType: "WAHF",
+              submittedAt: status.latestSubmission.created_at,
+            }}
+          />
+        )}
       </CardContent>
     </Card>
   )
