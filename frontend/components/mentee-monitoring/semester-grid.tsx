@@ -192,11 +192,11 @@ export function SemesterGrid({
             className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[13px] text-muted-foreground"
           >
             <li className="inline-flex items-center gap-1.5">
-              <span className="size-3.5 rounded-sm border border-success/45 bg-success/20" aria-hidden />
+              <span className="size-3.5 shrink-0 rounded-sm border border-green-600 bg-green-500 dark:border-green-300 dark:bg-green-400" aria-hidden />
               90%+
             </li>
             <li className="inline-flex items-center gap-1.5">
-              <span className="size-3.5 rounded-sm border border-warning/50 bg-warning/25" aria-hidden />
+              <span className="size-3.5 shrink-0 rounded-sm border border-orange-600 bg-orange-500 dark:border-orange-300 dark:bg-orange-400" aria-hidden />
               60–89%
             </li>
             <li className="inline-flex items-center gap-1.5">
@@ -208,7 +208,7 @@ export function SemesterGrid({
               Current week
             </li>
             {legendTiers.map((tier) => (
-              <li key={tier}>
+              <li key={tier} className="inline-flex items-center">
                 <TierBadge tier={tier} className="text-[11px]" />
               </li>
             ))}

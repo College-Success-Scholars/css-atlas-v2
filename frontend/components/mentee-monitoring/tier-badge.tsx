@@ -8,7 +8,7 @@ import styles from "./tier-styles.module.css"
 
 interface TierUi {
   label: string
-  Icon: LucideIcon
+  Icon: LucideIcon | null
   /** Compact pill for the legend and requirement cards. */
   pill: string
   /** Tier ink for the "+N min extra" line. */
@@ -24,7 +24,7 @@ interface TierUi {
 export const TIER_UI: Record<WeekTier, TierUi> = {
   rare: {
     label: "Rare",
-    Icon: Gem,
+    Icon: null,
     pill: cn(styles.palette, styles.rare, styles.pill),
     text: styles.text,
     bar: styles.bar,
@@ -63,12 +63,12 @@ export function TierBadge({
     <span
       data-tier={tier}
       className={cn(
-        "inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.75 text-[12px] font-semibold leading-none",
+        "inline-flex h-[22px] w-[8em] shrink-0 items-center justify-center gap-1 rounded-full border px-2 py-0.75 align-middle text-[12px] font-semibold leading-none whitespace-nowrap",
         pill,
         className,
       )}
     >
-      <Icon className="size-3.5" aria-hidden />
+      {Icon ? <Icon className="size-3.5" aria-hidden /> : null}
       {label}
     </span>
   )

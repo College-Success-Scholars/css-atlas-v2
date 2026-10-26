@@ -60,7 +60,25 @@ try {
     dark: { rare: ["15, 46, 54", "63, 198, 220", "166, 240, 251"], epic: ["39, 24, 69", "155, 107, 255", "220, 203, 255"], legendary: ["58, 18, 64", "224, 92, 255", "246, 194, 255"] },
   }
   let checks = 0
+  async function checkLegendSwatches(theme) {
+    const swatches = await page.$$eval('[data-testid="semester-legend"] li', items => items.slice(0, 2).map(item => {
+      const swatch = item.querySelector('span[aria-hidden]')
+      const canvas = document.createElement("canvas")
+      canvas.width = canvas.height = 1
+      const context = canvas.getContext("2d")
+      context.fillStyle = getComputedStyle(swatch).backgroundColor
+      context.fillRect(0, 0, 1, 1)
+      return { label: item.textContent.trim(), rgba: [...context.getImageData(0, 0, 1, 1).data] }
+    }))
+    for (const swatch of swatches) {
+      assert.equal(swatch.rgba[3], 255, `${theme} ${swatch.label} legend swatch must have a solid, visible fill`)
+    }
+    const [green, orange] = swatches.map(swatch => swatch.rgba)
+    assert.ok(green[1] > green[0] * 1.2 && green[1] > green[2], `${theme} 90%+ legend must be green`)
+    assert.ok(orange[0] > orange[1] * 1.3 && orange[1] > orange[2] * 1.5, `${theme} 60–89% legend must be orange, not yellow`)
+  }
   async function checkColors(theme) {
+    await checkLegendSwatches(theme)
     const colors = await page.evaluate(() => [...document.querySelectorAll("[data-tier]")].map(el => {
       const css = getComputedStyle(el)
       return { tier: el.dataset.tier, background: css.backgroundColor, border: css.borderColor,
@@ -201,6 +219,29 @@ try {
       assert.equal(badge.headerBefore, badge.headerWithoutBadge, `${width}px ${badge.tier} badge must not add header height`)
       assert.ok(badge.paddingX >= 8 && badge.paddingY >= 3, "Tier badges need comfortable internal padding")
     }
+    const tagSizes = await page.evaluate(() => {
+      const size = el => {
+        const rect = el.getBoundingClientRect()
+        const parent = el.parentElement.getBoundingClientRect()
+        return {
+          width: rect.width, height: rect.height,
+          contentFits: el.scrollWidth <= el.clientWidth,
+          centerDifference: Math.abs((rect.top + rect.height / 2) - (parent.top + parent.height / 2)),
+        }
+      }
+      return {
+        legend: [...document.querySelectorAll('[data-testid="semester-legend"] [data-tier]')].map(size),
+        cards: [...document.querySelectorAll('[data-slot="completion-metrics"] [data-tier]')].map(size),
+      }
+    })
+    for (const [context, sizes] of Object.entries(tagSizes)) {
+      for (const size of sizes) {
+        assert.equal(size.height, 22, `${width}px ${context} tier badges must share one height, including icon-free Rare`)
+        assert.ok(Math.abs(size.width - sizes[0].width) < 1, `${width}px ${context} tier badges must share one visual footprint`)
+        assert.ok(size.contentFits, `${width}px ${context} tier labels and icons must fit inside the badge`)
+        assert.ok(size.centerDifference < 1, `${width}px ${context} tier badges must be vertically centered in their row`)
+      }
+    }
   }
 
   await page.goto(`${origin}/dashboard/mentee?independent=1`, { waitUntil: "networkidle0" })
@@ -215,7 +256,7 @@ try {
   console.log(`Tier navigation: ${checks} computed-color checks passed (both entry points, return/back, light/dark, reduced motion, missing root tokens).`)
   console.log("Column interaction: continuous hover, row-gap and column-gap clicks, and single activation passed in Chrome.")
   console.log("Meeting editor: stable banner height and restored focus passed at desktop and mobile widths.")
-  console.log("Tier layout: padded badges beside percentages without taller cards; independent study/front-desk tiers and cumulative legend passed.")
+  console.log("Tier layout: equal-size, aligned badges beside percentages without taller cards; green/orange legend swatches in light/dark; independent tiers and cumulative legend passed.")
 } finally {
   await browser?.close()
   await server.close()

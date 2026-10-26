@@ -495,8 +495,8 @@
     "semantic_hash": ""
   },
   "frontend/app/dashboard/mentee/page.tsx": {
-    "mtime": 1792816487.890611,
-    "ast_hash": "a71f999c41cb350129de57589328f62f",
+    "mtime": 1792980109.3399124,
+    "ast_hash": "2ab56f9f3e14fbe4ba5dbfb9c71dcf60",
     "semantic_hash": ""
   },
   "frontend/app/dashboard/page.tsx": {
@@ -3200,8 +3200,8 @@
     "semantic_hash": ""
   },
   "frontend/components/mentee-monitoring/mentee-monitoring-client.test.tsx": {
-    "mtime": 1792978230.8372595,
-    "ast_hash": "67166078d95aeae8e7239e236af0aee0",
+    "mtime": 1792979971.7679193,
+    "ast_hash": "79361147e49d3490c52e529ce02101af",
     "semantic_hash": ""
   },
   "frontend/components/personal/personal-client.test.tsx": {
@@ -3540,7 +3540,7 @@
     "semantic_hash": ""
   },
   "frontend/components/mentee-monitoring/hour-summary-card.tsx": {
-    "mtime": 1792978398.2590263,
+    "mtime": 1792979971.7224724,
     "ast_hash": "dcd5c1f9dfe2d72d4d700d3a10ce7141",
     "semantic_hash": ""
   },
@@ -3565,8 +3565,8 @@
     "semantic_hash": ""
   },
   "frontend/components/mentee-monitoring/semester-grid.tsx": {
-    "mtime": 1792978230.8364565,
-    "ast_hash": "7bcb8863638a788d811ff3feaada48d2",
+    "mtime": 1792979971.7686777,
+    "ast_hash": "353b9f390ee3a984f90c9b5a05be5ad1",
     "semantic_hash": ""
   },
   "frontend/components/mentee-monitoring/tutoring-summary-card.tsx": {
@@ -3590,8 +3590,8 @@
     "semantic_hash": ""
   },
   "frontend/app/dashboard/directory/[uid]/page.tsx": {
-    "mtime": 1792818329.861403,
-    "ast_hash": "d41df919cf647d4acb9da7115ff3e8a9",
+    "mtime": 1792980109.3406942,
+    "ast_hash": "e41d08858c8afc28af74f6d5633f5576",
     "semantic_hash": ""
   },
   "frontend/app/dashboard/memo/_components/full-attendance-detail-section.test.tsx": {
@@ -3615,13 +3615,13 @@
     "semantic_hash": ""
   },
   "frontend/components/mentee-monitoring/hour-summary-card.test.tsx": {
-    "mtime": 1792978398.259546,
+    "mtime": 1792979971.7219598,
     "ast_hash": "3c63d0abbfb8813dc56e19cad20aeff6",
     "semantic_hash": ""
   },
   "frontend/components/mentee-monitoring/tier-badge.tsx": {
-    "mtime": 1792978087.1653383,
-    "ast_hash": "3aacdf09db35d59395861a87900b7432",
+    "mtime": 1792979971.7229145,
+    "ast_hash": "378c10ea301f9aaf8880f494d6cd9e9b",
     "semantic_hash": ""
   },
   "frontend/lib/tiers.test.ts": {
@@ -3640,12 +3640,12 @@
     "semantic_hash": ""
   },
   "frontend/scripts/check-tier-navigation.mjs": {
-    "mtime": 1792978460.3810108,
-    "ast_hash": "887f52dcb805b4605c3456c0c0b41b7a",
+    "mtime": 1792979971.7439692,
+    "ast_hash": "ca054a95b013d0522b022b3b714b1c68",
     "semantic_hash": ""
   },
   "frontend/scripts/fixtures/tier-navigation.tsx": {
-    "mtime": 1792978294.565463,
+    "mtime": 1792979971.744436,
     "ast_hash": "26b2b7e348a892182d34a45092bd12f8",
     "semantic_hash": ""
   },
@@ -3667,6 +3667,16 @@
   "backend/src/tests/mentee-review-cohort.test.ts": {
     "mtime": 1792978223.4218612,
     "ast_hash": "6aa6a229b4b33a3853144193a018dc43",
+    "semantic_hash": ""
+  },
+  "frontend/components/mentee-monitoring/tier-badge.test.tsx": {
+    "mtime": 1792979114.9480152,
+    "ast_hash": "40d59f6ee5b081d3a6d3e68f1ace815c",
+    "semantic_hash": ""
+  },
+  "frontend/app/dashboard/mentee/page.test.tsx": {
+    "mtime": 1792980151.4046912,
+    "ast_hash": "dc86165be5edf31de16206913bb02444",
     "semantic_hash": ""
   }
 }

@@ -570,6 +570,20 @@ describe("MenteeMonitoringClient", () => {
     expect(within(legend).getByText("<60% / missed")).toBeTruthy()
   })
 
+  it("uses solid green and orange completion legend swatches", () => {
+    render(<MenteeMonitoringClient {...makeProps()} />)
+
+    const legend = within(screen.getByTestId("semester-legend"))
+    const green = legend.getByText("90%+").querySelector("span")!
+    const orange = legend.getByText("60–89%").querySelector("span")!
+    expect(green.className).toContain("bg-green-500")
+    expect(green.className).toContain("dark:bg-green-400")
+    expect(green.className).not.toContain("bg-success/20")
+    expect(orange.className).toContain("bg-orange-500")
+    expect(orange.className).toContain("dark:bg-orange-400")
+    expect(orange.className).not.toContain("bg-warning/25")
+  })
+
   it.each([
     { achievedTier: "rare", expectedTiers: ["rare"] },
     { achievedTier: "epic", expectedTiers: ["rare", "epic"] },

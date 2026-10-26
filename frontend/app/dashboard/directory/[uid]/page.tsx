@@ -7,7 +7,6 @@ import { parseWeekParam } from "@/lib/format/campus-week";
 import { dateToCampusWeek } from "@/lib/format/time";
 import { fetchDirectoryMenteeReview } from "@/lib/server/data";
 import { getCurrentProfile } from "@/lib/server/queries";
-import { applyWeekTiers } from "@/lib/tiers";
 import type { MenteeReview } from "@/lib/types/mentee-review";
 
 type PageProps = {
@@ -60,7 +59,8 @@ export default async function DirectoryScholarPage({ params, searchParams }: Pag
 
   let review: MenteeReview;
   try {
-    review = applyWeekTiers(await fetchDirectoryMenteeReview(uid, selectedWeek), cohort);
+    // Tiers are temporarily disabled; keep the standard completion bands.
+    review = await fetchDirectoryMenteeReview(uid, selectedWeek);
   } catch (error) {
     // Not a mentee (or not visible under RLS): the directory keeps its modal.
     if (error instanceof Error && error.message === "Mentee not found") {
