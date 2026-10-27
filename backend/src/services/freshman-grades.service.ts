@@ -22,7 +22,7 @@
 import { completionPct, effectiveMinutes, getCampusWeekAttendance } from "./attendance-week.service.js";
 import { getWhafFormLogsForWeekWithLate } from "./form-log.service.js";
 import { scholarWahfStatus, type ScholarWahfStatus } from "./memo-page.service.js";
-import { fetchMenteeTeamLeaderNames, teamLeaderLabelForScholar } from "./mentee.service.js";
+import { fetchMenteeTeamLeaderIndex, teamLeaderLabelForScholar } from "./mentee.service.js";
 import { dateToCampusWeek } from "./time.service.js";
 import { fetchAllUsersForMemo, isEligibleScholar } from "./user.service.js";
 
@@ -237,7 +237,7 @@ export async function getFreshmanGradesReport(now = new Date()): Promise<Freshma
           { length: scoredWeeks.throughWeek - scoredWeeks.fromWeek + 1 },
           (_, index) => scoredWeeks.fromWeek + index,
         );
-  const [weekPayloads, mentorByMenteeUid, users] = await Promise.all([
+  const [weekPayloads, menteeTeamLeaderIndex, users] = await Promise.all([
     Promise.all(
       scoredWeekNums.map(async (weekNum) => {
         const [attendance, wahfRows] = await Promise.all([
@@ -247,9 +247,10 @@ export async function getFreshmanGradesReport(now = new Date()): Promise<Freshma
         return { attendance, wahfRows };
       }),
     ),
-    fetchMenteeTeamLeaderNames(),
+    fetchMenteeTeamLeaderIndex(),
     fetchAllUsersForMemo(),
   ]);
+  const { labelByMenteeUid: mentorByMenteeUid } = menteeTeamLeaderIndex;
   const inputs: FreshmanGradeScholarInput[] = users.map((user) => ({
     uid: user.uid,
     first_name: user.first_name,

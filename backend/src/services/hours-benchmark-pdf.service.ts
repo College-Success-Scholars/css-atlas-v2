@@ -10,6 +10,7 @@ import {
   HOURS_BENCHMARK_AT_OR_BELOW_PERCENT,
   HOURS_BENCHMARK_MET_PERCENT,
   type HoursBenchmarkCell,
+  type HoursBenchmarkHeatmapScope,
   type HoursBenchmarkReport,
   type HoursBenchmarkScholarRow,
 } from "./hours-benchmark.service.js";
@@ -74,9 +75,13 @@ function scholarCells(cells: HoursBenchmarkCell[]): string {
     .join("");
 }
 
-function heatmapRows(scholars: HoursBenchmarkScholarRow[]): string {
+function heatmapRows(scholars: HoursBenchmarkScholarRow[], scope: HoursBenchmarkHeatmapScope): string {
   if (scholars.length === 0) {
-    return `<tr><td colspan="99" class="empty-row">No scholars were at ${HOURS_BENCHMARK_AT_OR_BELOW_PERCENT}% or lower in the scored weeks.</td></tr>`;
+    const empty =
+      scope === "all"
+        ? "No hour-eligible scholars in the scored weeks."
+        : `No scholars were at ${HOURS_BENCHMARK_AT_OR_BELOW_PERCENT}% or lower in the scored weeks.`;
+    return `<tr><td colspan="99" class="empty-row">${empty}</td></tr>`;
   }
   return scholars
     .map((scholar) => {
@@ -165,10 +170,22 @@ function detailRows(report: HoursBenchmarkReport): string {
     .join("");
 }
 
-export function renderHoursBenchmarkHtml(report: HoursBenchmarkReport): string {
+export function renderHoursBenchmarkHtml(
+  report: HoursBenchmarkReport,
+  scope: HoursBenchmarkHeatmapScope = "low",
+): string {
   const { summary, weekNumbers } = report;
   const lead = hoursBenchmarkLeadBlurb(report);
   const subtitle = subtitleLine(report);
+  const heatmapScholars = scope === "all" ? report.allHeatmapScholars : report.heatmapScholars;
+  const heatmapHeading =
+    scope === "all"
+      ? "All hour-eligible scholars, week by week"
+      : `Students at ${HOURS_BENCHMARK_AT_OR_BELOW_PERCENT}% or lower, week by week`;
+  const heatmapIntro =
+    scope === "all"
+      ? `Every enrolled hour-eligible scholar, sorted by name. Each cell is that week's completion %. Week 1 is left out because tracking hadn't started.`
+      : `Sorted by how many weeks they were at ${HOURS_BENCHMARK_AT_OR_BELOW_PERCENT}% or lower. Each cell is that week's completion %. Week 1 is left out because tracking hadn't started.`;
 
   const kpi = `
     <div class="kpis">
@@ -208,7 +225,7 @@ export function renderHoursBenchmarkHtml(report: HoursBenchmarkReport): string {
           ${weekHeaders(weekNumbers)}
         </tr>
       </thead>
-      <tbody>${heatmapRows(report.heatmapScholars)}</tbody>
+      <tbody>${heatmapRows(heatmapScholars, scope)}</tbody>
     </table>
     <p class="legend">Red = ${HOURS_BENCHMARK_AT_OR_BELOW_PERCENT}% or lower · Amber = 51–${HOURS_BENCHMARK_MET_PERCENT - 1}% · blank = met ${HOURS_BENCHMARK_MET_PERCENT}% · * = had excused minutes that counted toward completion · (So.) = sophomore</p>`;
 
@@ -270,8 +287,8 @@ export function renderHoursBenchmarkHtml(report: HoursBenchmarkReport): string {
     </header>
     ${kpi}
     <section>
-      <h2>Students at ${HOURS_BENCHMARK_AT_OR_BELOW_PERCENT}% or lower, week by week</h2>
-      <p class="intro">Sorted by how many weeks they were at ${HOURS_BENCHMARK_AT_OR_BELOW_PERCENT}% or lower. Each cell is that week's completion %. Week 1 is left out because tracking hadn't started.</p>
+      <h2>${escapeHtml(heatmapHeading)}</h2>
+      <p class="intro">${escapeHtml(heatmapIntro)}</p>
       ${heatmap}
     </section>
     <section class="page">
@@ -319,11 +336,14 @@ export function hoursBenchmarkPdfOptions(report: HoursBenchmarkReport) {
 
 export { weeklyMemoBrowserLaunchOptions as hoursBenchmarkBrowserLaunchOptions, isMissingBundledChrome };
 
-export async function renderHoursBenchmarkPdf(report: HoursBenchmarkReport): Promise<Buffer> {
+export async function renderHoursBenchmarkPdf(
+  report: HoursBenchmarkReport,
+  scope: HoursBenchmarkHeatmapScope = "low",
+): Promise<Buffer> {
   const browser = await launchWeeklyMemoBrowser();
   try {
     const page = await browser.newPage();
-    await page.setContent(renderHoursBenchmarkHtml(report), { waitUntil: "load" });
+    await page.setContent(renderHoursBenchmarkHtml(report, scope), { waitUntil: "load" });
     return Buffer.from(await page.pdf(hoursBenchmarkPdfOptions(report)));
   } finally {
     await browser.close();

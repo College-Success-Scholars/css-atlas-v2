@@ -19,7 +19,7 @@
  * - HTTP request/response logic
  */
 import { completionPct, effectiveMinutes, getCampusWeekAttendance } from "./attendance-week.service.js";
-import { fetchMenteeTeamLeaderNames, teamLeaderLabelForScholar } from "./mentee.service.js";
+import { fetchMenteeTeamLeaderIndex, teamLeaderLabelForScholar } from "./mentee.service.js";
 import {
   campusWeekToDateRange,
   dateToCampusWeek,
@@ -110,6 +110,9 @@ export type HoursBenchmarkSummary = {
   studentsMissed80AtLeastOnce: number;
 };
 
+/** Which heatmap the PDF (and optional clients) should print. */
+export type HoursBenchmarkHeatmapScope = "low" | "all";
+
 export type HoursBenchmarkReport = {
   currentCampusWeek: number;
   scoredWeeks: HoursBenchmarkScoredWeeks | null;
@@ -119,7 +122,10 @@ export type HoursBenchmarkReport = {
   preparedAtLabel: string;
   printedAtSlug: string;
   summary: HoursBenchmarkSummary;
+  /** Scholars with at least one ≤50% week×area event (default PDF / on-screen heatmap). */
   heatmapScholars: HoursBenchmarkScholarRow[];
+  /** Every enrolled hour-eligible scholar for the scored weeks (all-scholars PDF). */
+  allHeatmapScholars: HoursBenchmarkScholarRow[];
   byTeamLeader: HoursBenchmarkTeamLeaderRow[];
   lowEvents: HoursBenchmarkLowEvent[];
 };
@@ -165,11 +171,19 @@ export function hoursBenchmarkPreparedAt(now = new Date()) {
 export function hoursBenchmarkPdfFilename(
   scoredWeeks: HoursBenchmarkScoredWeeks | null,
   printedAtSlug: string,
+  scope: HoursBenchmarkHeatmapScope = "low",
 ) {
+  const scopeSuffix = scope === "all" ? "-all" : "";
   if (scoredWeeks == null) {
-    return `hours-benchmark-${printedAtSlug}.pdf`;
+    return `hours-benchmark${scopeSuffix}-${printedAtSlug}.pdf`;
   }
-  return `hours-benchmark-weeks-${scoredWeeks.fromWeek}-${scoredWeeks.throughWeek}-${printedAtSlug}.pdf`;
+  return `hours-benchmark-weeks-${scoredWeeks.fromWeek}-${scoredWeeks.throughWeek}${scopeSuffix}-${printedAtSlug}.pdf`;
+}
+
+/** Parse `?scope=` for the PDF route. Unknown values fall back to the ≤50% heatmap. */
+export function parseHoursBenchmarkHeatmapScope(raw: unknown): HoursBenchmarkHeatmapScope {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return value === "all" ? "all" : "low";
 }
 
 function formatMonthDay(date: Date): string {
@@ -243,7 +257,7 @@ function emptySummary(): HoursBenchmarkSummary {
 
 /**
  * Enrolled hour-eligible scholars with FD/SS completion for scored weeks.
- * Heatmap includes only scholars with at least one ≤50% week×area event.
+ * `heatmapScholars` keeps only ≤50% rows; `allHeatmapScholars` includes everyone.
  */
 export function assembleHoursBenchmark(
   scholars: HoursBenchmarkScholarInput[],
@@ -261,7 +275,7 @@ export function assembleHoursBenchmark(
         );
 
   const summary = emptySummary();
-  const heatmapScholars: HoursBenchmarkScholarRow[] = [];
+  const allHeatmapScholars: HoursBenchmarkScholarRow[] = [];
   const lowEvents: HoursBenchmarkLowEvent[] = [];
   const tlEvents = new Map<string, { events: number; scholars: Set<string> }>();
 
@@ -338,10 +352,9 @@ export function assembleHoursBenchmark(
     }
 
     if (missed80) summary.studentsMissed80AtLeastOnce += 1;
-    if (atOrBelow50Count === 0) continue;
+    if (atOrBelow50Count > 0) summary.studentsAtOrBelow50AtLeastOnce += 1;
 
-    summary.studentsAtOrBelow50AtLeastOnce += 1;
-    heatmapScholars.push({
+    allHeatmapScholars.push({
       scholarId: scholar.uid,
       scholarName,
       isSophomore: classYear === "Sophomore",
@@ -353,10 +366,16 @@ export function assembleHoursBenchmark(
     });
   }
 
-  heatmapScholars.sort((a, b) => {
-    if (b.atOrBelow50Count !== a.atOrBelow50Count) return b.atOrBelow50Count - a.atOrBelow50Count;
-    return a.scholarName.localeCompare(b.scholarName, undefined, { sensitivity: "base" });
-  });
+  const heatmapScholars = allHeatmapScholars
+    .filter((row) => row.atOrBelow50Count > 0)
+    .sort((a, b) => {
+      if (b.atOrBelow50Count !== a.atOrBelow50Count) return b.atOrBelow50Count - a.atOrBelow50Count;
+      return a.scholarName.localeCompare(b.scholarName, undefined, { sensitivity: "base" });
+    });
+
+  allHeatmapScholars.sort((a, b) =>
+    a.scholarName.localeCompare(b.scholarName, undefined, { sensitivity: "base" }),
+  );
 
   lowEvents.sort((a, b) => {
     if (a.completionPercent !== b.completionPercent) return a.completionPercent - b.completionPercent;
@@ -387,6 +406,7 @@ export function assembleHoursBenchmark(
     printedAtSlug: prepared.slug,
     summary,
     heatmapScholars,
+    allHeatmapScholars,
     byTeamLeader,
     lowEvents,
   };
@@ -413,11 +433,12 @@ export async function getHoursBenchmarkReport(now = new Date()): Promise<HoursBe
           (_, index) => scoredWeeks.fromWeek + index,
         );
 
-  const [weekAttendances, mentorByMenteeUid, users] = await Promise.all([
+  const [weekAttendances, menteeTeamLeaderIndex, users] = await Promise.all([
     Promise.all(scoredWeekNums.map((weekNum) => getCampusWeekAttendance(weekNum))),
-    fetchMenteeTeamLeaderNames(),
+    fetchMenteeTeamLeaderIndex(),
     fetchAllUsersForMemo(),
   ]);
+  const { labelByMenteeUid: mentorByMenteeUid } = menteeTeamLeaderIndex;
 
   const inputs: HoursBenchmarkScholarInput[] = users.map((user) => ({
     uid: user.uid,

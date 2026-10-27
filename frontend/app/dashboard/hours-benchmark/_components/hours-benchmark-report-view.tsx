@@ -106,7 +106,18 @@ export function HoursBenchmarkReportView({ report }: HoursBenchmarkReportViewPro
             Front desk and study session hours · {subtitle}
           </p>
         </div>
-        <HoursBenchmarkExportButton available={hasScoredWeeks} />
+        <div className="flex flex-wrap items-end justify-end gap-2">
+          <HoursBenchmarkExportButton
+            available={hasScoredWeeks}
+            scope="low"
+            label="Export ≤50% PDF"
+          />
+          <HoursBenchmarkExportButton
+            available={hasScoredWeeks}
+            scope="all"
+            label="Export all scholars PDF"
+          />
+        </div>
       </div>
 
       {!hasScoredWeeks ? (

@@ -55,6 +55,7 @@ describe("hours benchmark controller", () => {
       printedAtSlug: "2026-10-27-1200",
       summary: { studentsAtOrBelow50AtLeastOnce: 0, atOrBelow50Events: 0, zeroPercentEvents: 0, studentsMissed80AtLeastOnce: 0 },
       heatmapScholars: [],
+      allHeatmapScholars: [],
       byTeamLeader: [],
       lowEvents: [],
     });
@@ -73,8 +74,8 @@ describe("hours benchmark controller", () => {
 
   it("delivers a downloadable PDF", async () => {
     const res = response();
-    await pdf({} as never, res as never);
-    expect(renderHoursBenchmarkPdf).toHaveBeenCalled();
+    await pdf({ query: {} } as never, res as never);
+    expect(renderHoursBenchmarkPdf).toHaveBeenCalledWith(expect.anything(), "low");
     expect(res.headers).toMatchObject({
       "Content-Type": "application/pdf",
       "Content-Disposition": 'attachment; filename="hours-benchmark-weeks-2-8-2026-10-27-1200.pdf"',
@@ -83,10 +84,19 @@ describe("hours benchmark controller", () => {
     expect(res.body).toEqual(Buffer.from("pdf"));
   });
 
+  it("delivers an all-scholars PDF when scope=all", async () => {
+    const res = response();
+    await pdf({ query: { scope: "all" } } as never, res as never);
+    expect(renderHoursBenchmarkPdf).toHaveBeenCalledWith(expect.anything(), "all");
+    expect(res.headers["Content-Disposition"]).toBe(
+      'attachment; filename="hours-benchmark-weeks-2-8-all-2026-10-27-1200.pdf"',
+    );
+  });
+
   it("returns a retryable error when rendering fails", async () => {
     renderHoursBenchmarkPdf.mockRejectedValue(new Error("Chromium unavailable"));
     const res = response();
-    await pdf({} as never, res as never);
+    await pdf({ query: {} } as never, res as never);
     expect(res.statusCode).toBe(503);
     expect(res.body).toEqual({ error: "PDF generation failed. Please try again." });
   });

@@ -9,6 +9,7 @@ import type { AuthenticatedRequest } from "../middleware/auth.middleware.js";
 import {
   getHoursBenchmarkReport,
   hoursBenchmarkPdfFilename,
+  parseHoursBenchmarkHeatmapScope,
 } from "../services/hours-benchmark.service.js";
 import { renderHoursBenchmarkPdf } from "../services/hours-benchmark-pdf.service.js";
 
@@ -24,12 +25,17 @@ export async function report(_req: AuthenticatedRequest, res: Response) {
   }
 }
 
-// GET /api/hours-benchmark/pdf
-export async function pdf(_req: AuthenticatedRequest, res: Response) {
+// GET /api/hours-benchmark/pdf?scope=low|all
+export async function pdf(req: AuthenticatedRequest, res: Response) {
   try {
+    const scope = parseHoursBenchmarkHeatmapScope(req.query.scope);
     const reportData = await getHoursBenchmarkReport();
-    const document = await renderHoursBenchmarkPdf(reportData);
-    const filename = hoursBenchmarkPdfFilename(reportData.scoredWeeks, reportData.printedAtSlug);
+    const document = await renderHoursBenchmarkPdf(reportData, scope);
+    const filename = hoursBenchmarkPdfFilename(
+      reportData.scoredWeeks,
+      reportData.printedAtSlug,
+      scope,
+    );
     res.set({
       "Cache-Control": "no-store, max-age=0",
       "Content-Type": "application/pdf",

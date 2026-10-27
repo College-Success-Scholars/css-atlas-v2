@@ -5,13 +5,19 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
+import type { HoursBenchmarkHeatmapScope } from "../types";
+
 type HoursBenchmarkExportButtonProps = {
   available: boolean;
-  filenameHint?: string;
-  onExport?: () => Promise<void>;
+  scope: HoursBenchmarkHeatmapScope;
+  label: string;
+  onExport?: (scope: HoursBenchmarkHeatmapScope) => Promise<void>;
 };
 
-export function hoursBenchmarkClientPdfFilename(now = new Date()) {
+export function hoursBenchmarkClientPdfFilename(
+  now = new Date(),
+  scope: HoursBenchmarkHeatmapScope = "low",
+) {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/New_York",
     year: "numeric",
@@ -23,11 +29,12 @@ export function hoursBenchmarkClientPdfFilename(now = new Date()) {
   }).formatToParts(now);
   const value = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((part) => part.type === type)?.value ?? "";
-  return `hours-benchmark-${value("year")}-${value("month")}-${value("day")}-${value("hour")}${value("minute")}.pdf`;
+  const scopeSuffix = scope === "all" ? "-all" : "";
+  return `hours-benchmark${scopeSuffix}-${value("year")}-${value("month")}-${value("day")}-${value("hour")}${value("minute")}.pdf`;
 }
 
-export async function downloadHoursBenchmarkPdf() {
-  const response = await fetch("/api/hours-benchmark/pdf");
+export async function downloadHoursBenchmarkPdf(scope: HoursBenchmarkHeatmapScope = "low") {
+  const response = await fetch(`/api/hours-benchmark/pdf?scope=${scope}`);
   const contentType = response.headers.get("content-type") ?? "";
   if (!response.ok || !contentType.includes("application/pdf")) {
     throw new Error(`PDF generation failed (${response.status})`);
@@ -38,13 +45,15 @@ export async function downloadHoursBenchmarkPdf() {
   link.href = url;
   link.download =
     response.headers.get("content-disposition")?.match(/filename="?([^";]+)"?/)?.[1] ??
-    hoursBenchmarkClientPdfFilename();
+    hoursBenchmarkClientPdfFilename(new Date(), scope);
   link.click();
   URL.revokeObjectURL(url);
 }
 
 export function HoursBenchmarkExportButton({
   available,
+  scope,
+  label,
   onExport = downloadHoursBenchmarkPdf,
 }: HoursBenchmarkExportButtonProps) {
   const [generating, setGenerating] = useState(false);
@@ -55,7 +64,7 @@ export function HoursBenchmarkExportButton({
     setGenerating(true);
     setError(null);
     try {
-      await onExport();
+      await onExport(scope);
     } catch {
       setError("PDF generation failed. Please try again.");
     } finally {
@@ -69,7 +78,7 @@ export function HoursBenchmarkExportButton({
     <div className="flex flex-col items-end gap-1">
       <Button type="button" variant="outline" onClick={handleExport} disabled={generating} aria-busy={generating}>
         {generating ? <LoaderCircle className="animate-spin" /> : <Download />}
-        {generating ? "Generating PDF..." : "Export PDF"}
+        {generating ? "Generating PDF..." : label}
       </Button>
       {error && (
         <p className="text-destructive text-xs" role="alert">
