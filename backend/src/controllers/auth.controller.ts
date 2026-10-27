@@ -88,10 +88,21 @@ export const createProfile = asyncHandler(async (req, res) => {
     return;
   }
 
-  const data = await createScholarProfile({
-    userId: req.authUser!.id,
-    email,
-    ...parsed,
-  });
-  res.status(201).json({ data });
+  try {
+    const data = await createScholarProfile({
+      userId: req.authUser!.id,
+      email,
+      ...parsed,
+    });
+    res.status(201).json({ data });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    // profiles_pkey or unique student_id — row already exists but wasn't visible
+    // on the earlier realProfile read (e.g. embed/select failure).
+    if (/duplicate key|unique constraint|profiles_pkey/i.test(message)) {
+      res.status(409).json({ error: "Profile already exists" });
+      return;
+    }
+    throw e;
+  }
 });

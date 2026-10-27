@@ -42,6 +42,8 @@ Developer roster edits from `/dev/profiles` need `developer_update_user_roster` 
 
 `am_pm_form_logs`, `daily_scholar_activity`, `dev_test_profiles`, `front_desk_logs`, `front_desk_records_legacy`, `mcf_form_logs`, `mentor_mentee`, `profiles`, `scholar_week_excuses`, `scholar_weekly_stats`, `semester_breaks`, `semesters`, `study_session_logs`, `study_session_records_legacy`, `traffic`, `traffic_weekly_summary`, `tutor_report_logs`, `user_roster`, `whaf_form_logs`, `wpl_form_logs`
 
+Importance / secrecy / Atlas usage (includes newer remote tables such as calendar + notifications): [`tables-overview.md`](tables-overview.md).
+
 Column-level catalog (types + one-liners): [`public-schema.md`](public-schema.md).
 
 ### Form / log intake (Google Forms)

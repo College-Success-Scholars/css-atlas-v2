@@ -68,6 +68,12 @@ export default function DevPage() {
         >
           Profile Test →
         </Link>
+        <Link
+          href="/dev/freshman-grades"
+          className="text-primary hover:underline text-sm font-medium"
+        >
+          Freshman and sophomore grades (FD / SS / WAHF) →
+        </Link>
       </div>
 
       <DevTestClient />

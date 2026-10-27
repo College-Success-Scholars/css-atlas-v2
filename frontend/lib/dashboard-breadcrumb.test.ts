@@ -16,6 +16,10 @@ describe("resolveDashboardBreadcrumb", () => {
       { label: "Dashboard", href: "/dashboard" },
       { label: "Memo" },
     ]);
+    expect(resolveDashboardBreadcrumb("/dashboard/hours-benchmark")).toEqual([
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Hours Benchmark" },
+    ]);
     expect(resolveDashboardBreadcrumb("/dashboard/personal")).toEqual([
       { label: "Dashboard", href: "/dashboard" },
       { label: "Personal" },

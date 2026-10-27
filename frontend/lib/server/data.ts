@@ -32,6 +32,7 @@ import type {
   ScholarsInRoomOptions,
   ScholarWithCompletedSession,
 } from "@/lib/types/session-log";
+import type { HoursBenchmarkReport } from "@/app/dashboard/hours-benchmark/types";
 import type {
   AttendanceKind,
   AttendanceWeekBoard,
@@ -397,4 +398,12 @@ export async function getTotalMinutesForMenteeWeek(params: {
 
 export async function getWeeklyMemoPdf(weekNumber: number): Promise<Response> {
   return backendDownload(`/api/memo/pdf?weekNumber=${weekNumber}`);
+}
+
+export async function getHoursBenchmarkReport() {
+  return backendGet<HoursBenchmarkReport>("/api/hours-benchmark");
+}
+
+export async function getHoursBenchmarkPdf(): Promise<Response> {
+  return backendDownload("/api/hours-benchmark/pdf");
 }
