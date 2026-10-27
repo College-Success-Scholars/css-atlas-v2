@@ -200,6 +200,41 @@ describe("buildAttendanceEvidence", () => {
     expect(completed!.end.getTime() - completed!.start.getTime()).toBe(60 * 60_000);
   });
 
+  it("defaults excuses to [] and maps scholar_week_excuses into week evidence", () => {
+    expect(evidence.excuses).toEqual([]);
+    const withExcuse = buildAttendanceEvidence({
+      scholarUid: "1001",
+      semesterId: "1",
+      semesterStart: WEEK_1.startDate,
+      semesterEnd: WEEK_2.endDate,
+      assignments: [],
+      frontDeskRows: [],
+      studyRows: [],
+      asOf,
+      excuseRows: [
+        {
+          scholar_uid: "1001",
+          week_start: "2026-08-31",
+          week_num: 1,
+          kind: "front_desk",
+          excuse_min: 45,
+          description: "Doctor",
+          updated_by: "tl",
+          updated_at: asOf.toISOString(),
+        },
+      ],
+    });
+    expect(withExcuse.excuses).toEqual([
+      {
+        weekNum: 1,
+        weekStart: "2026-08-31",
+        kind: "front_desk",
+        minutes: 45,
+        description: "Doctor",
+      },
+    ]);
+  });
+
   it("keeps an open entry bounded to its own local day and marks the date non-terminal", () => {
     const open = evidence.logs.find((l) => l.sourceId === "fd-open-in");
     expect(open).toBeDefined();
@@ -384,6 +419,7 @@ describe("composeMenteeReview", () => {
         { sourceId: "l1", kind: "front_desk", start: at(WEEK_1.startDate, "10:00"), end: at(WEEK_1.startDate, "11:00") },
       ],
       nonTerminalDates: [],
+      excuses: [],
     },
     loadedAt: asOf.toISOString(),
   };

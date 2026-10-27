@@ -224,6 +224,40 @@ describe("hour bands and display", () => {
     expect(summary.hours[0]!.pending).toBe(false);
     expect(summary.hours[0]!.band).toBe("red");
   });
+
+  it("counts excuse minutes toward percent/band while keeping loggedMinutes separate", () => {
+    const start = at(WEEK_1.startDate, "13:00");
+    const summary = evaluateWeek(
+      baseInput({
+        targets: { front_desk: 300 },
+        logs: [logMs("l1", "front_desk", start, 240)], // 80% logged alone
+        excuses: { front_desk: { minutes: 30, description: "Doctor appointment" } },
+      })
+    );
+    const fd = summary.hours[0]!;
+    expect(fd.loggedMinutes).toBe(240);
+    expect(fd.excuseMinutes).toBe(30);
+    expect(fd.excuseDescription).toBe("Doctor appointment");
+    expect(fd.percent).toBeCloseTo(90, 10);
+    expect(fd.band).toBe("green");
+    expect(fd.pending).toBe(false);
+    expect(fd.hasActivity).toBe(true);
+  });
+
+  it("marks excuse-only weeks complete when excuse covers the target", () => {
+    const summary = evaluateWeek(
+      baseInput({
+        targets: { study_session: 120 },
+        excuses: { study_session: { minutes: 120, description: "Sick" } },
+      })
+    );
+    const ss = summary.hours[1]!;
+    expect(ss.loggedMinutes).toBe(0);
+    expect(ss.excuseMinutes).toBe(120);
+    expect(ss.percent).toBeCloseTo(100, 10);
+    expect(ss.band).toBe("green");
+    expect(ss.hasActivity).toBe(true);
+  });
 });
 
 // ---------------------------------------------------------------------------

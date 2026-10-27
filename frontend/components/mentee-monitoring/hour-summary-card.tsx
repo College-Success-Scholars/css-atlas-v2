@@ -97,6 +97,11 @@ export function HourSummaryCard({ summary, tier = null }: HourSummaryCardProps) 
           <span className="text-[15px] text-muted-foreground">
             {hasTarget ? `of ${Number(formatHours(summary.targetMinutes ?? 0))}h` : "hrs logged"}
           </span>
+          {(summary.excuseMinutes > 0 || summary.excuseDescription) && (
+            <span className="text-[13px] font-semibold text-info-muted-foreground">
+              {formatHours(summary.excuseMinutes)}h excused
+            </span>
+          )}
           {summary.overageMinutes > 0 && (
             <span
               className={cn(
@@ -108,6 +113,9 @@ export function HourSummaryCard({ summary, tier = null }: HourSummaryCardProps) 
             </span>
           )}
         </div>
+        {summary.excuseDescription ? (
+          <p className="text-sm text-muted-foreground">{summary.excuseDescription}</p>
+        ) : null}
 
         <div className="space-y-1" data-slot="completion-bar">
           <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">

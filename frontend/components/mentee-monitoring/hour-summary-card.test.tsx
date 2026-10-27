@@ -36,6 +36,8 @@ function summary(overrides: Partial<HourWeekSummary> = {}): HourWeekSummary {
     kind: "front_desk",
     assignmentAvailable: true,
     loggedMinutes: 340,
+    excuseMinutes: 0,
+    excuseDescription: null,
     targetMinutes: 300,
     percent: 113.333,
     band: "green",
@@ -172,5 +174,21 @@ describe("HourSummaryCard", () => {
     expect(html).toContain('aria-valuenow="100"')
     expect(html).toContain("width:100%")
     expect(html).toContain(TIER_UI.rare.bar)
+  })
+
+  it("shows excused hours and the excuse note beside logged hours", () => {
+    const html = renderToStaticMarkup(
+      <HourSummaryCard
+        summary={summary({
+          loggedMinutes: 240,
+          excuseMinutes: 30,
+          excuseDescription: "Doctor appointment",
+          percent: 90,
+          overageMinutes: 0,
+        })}
+      />,
+    )
+    expect(html).toContain("0.5h excused")
+    expect(html).toContain("Doctor appointment")
   })
 })

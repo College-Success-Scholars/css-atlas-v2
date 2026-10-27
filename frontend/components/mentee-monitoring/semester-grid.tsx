@@ -104,7 +104,7 @@ function cellFor(row: RowId, label: string, week: WeekDescriptor, summary: WeekR
     return { text: "", tone: "neutral", disabled: false, description: `${label}: ${base}, unavailable` }
   }
 
-  const value = `${formatHours(hours.loggedMinutes)}${hours.noShowCount > 0 ? " •" : ""}`
+  const value = `${formatHours(hours.loggedMinutes)}${hours.excuseMinutes > 0 ? "*" : ""}${hours.noShowCount > 0 ? " •" : ""}`
   // Always show the band, including the current week. The separate "In
   // progress" label already communicates that the current week can still move;
   // a blank pending cell made the grid look uncolored.
@@ -115,6 +115,7 @@ function cellFor(row: RowId, label: string, week: WeekDescriptor, summary: WeekR
     : null
   const notes = [
     target ? `${logged} of ${target} hours` : `${logged} hours`,
+    hours.excuseMinutes > 0 ? `${formatHours(hours.excuseMinutes)} hours excused` : null,
     hours.percent != null ? formatPercent(hours.percent) : null,
     hours.tier ? `${TIER_UI[hours.tier].label} tier` : null,
     hours.noShowCount > 0 ? `${hours.noShowCount} no-show` : null,

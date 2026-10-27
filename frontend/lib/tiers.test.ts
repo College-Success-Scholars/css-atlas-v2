@@ -25,6 +25,8 @@ function hour(
     kind,
     assignmentAvailable: true,
     loggedMinutes,
+    excuseMinutes: 0,
+    excuseDescription: null,
     targetMinutes,
     percent,
     band: percent >= 90 ? "green" : percent >= 60 ? "orange" : "red",

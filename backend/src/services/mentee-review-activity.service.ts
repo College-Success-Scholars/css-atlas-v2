@@ -29,7 +29,9 @@ import {
 } from "./tutor-report-log.service.js";
 import { getActiveSemesterRow } from "./semester.service.js";
 import { getMeetingPreference } from "./mentee-meeting-preference.service.js";
+import { campusWeekStartDate } from "./attendance-week.service.js";
 import {
+  excusesForWeek,
   fetchMenteeAttendanceEvidence,
   type AttendanceEvidence,
 } from "./mentee-review-attendance.adapter.js";
@@ -193,6 +195,7 @@ function evaluateInstructionalWeeks(input: ComposeMenteeReviewInput): WeekReview
     if (week.isBreak || week.isFuture) continue;
     const range = campusWeekToDateRange(week.weekNumber);
     if (!range) continue;
+    const weekStartYmd = campusWeekStartDate(week.weekNumber);
     summaries.push(
       evaluateWeek({
         weekNumber: week.weekNumber,
@@ -203,6 +206,9 @@ function evaluateInstructionalWeeks(input: ComposeMenteeReviewInput): WeekReview
         logs: attendance.data.logs,
         nonTerminalDates: attendance.data.nonTerminalDates,
         targets,
+        excuses: weekStartYmd
+          ? excusesForWeek(attendance.data.excuses, weekStartYmd)
+          : {},
         wahf: buildWahfEvidenceForWeek(wahf.ok ? wahf.data : [], week.weekNumber, wahf.ok),
         tutoring: buildTutoringEvidenceForWeek(
           tutoring.ok ? tutoring.data : [],
@@ -303,7 +309,11 @@ async function composeReviewForMentee(params: {
       calendar,
       selectedWeek,
       targets,
-      attendance: { ok: true, data: { shifts: [], logs: [], nonTerminalDates: [] }, loadedAt: asOf.toISOString() },
+      attendance: {
+        ok: true,
+        data: { shifts: [], logs: [], nonTerminalDates: [], excuses: [] },
+        loadedAt: asOf.toISOString(),
+      },
       wahf: { ok: true, data: [], loadedAt: asOf.toISOString() },
       tutoring: { ok: true, data: [], loadedAt: asOf.toISOString() },
       meetingPreference,

@@ -16,6 +16,7 @@
  * - Expand semester-scoped standing assignments into dated shift occurrences
  * - Map completed sessions into logged intervals
  * - Record open/errored evidence dates as non-terminal
+ * - Attach campus-week excuses from scholar_week_excuses
  *
  * ## What does NOT belong here
  * - Weekly classification/totals (mentee-review-evaluator)
@@ -23,6 +24,7 @@
  * - HTTP handlers
  */
 import { getSupabaseClient } from "../supabase/client.js";
+import { fetchScholarWeekExcuses } from "./attendance-week.service.js";
 import {
   addEasternCalendarDays,
   getEasternDateParts,
@@ -35,18 +37,64 @@ import {
   getCleanedAndErroredTickets,
   getScholarsWithValidEntryExit,
 } from "./session-log.service.js";
+import type { ScholarWeekExcuseRow } from "../models/attendance-week.model.js";
 import type { ScholarShiftAssignment, SessionLogRow } from "../models/session-log.model.js";
 import type {
   LoggedIntervalInput,
   ScheduledShiftInput,
   ShiftSessionKind,
+  WeekExcuseInput,
 } from "../models/mentee-review.model.js";
+
+/** One campus-week excuse row, keyed for evaluateWeek. */
+export interface ExcuseEvidence {
+  weekNum: number;
+  /** Eastern YYYY-MM-DD Monday — unique across years (unlike weekNum alone). */
+  weekStart: string;
+  kind: ShiftSessionKind;
+  minutes: number;
+  description: string | null;
+}
 
 export interface AttendanceEvidence {
   shifts: ScheduledShiftInput[];
   logs: LoggedIntervalInput[];
   /** Program-local dates (YYYY-MM-DD) with open or unmatched evidence. */
   nonTerminalDates: string[];
+  /** All scholar_week_excuses for this scholar (any campus week). */
+  excuses: ExcuseEvidence[];
+}
+
+export function mapExcuseRowsToEvidence(rows: ScholarWeekExcuseRow[]): ExcuseEvidence[] {
+  const out: ExcuseEvidence[] = [];
+  for (const row of rows) {
+    if (row.kind !== "front_desk" && row.kind !== "study_session") continue;
+    const minutes = row.excuse_min != null && Number.isFinite(row.excuse_min) ? Number(row.excuse_min) : 0;
+    out.push({
+      weekNum: row.week_num,
+      weekStart: String(row.week_start).slice(0, 10),
+      kind: row.kind,
+      minutes: minutes > 0 ? minutes : 0,
+      description: row.description?.trim() ? row.description.trim() : null,
+    });
+  }
+  return out.sort(
+    (a, b) =>
+      a.weekStart.localeCompare(b.weekStart) || a.kind.localeCompare(b.kind)
+  );
+}
+
+/** Lookup FD/SS excuses for one campus week from semester-wide evidence. */
+export function excusesForWeek(
+  excuses: ExcuseEvidence[],
+  weekStartYmd: string
+): Partial<Record<ShiftSessionKind, WeekExcuseInput>> {
+  const result: Partial<Record<ShiftSessionKind, WeekExcuseInput>> = {};
+  for (const row of excuses) {
+    if (row.weekStart !== weekStartYmd) continue;
+    result[row.kind] = { minutes: row.minutes, description: row.description };
+  }
+  return result;
 }
 
 interface UntypedQuery extends PromiseLike<{ data: unknown; error: unknown }> {
@@ -162,6 +210,7 @@ export function buildAttendanceEvidence(params: {
   frontDeskRows: SessionLogRow[];
   studyRows: SessionLogRow[];
   asOf: Date;
+  excuseRows?: ScholarWeekExcuseRow[];
 }): AttendanceEvidence {
   const {
     scholarUid,
@@ -172,6 +221,7 @@ export function buildAttendanceEvidence(params: {
     frontDeskRows,
     studyRows,
     asOf,
+    excuseRows = [],
   } = params;
 
   const shifts = expandShiftOccurrences({
@@ -192,7 +242,12 @@ export function buildAttendanceEvidence(params: {
     (a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime)
   );
 
-  return { shifts, logs, nonTerminalDates: [...nonTerminal].sort() };
+  return {
+    shifts,
+    logs,
+    nonTerminalDates: [...nonTerminal].sort(),
+    excuses: mapExcuseRowsToEvidence(excuseRows),
+  };
 }
 
 async function fetchAssignmentsForScholar(
@@ -226,11 +281,13 @@ export async function fetchMenteeAttendanceEvidence(params: {
 
   let frontDeskRows: SessionLogRow[] = [];
   let studyRows: SessionLogRow[] = [];
+  let excuseRows: ScholarWeekExcuseRow[] = [];
   if (semesterStart && semesterEnd) {
     const logEnd = new Date(addEasternCalendarDays(semesterEnd, 1).getTime() - 1);
-    [frontDeskRows, studyRows] = await Promise.all([
+    [frontDeskRows, studyRows, excuseRows] = await Promise.all([
       fetchFrontDeskLogs({ scholarUids: [scholarUid], startDate: semesterStart, endDate: logEnd }),
       fetchStudySessionLogs({ scholarUids: [scholarUid], startDate: semesterStart, endDate: logEnd }),
+      fetchScholarWeekExcuses(scholarUid),
     ]);
   }
 
@@ -243,5 +300,6 @@ export async function fetchMenteeAttendanceEvidence(params: {
     frontDeskRows,
     studyRows,
     asOf,
+    excuseRows,
   });
 }

@@ -24,6 +24,7 @@ vi.mock("../services/mentee-meeting-preference.service.js", () => ({
 }));
 vi.mock("../services/mentee-review-attendance.adapter.js", () => ({
   fetchMenteeAttendanceEvidence: mocks.fetchMenteeAttendanceEvidence,
+  excusesForWeek: () => ({}),
 }));
 vi.mock("../services/form-log.service.js", () => ({
   getWhafFormLogsByUid: mocks.getWhafFormLogsByUid,
@@ -60,7 +61,12 @@ describe.each(entrypoints)("$name review cohort propagation", ({ name, review })
     vi.resetAllMocks();
     mocks.getActiveSemesterRow.mockResolvedValue({ id: 1, start_date: "2026-08-31", end_date: "2026-12-12" });
     mocks.getMeetingPreference.mockResolvedValue(null);
-    mocks.fetchMenteeAttendanceEvidence.mockResolvedValue({ shifts: [], logs: [], nonTerminalDates: [] });
+    mocks.fetchMenteeAttendanceEvidence.mockResolvedValue({
+      shifts: [],
+      logs: [],
+      nonTerminalDates: [],
+      excuses: [],
+    });
     mocks.getWhafFormLogsByUid.mockResolvedValue([]);
     mocks.getTutorReportLogsByUid.mockResolvedValue([]);
   });

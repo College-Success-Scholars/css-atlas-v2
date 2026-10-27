@@ -172,14 +172,21 @@ export interface HourWeekSummary {
   assignmentAvailable: boolean;
   /** Exact logged minutes (unrounded). */
   loggedMinutes: number;
+  /**
+   * TL-entered excuse minutes for this campus week (`scholar_week_excuses`).
+   * Count toward percent/band/overage; tiers still use logged only.
+   */
+  excuseMinutes: number;
+  /** Free-text reason from scholar_week_excuses; null when unset. */
+  excuseDescription: string | null;
   /** Null when no positive target is configured. */
   targetMinutes: number | null;
-  /** Unrounded percent of target; null when no positive target. */
+  /** Unrounded percent of target using logged + excuse; null when no positive target. */
   percent: number | null;
   band: HourBand | null;
   /** One-decimal display value of logged hours. */
   displayHours: number;
-  /** Whole minutes above target; 0 when at or below target (nearest-minute rounding). */
+  /** Whole minutes above target (logged + excuse); 0 when at or below. */
   overageMinutes: number;
   /** True only for an unfinished current week that is not yet green. */
   pending: boolean;
@@ -254,6 +261,12 @@ export interface LatestGradesSummary {
   entries: LatestGradeEntry[];
 }
 
+/** Per-kind campus-week excuse from `scholar_week_excuses`. */
+export interface WeekExcuseInput {
+  minutes: number;
+  description: string | null;
+}
+
 export interface EvaluateWeekInput {
   weekNumber: number;
   /** Program-local Monday 00:00. */
@@ -271,6 +284,8 @@ export interface EvaluateWeekInput {
   nonTerminalDates?: string[];
   /** Required minutes per session kind (roster `fd_required` / `ss_required`). */
   targets: Partial<Record<ShiftSessionKind, number | null>>;
+  /** Excuse minutes + note per kind for this campus week (missing → 0 / null). */
+  excuses?: Partial<Record<ShiftSessionKind, WeekExcuseInput>>;
   wahf: WahfEvidence;
   tutoring: TutoringEvidenceInput;
 }
