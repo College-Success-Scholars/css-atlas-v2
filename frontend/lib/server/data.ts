@@ -404,6 +404,7 @@ export async function getHoursBenchmarkReport() {
   return backendGet<HoursBenchmarkReport>("/api/hours-benchmark");
 }
 
-export async function getHoursBenchmarkPdf(): Promise<Response> {
-  return backendDownload("/api/hours-benchmark/pdf");
+export async function getHoursBenchmarkPdf(scope: "low" | "all" = "low"): Promise<Response> {
+  const query = new URLSearchParams({ scope });
+  return backendDownload(`/api/hours-benchmark/pdf?${query}`);
 }

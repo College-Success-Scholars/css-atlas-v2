@@ -112,6 +112,13 @@ describe("assembleHoursBenchmark", () => {
     expect(report.heatmapScholars[0]?.frontDeskByWeek.map((cell) => cell.completionPercent)).toEqual([0, 50, 80]);
     expect(report.heatmapScholars[0]?.studySessionByWeek.map((cell) => cell.completionPercent)).toEqual([0, 100, 80]);
 
+    expect(report.allHeatmapScholars.map((row) => row.scholarName)).toEqual([
+      "Almost There",
+      "Duke Boateng",
+      "On Track",
+    ]);
+    expect(report.allHeatmapScholars.find((row) => row.scholarName === "On Track")?.atOrBelow50Count).toBe(0);
+
     expect(report.byTeamLeader).toEqual([
       { teamLeader: "Jeffrey Beamer Jr.", atOrBelow50Events: 3, studentCount: 1 },
     ]);
@@ -157,6 +164,7 @@ describe("assembleHoursBenchmark", () => {
     const report = assembleHoursBenchmark([scholar({ weeks: [week()] })], 2);
     expect(report.scoredWeeks).toBeNull();
     expect(report.heatmapScholars).toEqual([]);
+    expect(report.allHeatmapScholars).toHaveLength(1);
     expect(report.summary.atOrBelow50Events).toBe(0);
   });
 });
@@ -167,6 +175,9 @@ describe("hoursBenchmarkPreparedAt and filename", () => {
     expect(printed.label).toMatch(/Oct 27, 2026/);
     expect(hoursBenchmarkPdfFilename({ fromWeek: 2, throughWeek: 8 }, printed.slug)).toBe(
       `hours-benchmark-weeks-2-8-${printed.slug}.pdf`,
+    );
+    expect(hoursBenchmarkPdfFilename({ fromWeek: 2, throughWeek: 8 }, printed.slug, "all")).toBe(
+      `hours-benchmark-weeks-2-8-all-${printed.slug}.pdf`,
     );
   });
 });

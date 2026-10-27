@@ -1166,7 +1166,7 @@ All routes under `/api/hours-benchmark` require **requireDeveloper**.
 ### `GET /api/hours-benchmark`
 
 **Auth:** requireDeveloper
-**Description:** Multi-week CSS Hours Benchmark Report for enrolled hour-eligible scholars. Scored weeks run from campus week 2 through the previous week (current week and week 1 are ignored). Completion uses logged minutes plus `scholar_week_excuses` (`effective / required`, rounded). Heatmap scholars are those with at least one front-desk or study-session week at 50% or lower. Cells at 80% or more are treated as met. Response has `Cache-Control: no-store`.
+**Description:** Multi-week CSS Hours Benchmark Report for enrolled hour-eligible scholars. Scored weeks run from campus week 2 through the previous week (current week and week 1 are ignored). Completion uses logged minutes plus `scholar_week_excuses` (`effective / required`, rounded). `heatmapScholars` are those with at least one front-desk or study-session week at 50% or lower; `allHeatmapScholars` is every enrolled hour-eligible scholar (name-sorted). Cells at 80% or more are treated as met. Response has `Cache-Control: no-store`.
 **Request:** None
 **Response:**
 ```json
@@ -1185,7 +1185,8 @@ All routes under `/api/hours-benchmark` require **requireDeveloper**.
       "zeroPercentEvents": 43,
       "studentsMissed80AtLeastOnce": 48
     },
-    "heatmapScholars": [ /* scholar rows with frontDeskByWeek / studySessionByWeek cells */ ],
+    "heatmapScholars": [ /* ≤50% scholar rows with frontDeskByWeek / studySessionByWeek cells */ ],
+    "allHeatmapScholars": [ /* every eligible scholar row */ ],
     "byTeamLeader": [ /* teamLeader, atOrBelow50Events, studentCount */ ],
     "lowEvents": [ /* every ≤50% week×area event */ ]
   }
@@ -1197,8 +1198,9 @@ All routes under `/api/hours-benchmark` require **requireDeveloper**.
 ### `GET /api/hours-benchmark/pdf`
 
 **Auth:** requireDeveloper
-**Description:** Renders the Hours Benchmark Report as a landscape PDF (KPIs, heatmap, team-leader rollup, detail list). `Content-Disposition` uses `hours-benchmark-weeks-{from}-{through}-{YYYY-MM-DD-HHmm}.pdf` in America/New_York. Response has `Cache-Control: no-store`. Returns `503` if Chromium/PDF rendering fails.
-**Request:** None
+**Description:** Renders the Hours Benchmark Report as a landscape PDF (KPIs, heatmap, team-leader rollup, detail list). `scope=low` (default) prints the ≤50% heatmap; `scope=all` prints every hour-eligible scholar. `Content-Disposition` uses `hours-benchmark-weeks-{from}-{through}[-all]-{YYYY-MM-DD-HHmm}.pdf` in America/New_York. Response has `Cache-Control: no-store`. Returns `503` if Chromium/PDF rendering fails.
+**Query Params:**
+- `scope` (`low` | `all`, optional; default `low`)
 **Response:** PDF binary (`Content-Type: application/pdf`)
 
 ---

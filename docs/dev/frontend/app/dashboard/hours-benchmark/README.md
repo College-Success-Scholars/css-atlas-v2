@@ -23,9 +23,10 @@ Completion uses the same compute-on-read math as Weekly Memo: logged minutes plu
 |---------|------|
 | Dashboard page | `/dashboard/hours-benchmark` |
 | JSON API | `GET /api/hours-benchmark` |
-| PDF | Same-origin `GET /api/hours-benchmark/pdf` → Express `GET /api/hours-benchmark/pdf` |
+| PDF (≤50%) | Same-origin `GET /api/hours-benchmark/pdf?scope=low` → Express |
+| PDF (all scholars) | Same-origin `GET /api/hours-benchmark/pdf?scope=all` → Express |
 
-Export PDF must not call Express from the browser; the Next route proxies with the server `BACKEND_URL` and cookie JWT.
+Export PDF must not call Express from the browser; the Next route proxies with the server `BACKEND_URL` and cookie JWT. The page offers two buttons: **Export ≤50% PDF** and **Export all scholars PDF**.
 
 ---
 

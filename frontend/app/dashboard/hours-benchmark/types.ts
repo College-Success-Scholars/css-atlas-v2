@@ -47,6 +47,8 @@ export type HoursBenchmarkSummary = {
   studentsMissed80AtLeastOnce: number;
 };
 
+export type HoursBenchmarkHeatmapScope = "low" | "all";
+
 export type HoursBenchmarkReport = {
   currentCampusWeek: number;
   scoredWeeks: HoursBenchmarkScoredWeeks | null;
@@ -57,6 +59,7 @@ export type HoursBenchmarkReport = {
   printedAtSlug: string;
   summary: HoursBenchmarkSummary;
   heatmapScholars: HoursBenchmarkScholarRow[];
+  allHeatmapScholars: HoursBenchmarkScholarRow[];
   byTeamLeader: HoursBenchmarkTeamLeaderRow[];
   lowEvents: HoursBenchmarkLowEvent[];
 };
