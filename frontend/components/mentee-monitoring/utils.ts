@@ -10,7 +10,7 @@ import {
   dateToCampusWeek,
   parseEasternDate,
 } from "@/lib/format/time"
-import type { GradeBand, HourBand, ShiftSessionKind } from "@/lib/types/mentee-review"
+import type { GradeBand, HourBand, ShiftSessionKind, ShiftStatus } from "@/lib/types/mentee-review"
 import type {
   ShiftComplianceByKind,
   WahfRow,
@@ -350,6 +350,24 @@ export function formatCompactHours(minutes: number): string {
 
 export function hourCardTitle(kind: ShiftSessionKind): string {
   return kind === "front_desk" ? "Front desk" : "Study sessions"
+}
+
+/** Short status copy for a scheduled shift row on the hour card. */
+export function shiftStatusLabel(status: ShiftStatus): string {
+  switch (status) {
+    case "attended":
+      return "Attended"
+    case "short":
+      return "Short"
+    case "no_show":
+      return "No-show"
+    case "active":
+      return "In progress"
+    case "upcoming":
+      return "Upcoming"
+    case "unconfirmed":
+      return "Unconfirmed"
+  }
 }
 
 /** Program-local clock, e.g. "3:00pm". */

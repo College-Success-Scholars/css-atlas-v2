@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import type { HourWeekSummary, WeekTier } from "@/lib/types/mentee-review"
+import type { HourWeekSummary, ShiftEvidence, WeekTier } from "@/lib/types/mentee-review"
 
 import { TIER_UI, TierBadge } from "./tier-badge"
 import tierStyles from "./tier-styles.module.css"
@@ -15,12 +15,40 @@ import {
   formatPercent,
   formatShiftDay,
   hourCardTitle,
+  shiftStatusLabel,
 } from "./utils"
 
 interface HourSummaryCardProps {
   summary: HourWeekSummary
   /** Tier earned independently by this hourly requirement. */
   tier?: WeekTier | null
+}
+
+function shiftTrailing(shift: ShiftEvidence): string {
+  if (
+    (shift.status === "attended" || shift.status === "short" || shift.status === "active") &&
+    shift.overlapMinutes > 0
+  ) {
+    const hours = formatCompactHours(shift.overlapMinutes)
+    return shift.status === "short" ? `${hours} · Short` : hours
+  }
+  return shiftStatusLabel(shift.status)
+}
+
+function shiftTone(shift: ShiftEvidence): string {
+  switch (shift.status) {
+    case "attended":
+      return "text-foreground"
+    case "short":
+      return "text-warning-muted-foreground"
+    case "no_show":
+      return "text-destructive"
+    case "active":
+      return PENDING_STYLES.text
+    case "upcoming":
+    case "unconfirmed":
+      return "text-muted-foreground"
+  }
 }
 
 /** One requirement card: percent/pending, hours vs target, notched bar, shift + off-shift rows. */
@@ -49,22 +77,13 @@ export function HourSummaryCard({ summary, tier = null }: HourSummaryCardProps) 
     </span>
   ) : null
 
-  const sessions = [
-    ...summary.shifts
-      .filter((shift) => (shift.status === "attended" || shift.status === "short") && shift.loggedStart && shift.loggedEnd)
-      .map((shift) => ({
-        key: `shift-${shift.sourceId}`,
-        start: shift.loggedStart!,
-        end: shift.loggedEnd!,
-        minutes: shift.overlapMinutes,
-      })),
-    ...summary.offShiftLogs.map((log, index) => ({
-      key: `log-${log.kind}-${log.sourceIds.join("-")}-${index}`,
-      start: log.start,
-      end: log.end,
-      minutes: log.minutes,
-    })),
-  ].sort((a, b) => Date.parse(a.start) - Date.parse(b.start))
+  const scheduledShifts = [...summary.shifts].sort(
+    (a, b) => Date.parse(a.scheduledStart) - Date.parse(b.scheduledStart),
+  )
+  const offShiftLogs = [...summary.offShiftLogs].sort(
+    (a, b) => Date.parse(a.start) - Date.parse(b.start),
+  )
+  const hasSessionList = scheduledShifts.length > 0 || offShiftLogs.length > 0
 
   return (
     <Card
@@ -150,25 +169,77 @@ export function HourSummaryCard({ summary, tier = null }: HourSummaryCardProps) 
           </div>
         </div>
 
-        {sessions.length > 0 ? (
-          <ul>
-            {sessions.map((session) => {
-              const day = formatShiftDay(session.start)
-              const times = formatClockRange(session.start, session.end)
-              const hours = formatCompactHours(session.minutes)
-              return (
-                <li
-                  key={session.key}
-                  aria-label={`${day}, ${times}, ${hours}`}
-                  className="flex items-center gap-2 border-t border-border/50 py-2 text-[13px] tabular-nums"
-                >
-                  <span className="shrink-0 font-semibold" title={day}>{day.slice(0, 3)}</span>
-                  <span className="whitespace-nowrap text-muted-foreground">{times}</span>
-                  <span className="ml-auto shrink-0 font-semibold">{hours}</span>
-                </li>
-              )
-            })}
-          </ul>
+        {hasSessionList ? (
+          <div className="space-y-0" data-slot="session-list">
+            {scheduledShifts.length > 0 ? (
+              <div data-slot="scheduled-shifts">
+                <p className="pt-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  Assigned shifts
+                </p>
+                <ul>
+                  {scheduledShifts.map((shift) => {
+                    const day = formatShiftDay(shift.scheduledStart)
+                    const assigned = formatClockRange(shift.scheduledStart, shift.scheduledEnd)
+                    const logged =
+                      shift.loggedStart && shift.loggedEnd
+                        ? formatClockRange(shift.loggedStart, shift.loggedEnd)
+                        : null
+                    const trailing = shiftTrailing(shift)
+                    return (
+                      <li
+                        key={`shift-${shift.sourceId}`}
+                        aria-label={
+                          logged
+                            ? `${day}, assigned ${assigned}, logged ${logged}, ${trailing}`
+                            : `${day}, assigned ${assigned}, ${trailing}`
+                        }
+                        className="flex items-center gap-2 border-t border-border/50 py-2 text-[13px] tabular-nums"
+                      >
+                        <span className="shrink-0 font-semibold" title={day}>{day.slice(0, 3)}</span>
+                        <span className="min-w-0 flex-1">
+                          <span className="whitespace-nowrap text-muted-foreground">{assigned}</span>
+                          {logged && logged !== assigned ? (
+                            <span className="mt-0.5 block text-[12px] text-muted-foreground/80">
+                              logged {logged}
+                            </span>
+                          ) : null}
+                        </span>
+                        <span className={cn("ml-auto shrink-0 font-semibold", shiftTone(shift))}>
+                          {trailing}
+                        </span>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            ) : null}
+
+            {offShiftLogs.length > 0 ? (
+              <div data-slot="off-shift-logs">
+                <p className="pt-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  Extra logged
+                </p>
+                <ul>
+                  {offShiftLogs.map((log, index) => {
+                    const day = formatShiftDay(log.start)
+                    const times = formatClockRange(log.start, log.end)
+                    const hours = formatCompactHours(log.minutes)
+                    return (
+                      <li
+                        key={`log-${log.kind}-${log.sourceIds.join("-")}-${index}`}
+                        aria-label={`${day}, ${times}, ${hours}`}
+                        className="flex items-center gap-2 border-t border-border/50 py-2 text-[13px] tabular-nums"
+                      >
+                        <span className="shrink-0 font-semibold" title={day}>{day.slice(0, 3)}</span>
+                        <span className="whitespace-nowrap text-muted-foreground">{times}</span>
+                        <span className="ml-auto shrink-0 font-semibold">{hours}</span>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            ) : null}
+          </div>
         ) : null}
       </CardContent>
     </Card>

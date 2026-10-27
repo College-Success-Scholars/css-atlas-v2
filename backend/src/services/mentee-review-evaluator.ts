@@ -262,7 +262,20 @@ export function evaluateHours(params: {
       : 0;
   const pending = phase === "current" && band !== null && band !== "green";
 
-  const shiftEvidence: ShiftEvidence[] = shifts
+  // Callers pass semester-wide occurrences; keep only this campus week's shifts.
+  const weekStartKey = (() => {
+    const { year, month, day } = getEasternDateParts(new Date(weekStartMs));
+    return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  })();
+  const weekEndKey = (() => {
+    const { year, month, day } = getEasternDateParts(new Date(weekEndExclusiveMs - 1));
+    return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  })();
+  const weekShifts = shifts.filter(
+    (shift) => shift.date >= weekStartKey && shift.date <= weekEndKey
+  );
+
+  const shiftEvidence: ShiftEvidence[] = weekShifts
     .map((shift): ShiftEvidence => {
       const c = classifyShift(shift, normalized, asOfMs, nonTerminalDates);
       return {
@@ -307,7 +320,7 @@ export function evaluateHours(params: {
 
   return {
     kind,
-    assignmentAvailable: shifts.length > 0,
+    assignmentAvailable: weekShifts.length > 0,
     loggedMinutes,
     excuseMinutes,
     excuseDescription,
@@ -318,7 +331,7 @@ export function evaluateHours(params: {
     overageMinutes,
     pending,
     noShowCount: shiftEvidence.filter((s) => s.status === "no_show").length,
-    hasActivity: normalized.length > 0 || shifts.length > 0 || excuseMinutes > 0,
+    hasActivity: normalized.length > 0 || weekShifts.length > 0 || excuseMinutes > 0,
     shifts: shiftEvidence,
     offShiftLogs,
   };

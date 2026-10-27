@@ -130,11 +130,12 @@ export function expandShiftOccurrences(params: {
   const start = getStartOfDayEastern(semesterStart);
   const endMs = getStartOfDayEastern(semesterEnd).getTime();
 
+  // DB semester_id is integer; calendar id is String(semester.id). Compare as text.
   const applicable = assignments.filter(
     (a) =>
       a.is_active &&
       a.scholar_id === scholarUid &&
-      (semesterId == null || a.semester_id === semesterId) &&
+      (semesterId == null || String(a.semester_id) === String(semesterId)) &&
       SHIFT_KINDS.includes(a.session_kind as ShiftSessionKind)
   );
 
@@ -261,7 +262,11 @@ async function fetchAssignmentsForScholar(
     .select("id, scholar_id, semester_id, session_kind, day_of_week, start_time, end_time, is_active")
     .eq("scholar_id", scholarUid)
     .eq("is_active", true);
-  if (semesterId != null) query = query.eq("semester_id", semesterId);
+  if (semesterId != null) {
+    // Column is integer; coerce so "1" from the calendar still matches.
+    const numericId = Number(semesterId);
+    query = query.eq("semester_id", Number.isFinite(numericId) ? numericId : semesterId);
+  }
   const { data, error } = await query;
   if (error) throw error;
   return (data ?? []) as ScholarShiftAssignment[];

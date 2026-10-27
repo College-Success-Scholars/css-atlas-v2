@@ -55,14 +55,16 @@ function summary(overrides: Partial<HourWeekSummary> = {}): HourWeekSummary {
 const TIERS: WeekTier[] = ["rare", "epic", "legendary"]
 
 describe("HourSummaryCard", () => {
-  it("renders each session as day, time, and compact duration under the bar", () => {
+  it("renders each scheduled shift as day, scheduled time, and compact duration under the bar", () => {
     const html = renderToStaticMarkup(
       <HourSummaryCard summary={summary()} />,
     )
 
+    expect(html).toContain("Assigned shifts")
     expect(html).toContain(">Fri<")
     expect(html).toContain("12:00pm–2:00pm")
     expect(html).toContain(">2h<")
+    expect(html).toContain('data-slot="scheduled-shifts"')
     expect(html).toContain('data-slot="completion-bar"')
     expect(html).toContain('role="progressbar"')
   })
@@ -95,7 +97,7 @@ describe("HourSummaryCard", () => {
     expect(html).not.toContain("No shifts assigned")
   })
 
-  it("omits scheduled sessions the mentee did not attend", () => {
+  it("shows scheduled shifts the mentee missed with No-show status", () => {
     const noShow: ShiftEvidence = {
       ...ATTENDED_SHIFT,
       sourceId: "shift-2",
@@ -110,9 +112,59 @@ describe("HourSummaryCard", () => {
       />,
     )
 
-    expect(html).not.toContain("12:00pm–2:00pm")
+    expect(html).toContain("Assigned shifts")
+    expect(html).toContain("12:00pm–2:00pm")
+    expect(html).toContain("No-show")
     expect(html).not.toContain(">2h<")
-    expect(html).not.toContain("No-show")
+  })
+
+  it("shows logged clock range under the assigned window when they differ", () => {
+    const shortShift: ShiftEvidence = {
+      ...ATTENDED_SHIFT,
+      loggedStart: "2026-09-11T16:15:00.000Z",
+      loggedEnd: "2026-09-11T17:45:00.000Z",
+      overlapMinutes: 90,
+      status: "short",
+    }
+    const html = renderToStaticMarkup(
+      <HourSummaryCard summary={summary({ shifts: [shortShift], overageMinutes: 0 })} />,
+    )
+    expect(html).toContain("12:00pm–2:00pm")
+    expect(html).toContain("logged 12:15pm–1:45pm")
+    expect(html).toContain("1.5h · Short")
+  })
+
+  it("lists upcoming and in-progress scheduled shifts with status labels", () => {
+    const upcoming: ShiftEvidence = {
+      ...ATTENDED_SHIFT,
+      sourceId: "shift-up",
+      date: "2026-09-14",
+      scheduledStart: "2026-09-14T16:00:00.000Z",
+      scheduledEnd: "2026-09-14T18:00:00.000Z",
+      loggedStart: null,
+      loggedEnd: null,
+      overlapMinutes: 0,
+      status: "upcoming",
+    }
+    const active: ShiftEvidence = {
+      ...ATTENDED_SHIFT,
+      sourceId: "shift-active",
+      date: "2026-09-10",
+      scheduledStart: "2026-09-10T16:00:00.000Z",
+      scheduledEnd: "2026-09-10T18:00:00.000Z",
+      loggedStart: "2026-09-10T16:00:00.000Z",
+      loggedEnd: "2026-09-10T17:00:00.000Z",
+      overlapMinutes: 60,
+      status: "active",
+    }
+    const html = renderToStaticMarkup(
+      <HourSummaryCard summary={summary({ shifts: [upcoming, active] })} />,
+    )
+
+    expect(html).toContain("Upcoming")
+    expect(html).toContain(">1h<")
+    expect(html).toContain("Thu")
+    expect(html).toContain("Mon")
   })
 
   it.each(TIERS)("shows the %s tier pill, card treatment, and tinted extra minutes", (tier) => {
@@ -152,13 +204,15 @@ describe("HourSummaryCard", () => {
     expect(html).toContain(tierStyles.legendaryHours)
   })
 
-  it("renders timestamp-based off-shift sessions in one row without scheduling labels", () => {
+  it("renders off-shift logs under Extra logged with clock times", () => {
     const html = renderToStaticMarkup(
       <HourSummaryCard summary={summary({ shifts: [], offShiftLogs: [{
         kind: "front_desk", sourceIds: ["log-1"],
         start: "2026-09-11T18:01:00.000Z", end: "2026-09-11T20:07:00.000Z", minutes: 126,
       }] })} />,
     )
+    expect(html).toContain("Extra logged")
+    expect(html).toContain('data-slot="off-shift-logs"')
     expect(html).toContain(">Fri<")
     expect(html).not.toContain(">202<")
     expect(html).toContain("2:01pm–4:07pm")

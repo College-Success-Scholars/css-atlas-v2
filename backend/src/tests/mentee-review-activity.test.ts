@@ -165,6 +165,18 @@ describe("expandShiftOccurrences", () => {
       })
     ).toEqual([]);
   });
+
+  it("matches numeric semester_id from the DB against the calendar string id", () => {
+    const shifts = expandShiftOccurrences({
+      scholarUid: "1001",
+      semesterId: "1",
+      semesterStart: WEEK_1.startDate,
+      semesterEnd: WEEK_1.endDate,
+      assignments: [assignment({ semester_id: 1 })],
+    });
+    expect(shifts).toHaveLength(1);
+    expect(shifts[0]!.startTime).toBe("10:00");
+  });
 });
 
 // ---------------------------------------------------------------------------
