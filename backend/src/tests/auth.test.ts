@@ -48,6 +48,11 @@ describe("Auth gating — unauthenticated requests", () => {
     expect(res.status).toBe(401);
   });
 
+  it("GET /api/hours-benchmark returns 401 without token", async () => {
+    const res = await request(app).get("/api/hours-benchmark");
+    expect(res.status).toBe(401);
+  });
+
   it("GET /api/dev/test-profiles returns 401 without token", async () => {
     const res = await request(app).get("/api/dev/test-profiles");
     expect(res.status).toBe(401);
