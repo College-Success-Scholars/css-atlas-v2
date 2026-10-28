@@ -69,15 +69,24 @@ describe("HourSummaryCard", () => {
     expect(html).toContain('role="progressbar"')
   })
 
-  it("shows the percentage and In progress together for a pending week", () => {
+  it.each(["front_desk", "study_session"] as const)("shows the %s percentage without redundant pending text", (kind) => {
     const html = renderToStaticMarkup(
       <HourSummaryCard
-        summary={summary({ percent: 70, band: "orange", pending: true })}
+        summary={summary({ kind, percent: 70, band: "orange", pending: true })}
       />,
     )
 
     expect(html).toContain("70.0%")
-    expect(html).toContain("In progress")
+    expect(html).not.toContain("In progress")
+  })
+
+  it("preserves the no-hours-required status when there is no target", () => {
+    const html = renderToStaticMarkup(
+      <HourSummaryCard summary={summary({ targetMinutes: 0, percent: null, pending: true })} />,
+    )
+
+    expect(html).toContain("No hours required")
+    expect(html).not.toContain("In progress")
   })
 
   it("does not render the old no-shift assignment copy", () => {
@@ -191,7 +200,7 @@ describe("HourSummaryCard", () => {
     expect(metrics![2]).toContain(`data-tier="${tier}"`)
     expect(metrics![2]).toContain("113.3%")
     expect(metrics![2]).not.toContain("In progress")
-    expect(html).toContain("In progress")
+    expect(html).not.toContain("In progress")
     expect(metrics![2]).toContain("px-2 py-0.75")
     expect(metrics![2]).toContain("@max-[340px]:text-[11px]")
   })
