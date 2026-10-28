@@ -51,7 +51,7 @@ function shiftTone(shift: ShiftEvidence): string {
   }
 }
 
-/** One requirement card: percent/pending, hours vs target, notched bar, shift + off-shift rows. */
+/** One requirement card: percent, hours vs target, notched bar, shift + off-shift rows. */
 export function HourSummaryCard({ summary, tier = null }: HourSummaryCardProps) {
   const title = hourCardTitle(summary.kind)
   const hasTarget = summary.targetMinutes != null && summary.targetMinutes > 0
@@ -69,12 +69,8 @@ export function HourSummaryCard({ summary, tier = null }: HourSummaryCardProps) 
       </span>
     ) : null
 
-  const statusEl = !summary.assignmentAvailable ? null : !hasTarget ? (
+  const statusEl = summary.assignmentAvailable && !hasTarget ? (
     <span className="text-sm font-medium text-muted-foreground">No hours required</span>
-  ) : summary.pending ? (
-    <span className={cn("text-sm font-semibold", PENDING_STYLES.text)}>
-      In progress
-    </span>
   ) : null
 
   const scheduledShifts = [...summary.shifts].sort(
