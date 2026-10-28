@@ -14,6 +14,7 @@ import type { HourWeekSummary, WeekDescriptor, WeekReviewSummary, WeekTier } fro
 const tiers: WeekTier[] = ["rare", "epic", "legendary"]
 const hours = (kind: HourWeekSummary["kind"], tier: WeekTier | null = null): HourWeekSummary => ({
   kind, tier, assignmentAvailable: true, targetMinutes: 180, loggedMinutes: 270,
+  excuseMinutes: 0, excuseDescription: null,
   displayHours: 4.5, hasActivity: true, percent: 150, band: "green",
   pending: false, overageMinutes: 90, noShowCount: 0, shifts: [], offShiftLogs: [],
 })

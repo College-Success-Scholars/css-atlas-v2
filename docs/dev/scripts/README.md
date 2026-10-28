@@ -34,6 +34,7 @@ Shell scripts for deployment validation and operational tasks. These run outside
 | `backfill-form-logs.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/backfill-form-logs.sh) | Ops: insert Google Form CSV dumps into `public.wpl_form_logs` / `public.mcf_form_logs` |
 | `update-scholar-schedule.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/update-scholar-schedule.sh) | Ops: replace one scholar's signed-up front-desk and study-session shifts for the active semester |
 | `remove-scholar.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/remove-scholar.sh) | Ops: after confirmation, remove one uid from `user_roster` and `mentor_mentee` (and the linked profile / auth user) |
+| `assign-mentor-mentee.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/assign-mentor-mentee.sh) | Ops: pair one mentee to a mentor looked up by `student_id`; confirm before replacing any other mentor |
 | `supabase-env.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/supabase-env.sh) | Sourced helper: resolves `SUPABASE_URL` and prompts for the service role key. Not executable on its own |
 
 ---
@@ -173,7 +174,7 @@ Ops script for bulk-loading a sheet export into `public.user_roster`. Companion 
 
 `--dry-run` skips the prompt and does not POST. Stdout includes TSV reports for bad university emails (with contact fields) and null UIDs.
 
-Credential resolution is shared with `backfill-user-roster-defaults.sh`, `sync-mentee-count-from-mentor-mentee.sh`, `backfill-form-logs.sh`, `update-scholar-schedule.sh`, and `remove-scholar.sh` via [`scripts/supabase-env.sh`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/supabase-env.sh) (`require_supabase_url`, `require_supabase_service_role`). Source that helper in any new Supabase ops script instead of re-implementing the `.env` walk or the hidden prompt.
+Credential resolution is shared with `backfill-user-roster-defaults.sh`, `sync-mentee-count-from-mentor-mentee.sh`, `backfill-form-logs.sh`, `update-scholar-schedule.sh`, `remove-scholar.sh`, and `assign-mentor-mentee.sh` via [`scripts/supabase-env.sh`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/supabase-env.sh) (`require_supabase_url`, `require_supabase_service_role`). Source that helper in any new Supabase ops script instead of re-implementing the `.env` walk or the hidden prompt.
 
 ### `backfill-user-roster-defaults.sh`
 
@@ -317,4 +318,36 @@ A real run asks `Remove this scholar? Type yes to confirm:`. Any other answer ab
 ./scripts/remove-scholar.sh
 ./scripts/remove-scholar.sh 123456789
 ./scripts/remove-scholar.sh --dry-run 123456789
+```
+
+### `assign-mentor-mentee.sh`
+
+Ops script that pairs one mentee to one mentor on `public.mentor_mentee`. Companion helper: [`scripts/assign-mentor-mentee.py`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/assign-mentor-mentee.py).
+
+The mentor argument is `profiles.student_id` (the roster uid). The script loads `profiles` for that id and uses `profiles.id` as `mentor_mentee.mentor_id`. **Zero profiles or more than one profile is an error** and nothing is written. The mentee must be exactly one `user_roster` row. Pairing a person to themselves is refused.
+
+**One mentor per mentee**
+
+The table is unique on `(mentor_id, mentee_uid)` only, so a mentee can already have more than one mentor. This script is what leaves the mentee with a single row:
+
+| Current rows for that mentee | What happens |
+|------------------------------|----------------|
+| Only this mentor | Prints that and exits. No prompt, no write. |
+| None | Asks `Assign this mentee to <mentor>? Type yes to confirm:` |
+| Any other mentor | Prints each current mentor (name and `student_id`), then asks `Move this mentee to <mentor>? Type yes to confirm:` |
+
+Anything other than `yes` exits with no writes. `--yes` skips the prompt and is required when stdin is not a terminal.
+
+On confirm the script **deletes every** `mentor_mentee` row for that `mentee_uid`, then inserts one. It does not `UPDATE` `mentor_id`. The sync trigger refreshes the old mentor on `DELETE` and the new mentor on `INSERT`, which is what rewrites both `mentee_count` / `mentee_uids` values. If the insert fails, the previous rows are put back.
+
+The dev roster editor and `replace_mentor_mentee_assignments` can still insert a second mentor. This script does not add a unique index on `mentee_uid`.
+
+`--dry-run` prints the cards and the confirm line, then writes nothing. It **still needs credentials** because it reads first.
+
+**Credentials** — same sources as `ingest-user-roster.sh` above (URL from the shell or `backend/.env`; service role via hidden prompt only).
+
+```bash
+./scripts/assign-mentor-mentee.sh
+./scripts/assign-mentor-mentee.sh MENTOR_STUDENT_ID MENTEE_UID
+./scripts/assign-mentor-mentee.sh --dry-run MENTOR_STUDENT_ID MENTEE_UID
 ```

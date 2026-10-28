@@ -25,6 +25,7 @@ import type {
 } from "../models/mentee-review.model.js";
 
 const WEEK_1 = campusWeekToDateRange(1)!;
+const WEEK_2 = campusWeekToDateRange(2)!;
 const WEEK_9 = campusWeekToDateRange(9)!; // Oct 26 – Nov 1, 2026 (DST fall-back on the Sunday)
 const MS_PER_MINUTE = 60_000;
 
@@ -224,6 +225,40 @@ describe("hour bands and display", () => {
     expect(summary.hours[0]!.pending).toBe(false);
     expect(summary.hours[0]!.band).toBe("red");
   });
+
+  it("counts excuse minutes toward percent/band while keeping loggedMinutes separate", () => {
+    const start = at(WEEK_1.startDate, "13:00");
+    const summary = evaluateWeek(
+      baseInput({
+        targets: { front_desk: 300 },
+        logs: [logMs("l1", "front_desk", start, 240)], // 80% logged alone
+        excuses: { front_desk: { minutes: 30, description: "Doctor appointment" } },
+      })
+    );
+    const fd = summary.hours[0]!;
+    expect(fd.loggedMinutes).toBe(240);
+    expect(fd.excuseMinutes).toBe(30);
+    expect(fd.excuseDescription).toBe("Doctor appointment");
+    expect(fd.percent).toBeCloseTo(90, 10);
+    expect(fd.band).toBe("green");
+    expect(fd.pending).toBe(false);
+    expect(fd.hasActivity).toBe(true);
+  });
+
+  it("marks excuse-only weeks complete when excuse covers the target", () => {
+    const summary = evaluateWeek(
+      baseInput({
+        targets: { study_session: 120 },
+        excuses: { study_session: { minutes: 120, description: "Sick" } },
+      })
+    );
+    const ss = summary.hours[1]!;
+    expect(ss.loggedMinutes).toBe(0);
+    expect(ss.excuseMinutes).toBe(120);
+    expect(ss.percent).toBeCloseTo(100, 10);
+    expect(ss.band).toBe("green");
+    expect(ss.hasActivity).toBe(true);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -279,6 +314,23 @@ describe("scheduled shift classification", () => {
       baseInput({ asOf: at(day, "12:30"), shifts: scheduled, logs: [logMs("l1", "front_desk", at(day, "10:00"), 89)] })
     );
     expect(short.hours[0]!.shifts[0]!.status).toBe("short");
+  });
+
+  it("keeps only shifts whose date falls in the evaluated campus week", () => {
+    const inWeek = WEEK_1.startDate;
+    const nextWeek = WEEK_2.startDate;
+    const summary = evaluateWeek(
+      baseInput({
+        asOf: at(inWeek, "18:00"),
+        shifts: [
+          shift("s1", "front_desk", inWeek, "10:00", "11:00"),
+          shift("s2", "front_desk", nextWeek, "10:00", "11:00"),
+        ],
+        logs: [logMs("l1", "front_desk", at(inWeek, "10:00"), 60)],
+      })
+    );
+    expect(summary.hours[0]!.shifts).toHaveLength(1);
+    expect(summary.hours[0]!.shifts[0]!.sourceId).toBe("s1");
   });
 
   it("keeps a no-show independent of a met weekly total", () => {

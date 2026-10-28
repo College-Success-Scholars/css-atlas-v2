@@ -66,19 +66,35 @@ async function authenticate(req: AuthenticatedRequest): Promise<boolean> {
   // Store token so downstream services can create user-scoped clients
   req.accessToken = token;
 
-  // Fetch profile using the user's own token (RLS applies)
+  // Fetch profile using the user's own token (RLS applies). Prefer the roster
+  // embed for mergeProfileWithRoster, but fall back to profiles-only when the
+  // embed errors — otherwise a join failure looks like "no profile" and the
+  // dashboard loops users into /auth/complete-profile while INSERT hits
+  // profiles_pkey.
   const supabase = getSupabaseClient();
   // Pin the FK: junction-shaped tables (e.g. mentee_meeting_preferences) make
   // a bare user_roster(*) embed ambiguous (PGRST201).
-  const { data: profile, error: profileError } = await supabase
+  let profile: ProfilesRow | null = null;
+  const withRoster = await supabase
     .from("profiles")
     .select("*, user_roster!profiles_student_id_fkey(*)")
     .eq("id", user.id)
     .maybeSingle();
-  // Never treat a failed read as "no profile" — that triggers onboarding inserts.
-  if (profileError) throw profileError;
+  if (withRoster.error) {
+    console.error("[auth] profiles+user_roster select failed; retrying profiles-only", {
+      userId: user.id,
+      message: withRoster.error.message,
+      code: withRoster.error.code,
+    });
+    const plain = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+    // Never treat a failed read as "no profile" — that triggers onboarding inserts.
+    if (plain.error) throw plain.error;
+    profile = (plain.data as ProfilesRow | null) ?? null;
+  } else {
+    profile = (withRoster.data as ProfilesRow | null) ?? null;
+  }
 
-  const merged = profile ? mergeProfileWithRoster(profile as ProfilesRow) : null;
+  const merged = profile ? mergeProfileWithRoster(profile) : null;
 
   req.authUser = { id: user.id, email: user.email };
   req.realProfile = merged;

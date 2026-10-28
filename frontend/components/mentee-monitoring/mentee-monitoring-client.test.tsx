@@ -53,6 +53,8 @@ function hours(kind: HourWeekSummary["kind"], overrides: Partial<HourWeekSummary
     tier: null,
     assignmentAvailable: true,
     loggedMinutes: 120,
+    excuseMinutes: 0,
+    excuseDescription: null,
     targetMinutes: 120,
     percent: 100,
     band: "green",

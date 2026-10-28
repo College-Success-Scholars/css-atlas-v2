@@ -1033,6 +1033,45 @@ All routes under `/api/dev` require **requireDeveloper**.
 
 ---
 
+### `GET /api/dev/freshman-grades`
+
+**Auth:** requireDeveloper
+**Description:** Temporary FD, SS, and WAHF completion for enrolled freshmen and sophomores who owe hours (`cohort` = current freshman or sophomore year, `user_roster.status` = enrolled, `fd_required` or `ss_required` > 0). Both classes use the same weekly cap. Scholars are ordered freshman cohort first, then sophomore, and by name within a cohort. Scored weeks run from campus week 2 through the previous week: when the current week is 6, `scoredWeeks` is `{ fromWeek: 2, throughWeek: 5 }`. Campus week 1 and the current week are ignored, so current week 2 has `scoredWeeks` null. Each week’s hours percent is logged plus excuse minutes versus that requirement, capped at 100% before averaging (0% one week and 200% the next is 50%, not 100%). A week with null or non-positive required minutes is omitted from that component. WAHF is the latest form log that week: missing = 0%, on-time or late = 100%. Each scholar includes `scholarId` (roster uid), `mentor` (name from `mentor_mentee`, or `Unassigned`), `cohort`, and `weeks` (each scored week: logged, excuse, effective, required, raw percent, capped percent, and WAHF status). `weights` labels the 10/10/10 in-app slices and the 70% out-of-app placeholder. The payload has no semester total. Minutes use the same ticket plus `scholar_week_excuses` path as Memo, not `daily_scholar_activity` or `*_records_legacy`.
+**Request:** None
+**Response:**
+```json
+{
+  "data": {
+    "throughWeek": 6,
+    "scoredWeeks": { "fromWeek": 2, "throughWeek": 5 },
+    "weights": { "fd": 10, "ss": 10, "wahf": 10, "outOfApp": 70 },
+    "scholars": [
+      {
+        "scholarId": "12345",
+        "scholarName": "Ada Lovelace",
+        "mentor": "Jordan Kim",
+        "cohort": 2026,
+        "fdPct": 50,
+        "ssPct": 100,
+        "wahfPct": 80,
+        "weeks": [
+          {
+            "weekNum": 5,
+            "fd": { "loggedMinutes": 0, "excuseMinutes": 0, "effectiveMinutes": 0, "requiredMinutes": 100, "rawPct": 0, "cappedPct": 0 },
+            "ss": { "loggedMinutes": 120, "excuseMinutes": 0, "effectiveMinutes": 120, "requiredMinutes": 120, "rawPct": 100, "cappedPct": 100 },
+            "wahfStatus": "on-time",
+            "wahfPct": 100
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+`fdPct`, `ssPct`, and `wahfPct` are `null` when that component has no scored weeks.
+
+---
+
 ### `GET /api/dev/roster/:uid`
 
 **Auth:** requireDeveloper
@@ -1116,6 +1155,52 @@ Routes under `/api/memo` require **requireTeamLeaderOrAbove** unless noted other
 **Query Params:**
 - `weekNumber` (integer >= 1; legacy `weekNum` accepted; defaults to current campus week if omitted)
 
+**Response:** PDF binary (`Content-Type: application/pdf`)
+
+---
+
+## Hours Benchmark
+
+All routes under `/api/hours-benchmark` require **requireDeveloper**.
+
+### `GET /api/hours-benchmark`
+
+**Auth:** requireDeveloper
+**Description:** Multi-week CSS Hours Benchmark Report for enrolled hour-eligible scholars. Scored weeks run from campus week 2 through the previous week (current week and week 1 are ignored). Completion uses logged minutes plus `scholar_week_excuses` (`effective / required`, rounded). `heatmapScholars` are those with at least one front-desk or study-session week at 50% or lower; `allHeatmapScholars` is every enrolled hour-eligible scholar (name-sorted). Cells at 80% or more are treated as met. Response has `Cache-Control: no-store`.
+**Request:** None
+**Response:**
+```json
+{
+  "data": {
+    "currentCampusWeek": 9,
+    "scoredWeeks": { "fromWeek": 2, "throughWeek": 8 },
+    "weekNumbers": [2, 3, 4, 5, 6, 7, 8],
+    "weekRangeLabel": "Weeks 2–8",
+    "dateRangeLabel": "Sep 7 – Oct 25, 2026",
+    "preparedAtLabel": "Oct 27, 2026",
+    "printedAtSlug": "2026-10-27-1200",
+    "summary": {
+      "studentsAtOrBelow50AtLeastOnce": 32,
+      "atOrBelow50Events": 85,
+      "zeroPercentEvents": 43,
+      "studentsMissed80AtLeastOnce": 48
+    },
+    "heatmapScholars": [ /* ≤50% scholar rows with frontDeskByWeek / studySessionByWeek cells */ ],
+    "allHeatmapScholars": [ /* every eligible scholar row */ ],
+    "byTeamLeader": [ /* teamLeader, atOrBelow50Events, studentCount */ ],
+    "lowEvents": [ /* every ≤50% week×area event */ ]
+  }
+}
+```
+
+---
+
+### `GET /api/hours-benchmark/pdf`
+
+**Auth:** requireDeveloper
+**Description:** Renders the Hours Benchmark Report as a landscape PDF (KPIs, heatmap, team-leader rollup, detail list). `scope=low` (default) prints the ≤50% heatmap; `scope=all` prints every hour-eligible scholar. `Content-Disposition` uses `hours-benchmark-weeks-{from}-{through}[-all]-{YYYY-MM-DD-HHmm}.pdf` in America/New_York. Response has `Cache-Control: no-store`. Returns `503` if Chromium/PDF rendering fails.
+**Query Params:**
+- `scope` (`low` | `all`, optional; default `low`)
 **Response:** PDF binary (`Content-Type: application/pdf`)
 
 ---

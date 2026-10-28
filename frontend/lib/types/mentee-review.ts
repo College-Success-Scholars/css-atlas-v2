@@ -57,7 +57,11 @@ export interface HourWeekSummary {
   tier?: WeekTier | null;
   assignmentAvailable: boolean;
   loggedMinutes: number;
+  /** TL excuse minutes; count toward percent/band, not tiers. */
+  excuseMinutes: number;
+  excuseDescription: string | null;
   targetMinutes: number | null;
+  /** Unrounded percent using logged + excuse. */
   percent: number | null;
   band: HourBand | null;
   displayHours: number;

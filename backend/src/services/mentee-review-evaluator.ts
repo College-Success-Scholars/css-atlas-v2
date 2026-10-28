@@ -10,7 +10,7 @@
  * ## Responsibilities
  * - Program-local week bounds with [Monday 00:00, next Monday 00:00) containment
  * - Interval normalization (clip, merge overlaps, preserve source IDs)
- * - Hour totals, nullable targets, unrounded percent, 60/90 bands
+ * - Hour totals, nullable targets, unrounded percent (logged + excuse), 60/90 bands
  * - Scheduled-shift classification (attended/short/no-show/active/upcoming)
  * - WAHF, recorded-tutoring, and recent-grade derivation
  *
@@ -219,6 +219,9 @@ export function evaluateHours(params: {
   asOfMs: number;
   phase: WeekPhase;
   nonTerminalDates: ReadonlySet<string>;
+  /** Campus-week excuse minutes + note (`scholar_week_excuses`). */
+  excuseMinutes?: number;
+  excuseDescription?: string | null;
 }): HourWeekSummary {
   const {
     kind,
@@ -235,21 +238,44 @@ export function evaluateHours(params: {
   const normalized = normalizeWeekIntervals(logs, weekStartMs, weekEndExclusiveMs);
   const loggedMs = normalized.reduce((sum, iv) => sum + (iv.end.getTime() - iv.start.getTime()), 0);
   const loggedMinutes = loggedMs / MS_PER_MINUTE;
+  const excuseMinutes =
+    params.excuseMinutes != null && Number.isFinite(params.excuseMinutes) && params.excuseMinutes > 0
+      ? params.excuseMinutes
+      : 0;
+  const excuseDescription =
+    params.excuseDescription != null && String(params.excuseDescription).trim()
+      ? String(params.excuseDescription).trim()
+      : null;
+  // Same effective = logged + excuse math as Weekly Memo / teams boards.
+  const effectiveMinutes = loggedMinutes + excuseMinutes;
 
   const validTargetMinutes =
     targetMinutes != null && Number.isFinite(targetMinutes) && targetMinutes > 0
       ? targetMinutes
       : null;
   const percent =
-    validTargetMinutes != null ? (loggedMinutes / validTargetMinutes) * 100 : null;
+    validTargetMinutes != null ? (effectiveMinutes / validTargetMinutes) * 100 : null;
   const band = percent == null ? null : hourBandForPercent(percent);
   const overageMinutes =
-    validTargetMinutes != null && loggedMinutes > validTargetMinutes
-      ? Math.round(loggedMinutes - validTargetMinutes)
+    validTargetMinutes != null && effectiveMinutes > validTargetMinutes
+      ? Math.round(effectiveMinutes - validTargetMinutes)
       : 0;
   const pending = phase === "current" && band !== null && band !== "green";
 
-  const shiftEvidence: ShiftEvidence[] = shifts
+  // Callers pass semester-wide occurrences; keep only this campus week's shifts.
+  const weekStartKey = (() => {
+    const { year, month, day } = getEasternDateParts(new Date(weekStartMs));
+    return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  })();
+  const weekEndKey = (() => {
+    const { year, month, day } = getEasternDateParts(new Date(weekEndExclusiveMs - 1));
+    return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  })();
+  const weekShifts = shifts.filter(
+    (shift) => shift.date >= weekStartKey && shift.date <= weekEndKey
+  );
+
+  const shiftEvidence: ShiftEvidence[] = weekShifts
     .map((shift): ShiftEvidence => {
       const c = classifyShift(shift, normalized, asOfMs, nonTerminalDates);
       return {
@@ -294,8 +320,10 @@ export function evaluateHours(params: {
 
   return {
     kind,
-    assignmentAvailable: shifts.length > 0,
+    assignmentAvailable: weekShifts.length > 0,
     loggedMinutes,
+    excuseMinutes,
+    excuseDescription,
     targetMinutes: validTargetMinutes,
     percent,
     band,
@@ -303,7 +331,7 @@ export function evaluateHours(params: {
     overageMinutes,
     pending,
     noShowCount: shiftEvidence.filter((s) => s.status === "no_show").length,
-    hasActivity: normalized.length > 0 || shifts.length > 0,
+    hasActivity: normalized.length > 0 || weekShifts.length > 0 || excuseMinutes > 0,
     shifts: shiftEvidence,
     offShiftLogs,
   };
@@ -542,8 +570,9 @@ export function evaluateWeek(input: EvaluateWeekInput): WeekReviewSummary {
 
   const nonTerminalDates = new Set(input.nonTerminalDates ?? []);
 
-  const hours = HOUR_KINDS.map((kind) =>
-    evaluateHours({
+  const hours = HOUR_KINDS.map((kind) => {
+    const excuse = input.excuses?.[kind];
+    return evaluateHours({
       kind,
       targetMinutes: input.targets[kind] ?? null,
       shifts: input.shifts.filter((s) => s.kind === kind),
@@ -553,8 +582,10 @@ export function evaluateWeek(input: EvaluateWeekInput): WeekReviewSummary {
       asOfMs,
       phase,
       nonTerminalDates,
-    })
-  );
+      excuseMinutes: excuse?.minutes ?? 0,
+      excuseDescription: excuse?.description ?? null,
+    });
+  });
 
   return {
     weekNumber: input.weekNumber,

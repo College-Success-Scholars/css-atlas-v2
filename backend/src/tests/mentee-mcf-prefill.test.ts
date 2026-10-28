@@ -30,6 +30,8 @@ function hourSummary(kind: ShiftSessionKind, over: Partial<HourWeekSummary> = {}
     kind,
     assignmentAvailable: true,
     loggedMinutes: 0,
+    excuseMinutes: 0,
+    excuseDescription: null,
     targetMinutes: null,
     percent: null,
     band: null,
@@ -132,6 +134,19 @@ describe("buildMcfPrefill", () => {
   it("includes a task at exactly 90% of an unrounded total and excludes below", () => {
     expect(isMcfTaskComplete(hourSummary("front_desk", { loggedMinutes: 90, targetMinutes: 100 }))).toBe(true);
     expect(isMcfTaskComplete(hourSummary("front_desk", { loggedMinutes: 899, targetMinutes: 1000 }))).toBe(false);
+  });
+
+  it("counts excuse minutes toward the 90% task threshold", () => {
+    expect(
+      isMcfTaskComplete(
+        hourSummary("front_desk", { loggedMinutes: 60, excuseMinutes: 30, targetMinutes: 100 })
+      )
+    ).toBe(true);
+    expect(
+      isMcfTaskComplete(
+        hourSummary("front_desk", { loggedMinutes: 60, excuseMinutes: 29, targetMinutes: 100 })
+      )
+    ).toBe(false);
   });
 
   it("still includes a met task even when a no-show occurred", () => {

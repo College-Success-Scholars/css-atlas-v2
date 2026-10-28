@@ -62,6 +62,8 @@ function highCompletionWeek(weekNumber: number): WeekReviewSummary {
     kind: kind as HourWeekSummary["kind"],
     assignmentAvailable: true,
     loggedMinutes: 240,
+    excuseMinutes: 0,
+    excuseDescription: null,
     targetMinutes: 120,
     percent: 200,
     band: "green",

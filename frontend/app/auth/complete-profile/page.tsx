@@ -9,7 +9,9 @@ export default async function CompleteProfilePage() {
     redirect("/auth/login");
   }
 
-  if (me.profile) {
+  // Prefer realProfile (developers) so an existing account is not stuck on this
+  // form when the effective overlay is empty.
+  if (me.realProfile ?? me.profile) {
     redirect("/dashboard");
   }
 
