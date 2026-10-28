@@ -10882,8 +10882,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_app_dashboard_directory_uid_page",
-      "community": 301,
-      "community_name": "PersonalClient",
+      "community": 73,
+      "community_name": "Form Deadlines Utils",
       "norm_label": "page.tsx"
     },
     {
@@ -10893,8 +10893,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "frontend_app_dashboard_directory_uid_page_pageprops",
-      "community": 301,
-      "community_name": "PersonalClient",
+      "community": 73,
+      "community_name": "Form Deadlines Utils",
       "norm_label": "pageprops"
     },
     {
@@ -10904,8 +10904,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "frontend_app_dashboard_directory_uid_page_parsecohortparam",
-      "community": 301,
-      "community_name": "PersonalClient",
+      "community": 73,
+      "community_name": "Form Deadlines Utils",
       "norm_label": "parsecohortparam()"
     },
     {
@@ -10915,8 +10915,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "frontend_app_dashboard_directory_uid_page_scholarhref",
-      "community": 301,
-      "community_name": "PersonalClient",
+      "community": 73,
+      "community_name": "Form Deadlines Utils",
       "norm_label": "scholarhref()"
     },
     {
@@ -10926,8 +10926,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "frontend_app_dashboard_directory_uid_page_directoryscholarpage",
-      "community": 301,
-      "community_name": "PersonalClient",
+      "community": 73,
+      "community_name": "Form Deadlines Utils",
       "norm_label": "directoryscholarpage()"
     },
     {
@@ -10959,8 +10959,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_app_dashboard_events_page",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 4,
+      "community_name": "Session Log Backend",
       "norm_label": "page.tsx"
     },
     {
@@ -10970,8 +10970,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "frontend_app_dashboard_events_page_event",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 4,
+      "community_name": "Session Log Backend",
       "norm_label": "event"
     },
     {
@@ -10981,8 +10981,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "frontend_app_dashboard_events_page_eventspage",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 4,
+      "community_name": "Session Log Backend",
       "norm_label": "eventspage()"
     },
     {
@@ -10992,8 +10992,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_app_dashboard_internship_board_page",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "page.tsx"
     },
     {
@@ -11003,8 +11003,8 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "frontend_app_dashboard_internship_board_page_opportunity",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "opportunity"
     },
     {
@@ -11014,8 +11014,8 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "frontend_app_dashboard_internship_board_page_addopportunityform",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "addopportunityform"
     },
     {
@@ -11025,8 +11025,8 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "frontend_app_dashboard_internship_board_page_mockopportunities",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "mockopportunities"
     },
     {
@@ -11036,8 +11036,8 @@
       "source_location": "L117",
       "_origin": "ast",
       "id": "frontend_app_dashboard_internship_board_page_getuniquetags",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "getuniquetags()"
     },
     {
@@ -11047,8 +11047,8 @@
       "source_location": "L122",
       "_origin": "ast",
       "id": "frontend_app_dashboard_internship_board_page_getuniquecompanies",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "getuniquecompanies()"
     },
     {
@@ -11058,8 +11058,8 @@
       "source_location": "L127",
       "_origin": "ast",
       "id": "frontend_app_dashboard_internship_board_page_internshipboardpage",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "internshipboardpage()"
     },
     {
@@ -11091,8 +11091,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_legacy_page",
-      "community": 68,
-      "community_name": "missed-session.template.ts",
+      "community": 175,
+      "community_name": "Dev Effective UID Util",
       "norm_label": "page.tsx"
     },
     {
@@ -11102,8 +11102,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_legacy_page_pageprops",
-      "community": 68,
-      "community_name": "missed-session.template.ts",
+      "community": 175,
+      "community_name": "Dev Effective UID Util",
       "norm_label": "pageprops"
     },
     {
@@ -11113,8 +11113,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_legacy_page_dashboardmemopage",
-      "community": 68,
-      "community_name": "missed-session.template.ts",
+      "community": 73,
+      "community_name": "Form Deadlines Utils",
       "norm_label": "dashboardmemopage()"
     },
     {
@@ -11179,8 +11179,8 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_components_full_attendance_detail_section_fullattendancedetailsection",
-      "community": 68,
-      "community_name": "missed-session.template.ts",
+      "community": 32,
+      "community_name": "Frontend package.json Deps (charts/date)",
       "norm_label": "fullattendancedetailsection()"
     },
     {
@@ -11190,8 +11190,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_components_memo_accordion_section",
-      "community": 304,
-      "community_name": "wahf-card.tsx",
+      "community": 301,
+      "community_name": "PersonalClient",
       "norm_label": "memo-accordion-section.tsx"
     },
     {
@@ -11201,8 +11201,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_components_memo_accordion_section_memoaccordionsectionprops",
-      "community": 304,
-      "community_name": "wahf-card.tsx",
+      "community": 301,
+      "community_name": "PersonalClient",
       "norm_label": "memoaccordionsectionprops"
     },
     {
@@ -11289,8 +11289,8 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_components_recognition_board_section_recognitionboardsection",
-      "community": 68,
-      "community_name": "missed-session.template.ts",
+      "community": 175,
+      "community_name": "Dev Effective UID Util",
       "norm_label": "recognitionboardsection()"
     },
     {
@@ -11355,8 +11355,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_components_scholar_follow_up_table_scholarfollowuptable",
-      "community": 68,
-      "community_name": "missed-session.template.ts",
+      "community": 175,
+      "community_name": "Dev Effective UID Util",
       "norm_label": "scholarfollowuptable()"
     },
     {
@@ -11597,8 +11597,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_components_weekly_kpi_cards_test",
-      "community": 68,
-      "community_name": "missed-session.template.ts",
+      "community": 175,
+      "community_name": "Dev Effective UID Util",
       "norm_label": "weekly-kpi-cards.test.tsx"
     },
     {
@@ -11608,8 +11608,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_components_weekly_kpi_cards",
-      "community": 4,
-      "community_name": "Session Log Backend",
+      "community": 304,
+      "community_name": "wahf-card.tsx",
       "norm_label": "weekly-kpi-cards.tsx"
     },
     {
@@ -11619,8 +11619,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_components_weekly_kpi_cards_weeklykpicardsprops",
-      "community": 4,
-      "community_name": "Session Log Backend",
+      "community": 304,
+      "community_name": "wahf-card.tsx",
       "norm_label": "weeklykpicardsprops"
     },
     {
@@ -11630,8 +11630,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_components_weekly_kpi_cards_kpi_track_color",
-      "community": 4,
-      "community_name": "Session Log Backend",
+      "community": 304,
+      "community_name": "wahf-card.tsx",
       "norm_label": "kpi_track_color"
     },
     {
@@ -11641,8 +11641,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_components_weekly_kpi_cards_kpitrack",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 304,
+      "community_name": "wahf-card.tsx",
       "norm_label": "kpitrack()"
     },
     {
@@ -11652,8 +11652,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_components_weekly_kpi_cards_weeklykpicards",
-      "community": 68,
-      "community_name": "missed-session.template.ts",
+      "community": 175,
+      "community_name": "Dev Effective UID Util",
       "norm_label": "weeklykpicards()"
     },
     {
@@ -11663,8 +11663,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_components_weekly_memo_async_content_test",
-      "community": 68,
-      "community_name": "missed-session.template.ts",
+      "community": 22,
+      "community_name": "Dev Session Logs & Double-Entry Checker",
       "norm_label": "weekly-memo-async-content.test.tsx"
     },
     {
@@ -11674,8 +11674,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_components_weekly_memo_async_content_test_mockgetweeklymemopagedata_mockweeklymemonavsync_mockweeklykpicards_mockteamleaderperformancetable_mockscholarfollowuptable_mockrecognitionboardsection_mocktutoringlogsection_mockfullattendancedetailsection",
-      "community": 68,
-      "community_name": "missed-session.template.ts",
+      "community": 22,
+      "community_name": "Dev Session Logs & Double-Entry Checker",
       "norm_label": "{\n  mockgetweeklymemopagedata,\n  mockweeklymemonavsync,\n  mockweeklykpicards,\n  mockteamleaderperformancetable,\n  mockscholarfollowuptable,\n  mockrecognitionboardsection,\n  mocktutoringlogsection,\n  mockfullattendancedetailsection,\n}"
     },
     {
@@ -11685,8 +11685,8 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_components_weekly_memo_async_content_test_freshman",
-      "community": 68,
-      "community_name": "missed-session.template.ts",
+      "community": 22,
+      "community_name": "Dev Session Logs & Double-Entry Checker",
       "norm_label": "freshman"
     },
     {
@@ -11696,8 +11696,8 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_components_weekly_memo_async_content_test_sophomore",
-      "community": 68,
-      "community_name": "missed-session.template.ts",
+      "community": 22,
+      "community_name": "Dev Session Logs & Double-Entry Checker",
       "norm_label": "sophomore"
     },
     {
@@ -11707,8 +11707,8 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_components_weekly_memo_async_content_test_renderasynccontent",
-      "community": 68,
-      "community_name": "missed-session.template.ts",
+      "community": 22,
+      "community_name": "Dev Session Logs & Double-Entry Checker",
       "norm_label": "renderasynccontent()"
     },
     {
@@ -11718,8 +11718,8 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_components_weekly_memo_async_content_test_buildmemodata",
-      "community": 68,
-      "community_name": "missed-session.template.ts",
+      "community": 22,
+      "community_name": "Dev Session Logs & Double-Entry Checker",
       "norm_label": "buildmemodata()"
     },
     {
@@ -11729,8 +11729,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_components_weekly_memo_async_content",
-      "community": 68,
-      "community_name": "missed-session.template.ts",
+      "community": 22,
+      "community_name": "Dev Session Logs & Double-Entry Checker",
       "norm_label": "weekly-memo-async-content.tsx"
     },
     {
@@ -11740,8 +11740,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_components_weekly_memo_async_content_weeklymemoasynccontentprops",
-      "community": 68,
-      "community_name": "missed-session.template.ts",
+      "community": 22,
+      "community_name": "Dev Session Logs & Double-Entry Checker",
       "norm_label": "weeklymemoasynccontentprops"
     },
     {
@@ -11751,8 +11751,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_components_weekly_memo_async_content_weeklymemoasynccontent",
-      "community": 68,
-      "community_name": "missed-session.template.ts",
+      "community": 22,
+      "community_name": "Dev Session Logs & Double-Entry Checker",
       "norm_label": "weeklymemoasynccontent()"
     },
     {
@@ -11905,8 +11905,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_components_weekly_memo_header_shell_weeklymemoheadershellcontent",
-      "community": 58,
-      "community_name": "Dev Session Records Test Page",
+      "community": 22,
+      "community_name": "Dev Session Logs & Double-Entry Checker",
       "norm_label": "weeklymemoheadershellcontent()"
     },
     {
@@ -11949,8 +11949,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_components_weekly_memo_header_weeklymemoheader",
-      "community": 68,
-      "community_name": "missed-session.template.ts",
+      "community": 175,
+      "community_name": "Dev Effective UID Util",
       "norm_label": "weeklymemoheader()"
     },
     {
@@ -12026,8 +12026,8 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_components_weekly_memo_nav_context_useweeklymemonav",
-      "community": 58,
-      "community_name": "Dev Session Records Test Page",
+      "community": 22,
+      "community_name": "Dev Session Logs & Double-Entry Checker",
       "norm_label": "useweeklymemonav()"
     },
     {
@@ -12906,8 +12906,8 @@
       "source_location": "L94",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_types_ismemoyearnotstarted",
-      "community": 68,
-      "community_name": "missed-session.template.ts",
+      "community": 22,
+      "community_name": "Dev Session Logs & Double-Entry Checker",
       "norm_label": "ismemoyearnotstarted()"
     },
     {
@@ -12939,8 +12939,8 @@
       "source_location": "L109",
       "_origin": "ast",
       "id": "frontend_app_dashboard_memo_types_weeklykpicard",
-      "community": 175,
-      "community_name": "Dev Effective UID Util",
+      "community": 64,
+      "community_name": "Shared Auth Role Hierarchy",
       "norm_label": "weeklykpicard"
     },
     {
@@ -13225,8 +13225,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_app_dashboard_mentee_page",
-      "community": 73,
-      "community_name": "Form Deadlines Utils",
+      "community": 68,
+      "community_name": "missed-session.template.ts",
       "norm_label": "page.tsx"
     },
     {
@@ -13236,8 +13236,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "frontend_app_dashboard_mentee_page_pageprops",
-      "community": 73,
-      "community_name": "Form Deadlines Utils",
+      "community": 68,
+      "community_name": "missed-session.template.ts",
       "norm_label": "pageprops"
     },
     {
@@ -13247,8 +13247,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "frontend_app_dashboard_mentee_page_menteehref",
-      "community": 73,
-      "community_name": "Form Deadlines Utils",
+      "community": 68,
+      "community_name": "missed-session.template.ts",
       "norm_label": "menteehref()"
     },
     {
@@ -13258,8 +13258,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "frontend_app_dashboard_mentee_page_menteepage",
-      "community": 73,
-      "community_name": "Form Deadlines Utils",
+      "community": 68,
+      "community_name": "missed-session.template.ts",
       "norm_label": "menteepage()"
     },
     {
@@ -13313,8 +13313,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_app_dashboard_room_components_room_page_toolbar",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 4,
+      "community_name": "Session Log Backend",
       "norm_label": "room-page-toolbar.tsx"
     },
     {
@@ -13797,8 +13797,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_app_dashboard_roster_personal_info_table",
-      "community": 304,
-      "community_name": "wahf-card.tsx",
+      "community": 301,
+      "community_name": "PersonalClient",
       "norm_label": "personal_info_table.tsx"
     },
     {
@@ -13808,8 +13808,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "frontend_app_dashboard_roster_personal_info_table_rosteraccordionsectionprops",
-      "community": 304,
-      "community_name": "wahf-card.tsx",
+      "community": 301,
+      "community_name": "PersonalClient",
       "norm_label": "rosteraccordionsectionprops"
     },
     {
@@ -13819,8 +13819,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "frontend_app_dashboard_roster_personal_info_table_rosteraccordionsection",
-      "community": 304,
-      "community_name": "wahf-card.tsx",
+      "community": 301,
+      "community_name": "PersonalClient",
       "norm_label": "rosteraccordionsection()"
     },
     {
@@ -14622,8 +14622,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_app_dashboard_teams_layout",
-      "community": 86,
-      "community_name": "Onboarding Docs",
+      "community": 73,
+      "community_name": "Form Deadlines Utils",
       "norm_label": "layout.tsx"
     },
     {
@@ -14633,8 +14633,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "frontend_app_dashboard_teams_layout_teamslayout",
-      "community": 86,
-      "community_name": "Onboarding Docs",
+      "community": 73,
+      "community_name": "Form Deadlines Utils",
       "norm_label": "teamslayout()"
     },
     {
@@ -15876,8 +15876,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_app_page",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 46,
+      "community_name": "Backend Auth Controller/Routes",
       "norm_label": "page.tsx"
     },
     {
@@ -16492,8 +16492,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_attendance_excuse_dialog",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "excuse-dialog.tsx"
     },
     {
@@ -16503,8 +16503,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "frontend_components_attendance_excuse_dialog_excusedialogvalues",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "excusedialogvalues"
     },
     {
@@ -16514,8 +16514,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "frontend_components_attendance_excuse_dialog_excusedialogprops",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "excusedialogprops"
     },
     {
@@ -16910,8 +16910,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_dashboard_roles_scholar_dashboard",
-      "community": 4,
-      "community_name": "Session Log Backend",
+      "community": 304,
+      "community_name": "wahf-card.tsx",
       "norm_label": "scholar-dashboard.tsx"
     },
     {
@@ -17031,8 +17031,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_activity_log",
-      "community": 4,
-      "community_name": "Session Log Backend",
+      "community": 282,
+      "community_name": "getWeeklyMemoPdf",
       "norm_label": "activity-log.tsx"
     },
     {
@@ -17042,8 +17042,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_activity_log_activitylog",
-      "community": 4,
-      "community_name": "Session Log Backend",
+      "community": 304,
+      "community_name": "wahf-card.tsx",
       "norm_label": "activitylog()"
     },
     {
@@ -17075,8 +17075,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_directory_dashboard",
-      "community": 94,
-      "community_name": "Vercel Deployment Config",
+      "community": 29,
+      "community_name": "Backend API Docs & Codebase Notes",
       "norm_label": "directory-dashboard.tsx"
     },
     {
@@ -17086,8 +17086,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_directory_dashboard_directoryperson",
-      "community": 94,
-      "community_name": "Vercel Deployment Config",
+      "community": 29,
+      "community_name": "Backend API Docs & Codebase Notes",
       "norm_label": "directoryperson"
     },
     {
@@ -17097,8 +17097,8 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_directory_dashboard_pagination",
-      "community": 94,
-      "community_name": "Vercel Deployment Config",
+      "community": 29,
+      "community_name": "Backend API Docs & Codebase Notes",
       "norm_label": "pagination"
     },
     {
@@ -17108,8 +17108,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_directory_dashboard_directorygroup",
-      "community": 94,
-      "community_name": "Vercel Deployment Config",
+      "community": 29,
+      "community_name": "Backend API Docs & Codebase Notes",
       "norm_label": "directorygroup"
     },
     {
@@ -17119,8 +17119,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_directory_dashboard_directoryflatresponse",
-      "community": 94,
-      "community_name": "Vercel Deployment Config",
+      "community": 29,
+      "community_name": "Backend API Docs & Codebase Notes",
       "norm_label": "directoryflatresponse"
     },
     {
@@ -17130,8 +17130,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_directory_dashboard_directorygroupedresponse",
-      "community": 94,
-      "community_name": "Vercel Deployment Config",
+      "community": 29,
+      "community_name": "Backend API Docs & Codebase Notes",
       "norm_label": "directorygroupedresponse"
     },
     {
@@ -17141,8 +17141,8 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_directory_dashboard_directoryresponse",
-      "community": 94,
-      "community_name": "Vercel Deployment Config",
+      "community": 29,
+      "community_name": "Backend API Docs & Codebase Notes",
       "norm_label": "directoryresponse"
     },
     {
@@ -17152,8 +17152,8 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_directory_dashboard_directoryfacets",
-      "community": 94,
-      "community_name": "Vercel Deployment Config",
+      "community": 29,
+      "community_name": "Backend API Docs & Codebase Notes",
       "norm_label": "directoryfacets"
     },
     {
@@ -17163,8 +17163,8 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_directory_dashboard_emptyfacets",
-      "community": 94,
-      "community_name": "Vercel Deployment Config",
+      "community": 29,
+      "community_name": "Backend API Docs & Codebase Notes",
       "norm_label": "emptyfacets"
     },
     {
@@ -17174,8 +17174,8 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_directory_dashboard_paletteindex",
-      "community": 94,
-      "community_name": "Vercel Deployment Config",
+      "community": 29,
+      "community_name": "Backend API Docs & Codebase Notes",
       "norm_label": "paletteindex()"
     },
     {
@@ -17185,8 +17185,8 @@
       "source_location": "L66",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_directory_dashboard_team_badge_styles",
-      "community": 94,
-      "community_name": "Vercel Deployment Config",
+      "community": 29,
+      "community_name": "Backend API Docs & Codebase Notes",
       "norm_label": "team_badge_styles"
     },
     {
@@ -17196,8 +17196,8 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_directory_dashboard_teambadgeclassname",
-      "community": 94,
-      "community_name": "Vercel Deployment Config",
+      "community": 29,
+      "community_name": "Backend API Docs & Codebase Notes",
       "norm_label": "teambadgeclassname()"
     },
     {
@@ -17207,8 +17207,8 @@
       "source_location": "L93",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_directory_dashboard_avatar_styles",
-      "community": 94,
-      "community_name": "Vercel Deployment Config",
+      "community": 29,
+      "community_name": "Backend API Docs & Codebase Notes",
       "norm_label": "avatar_styles"
     },
     {
@@ -17218,8 +17218,8 @@
       "source_location": "L101",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_directory_dashboard_avatarclassname",
-      "community": 94,
-      "community_name": "Vercel Deployment Config",
+      "community": 29,
+      "community_name": "Backend API Docs & Codebase Notes",
       "norm_label": "avatarclassname()"
     },
     {
@@ -17229,8 +17229,8 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_directory_dashboard_initialsfor",
-      "community": 94,
-      "community_name": "Vercel Deployment Config",
+      "community": 29,
+      "community_name": "Backend API Docs & Codebase Notes",
       "norm_label": "initialsfor()"
     },
     {
@@ -17240,8 +17240,8 @@
       "source_location": "L112",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_directory_dashboard_avatar",
-      "community": 94,
-      "community_name": "Vercel Deployment Config",
+      "community": 29,
+      "community_name": "Backend API Docs & Codebase Notes",
       "norm_label": "avatar()"
     },
     {
@@ -17251,8 +17251,8 @@
       "source_location": "L126",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_directory_dashboard_textisselected",
-      "community": 94,
-      "community_name": "Vercel Deployment Config",
+      "community": 29,
+      "community_name": "Backend API Docs & Codebase Notes",
       "norm_label": "textisselected()"
     },
     {
@@ -17262,8 +17262,8 @@
       "source_location": "L131",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_directory_dashboard_rowclickopensprofile",
-      "community": 94,
-      "community_name": "Vercel Deployment Config",
+      "community": 29,
+      "community_name": "Backend API Docs & Codebase Notes",
       "norm_label": "rowclickopensprofile()"
     },
     {
@@ -17273,8 +17273,8 @@
       "source_location": "L135",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_directory_dashboard_teamandrole",
-      "community": 94,
-      "community_name": "Vercel Deployment Config",
+      "community": 29,
+      "community_name": "Backend API Docs & Codebase Notes",
       "norm_label": "teamandrole()"
     },
     {
@@ -17295,8 +17295,8 @@
       "source_location": "L163",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_directory_dashboard_facetselect",
-      "community": 94,
-      "community_name": "Vercel Deployment Config",
+      "community": 29,
+      "community_name": "Backend API Docs & Codebase Notes",
       "norm_label": "facetselect()"
     },
     {
@@ -17317,8 +17317,8 @@
       "source_location": "L248",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_directory_dashboard_directoryrow",
-      "community": 94,
-      "community_name": "Vercel Deployment Config",
+      "community": 29,
+      "community_name": "Backend API Docs & Codebase Notes",
       "norm_label": "directoryrow()"
     },
     {
@@ -17328,8 +17328,8 @@
       "source_location": "L293",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_directory_dashboard_pager",
-      "community": 94,
-      "community_name": "Vercel Deployment Config",
+      "community": 29,
+      "community_name": "Backend API Docs & Codebase Notes",
       "norm_label": "pager()"
     },
     {
@@ -17614,8 +17614,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_personal_activity_log",
-      "community": 4,
-      "community_name": "Session Log Backend",
+      "community": 282,
+      "community_name": "getWeeklyMemoPdf",
       "norm_label": "personal-activity-log.tsx"
     },
     {
@@ -17625,8 +17625,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_personal_activity_log_personalactivitylog",
-      "community": 4,
-      "community_name": "Session Log Backend",
+      "community": 282,
+      "community_name": "getWeeklyMemoPdf",
       "norm_label": "personalactivitylog()"
     },
     {
@@ -17636,8 +17636,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_submission_details_modal",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 282,
+      "community_name": "getWeeklyMemoPdf",
       "norm_label": "submission-details-modal.tsx"
     },
     {
@@ -17647,8 +17647,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_submission_details_modal_formatsubmittedat",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 282,
+      "community_name": "getWeeklyMemoPdf",
       "norm_label": "formatsubmittedat()"
     },
     {
@@ -17713,8 +17713,8 @@
       "source_location": "L122",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_submission_details_modal_detailrow",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 282,
+      "community_name": "getWeeklyMemoPdf",
       "norm_label": "detailrow()"
     },
     {
@@ -17757,8 +17757,8 @@
       "source_location": "L171",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_submission_details_modal_submissiondetailsmodal",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 282,
+      "community_name": "getWeeklyMemoPdf",
       "norm_label": "submissiondetailsmodal()"
     },
     {
@@ -17812,8 +17812,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_year_not_started_state",
-      "community": 4,
-      "community_name": "Session Log Backend",
+      "community": 58,
+      "community_name": "Dev Session Records Test Page",
       "norm_label": "year-not-started-state.tsx"
     },
     {
@@ -17823,8 +17823,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_year_not_started_state_yearnotstartedstateprops",
-      "community": 4,
-      "community_name": "Session Log Backend",
+      "community": 58,
+      "community_name": "Dev Session Records Test Page",
       "norm_label": "yearnotstartedstateprops"
     },
     {
@@ -17834,8 +17834,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "frontend_components_dashboard_widgets_year_not_started_state_yearnotstartedstate",
-      "community": 4,
-      "community_name": "Session Log Backend",
+      "community": 58,
+      "community_name": "Dev Session Records Test Page",
       "norm_label": "yearnotstartedstate()"
     },
     {
@@ -17845,8 +17845,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_data_display_campus_week_card",
-      "community": 4,
-      "community_name": "Session Log Backend",
+      "community": 58,
+      "community_name": "Dev Session Records Test Page",
       "norm_label": "campus-week-card.tsx"
     },
     {
@@ -17856,8 +17856,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "frontend_components_data_display_campus_week_card_campusweekcardprops",
-      "community": 4,
-      "community_name": "Session Log Backend",
+      "community": 58,
+      "community_name": "Dev Session Records Test Page",
       "norm_label": "campusweekcardprops"
     },
     {
@@ -17878,8 +17878,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_data_display_campus_week_nav_test",
-      "community": 58,
-      "community_name": "Dev Session Records Test Page",
+      "community": 68,
+      "community_name": "missed-session.template.ts",
       "norm_label": "campus-week-nav.test.tsx"
     },
     {
@@ -17889,8 +17889,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_data_display_campus_week_nav",
-      "community": 58,
-      "community_name": "Dev Session Records Test Page",
+      "community": 8,
+      "community_name": "Memo Page & User Backend",
       "norm_label": "campus-week-nav.tsx"
     },
     {
@@ -17900,8 +17900,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "frontend_components_data_display_campus_week_nav_campusweeknavprops",
-      "community": 58,
-      "community_name": "Dev Session Records Test Page",
+      "community": 8,
+      "community_name": "Memo Page & User Backend",
       "norm_label": "campusweeknavprops"
     },
     {
@@ -17911,8 +17911,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "frontend_components_data_display_campus_week_nav_weekoptionlabel",
-      "community": 58,
-      "community_name": "Dev Session Records Test Page",
+      "community": 8,
+      "community_name": "Memo Page & User Backend",
       "norm_label": "weekoptionlabel()"
     },
     {
@@ -17922,8 +17922,8 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "frontend_components_data_display_campus_week_nav_campusweeknav",
-      "community": 58,
-      "community_name": "Dev Session Records Test Page",
+      "community": 68,
+      "community_name": "missed-session.template.ts",
       "norm_label": "campusweeknav()"
     },
     {
@@ -17933,8 +17933,8 @@
       "source_location": "L160",
       "_origin": "ast",
       "id": "frontend_components_data_display_campus_week_nav_campusweekurlnavprops",
-      "community": 58,
-      "community_name": "Dev Session Records Test Page",
+      "community": 8,
+      "community_name": "Memo Page & User Backend",
       "norm_label": "campusweekurlnavprops"
     },
     {
@@ -18461,8 +18461,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_layout_dashboard_header",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 18,
+      "community_name": "Docs tsconfig",
       "norm_label": "dashboard-header.tsx"
     },
     {
@@ -18472,8 +18472,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "frontend_components_layout_dashboard_header_dashboardheader",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 18,
+      "community_name": "Docs tsconfig",
       "norm_label": "dashboardheader()"
     },
     {
@@ -18483,8 +18483,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_layout_env_var_warning",
-      "community": 304,
-      "community_name": "wahf-card.tsx",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "env-var-warning.tsx"
     },
     {
@@ -18494,8 +18494,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "frontend_components_layout_env_var_warning_envvarwarning",
-      "community": 304,
-      "community_name": "wahf-card.tsx",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "envvarwarning()"
     },
     {
@@ -18626,8 +18626,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_layout_nav_user",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 6,
+      "community_name": "Backend package.json Deps",
       "norm_label": "nav-user.tsx"
     },
     {
@@ -18637,8 +18637,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "frontend_components_layout_nav_user_getinitials",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 6,
+      "community_name": "Backend package.json Deps",
       "norm_label": "getinitials()"
     },
     {
@@ -18648,8 +18648,8 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "frontend_components_layout_nav_user_navuser",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 6,
+      "community_name": "Backend package.json Deps",
       "norm_label": "navuser()"
     },
     {
@@ -18736,8 +18736,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_layout_theme_toggle_test",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 6,
+      "community_name": "Backend package.json Deps",
       "norm_label": "theme-toggle.test.tsx"
     },
     {
@@ -18747,8 +18747,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_layout_theme_toggle",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 6,
+      "community_name": "Backend package.json Deps",
       "norm_label": "theme-toggle.tsx"
     },
     {
@@ -18758,8 +18758,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "frontend_components_layout_theme_toggle_themetoggle",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 6,
+      "community_name": "Backend package.json Deps",
       "norm_label": "themetoggle()"
     },
     {
@@ -18813,8 +18813,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "frontend_components_marketing_landing_feature_cards_landingfeaturecards",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 46,
+      "community_name": "Backend Auth Controller/Routes",
       "norm_label": "landingfeaturecards()"
     },
     {
@@ -18824,8 +18824,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_marketing_landing_header",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 46,
+      "community_name": "Backend Auth Controller/Routes",
       "norm_label": "landing-header.tsx"
     },
     {
@@ -18835,8 +18835,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "frontend_components_marketing_landing_header_landingheader",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 46,
+      "community_name": "Backend Auth Controller/Routes",
       "norm_label": "landingheader()"
     },
     {
@@ -18846,8 +18846,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_marketing_landing_hero",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 46,
+      "community_name": "Backend Auth Controller/Routes",
       "norm_label": "landing-hero.tsx"
     },
     {
@@ -18857,8 +18857,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "frontend_components_marketing_landing_hero_landinghero",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 46,
+      "community_name": "Backend Auth Controller/Routes",
       "norm_label": "landinghero()"
     },
     {
@@ -19099,15 +19099,15 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_hour_summary_card",
-      "community": 29,
-      "community_name": "Backend API Docs & Codebase Notes",
+      "community": 119,
+      "community_name": "settings-client.tsx",
       "norm_label": "hour-summary-card.tsx"
     },
     {
       "label": "HourSummaryCardProps",
       "file_type": "code",
       "source_file": "frontend/components/mentee-monitoring/hour-summary-card.tsx",
-      "source_location": "L20",
+      "source_location": "L19",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_hour_summary_card_hoursummarycardprops",
       "community": 119,
@@ -19118,11 +19118,11 @@
       "label": "HourSummaryCard()",
       "file_type": "code",
       "source_file": "frontend/components/mentee-monitoring/hour-summary-card.tsx",
-      "source_location": "L27",
+      "source_location": "L26",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_hour_summary_card_hoursummarycard",
-      "community": 29,
-      "community_name": "Backend API Docs & Codebase Notes",
+      "community": 119,
+      "community_name": "settings-client.tsx",
       "norm_label": "hoursummarycard()"
     },
     {
@@ -19198,8 +19198,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_mcf_bar",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 8,
+      "community_name": "Memo Page & User Backend",
       "norm_label": "mcf-bar.tsx"
     },
     {
@@ -19209,8 +19209,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_mcf_bar_mcfbarprops",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 8,
+      "community_name": "Memo Page & User Backend",
       "norm_label": "mcfbarprops"
     },
     {
@@ -19220,8 +19220,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_mcf_bar_mcfbar",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 8,
+      "community_name": "Memo Page & User Backend",
       "norm_label": "mcfbar()"
     },
     {
@@ -19275,8 +19275,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_meeting_preference_editor_meetingpreferenceeditorprops",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 8,
+      "community_name": "Memo Page & User Backend",
       "norm_label": "meetingpreferenceeditorprops"
     },
     {
@@ -19429,8 +19429,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_mentee_monitoring_client",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 8,
+      "community_name": "Memo Page & User Backend",
       "norm_label": "mentee-monitoring-client.tsx"
     },
     {
@@ -19440,8 +19440,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_mentee_monitoring_client_menteehref",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 8,
+      "community_name": "Memo Page & User Backend",
       "norm_label": "menteehref()"
     },
     {
@@ -19451,8 +19451,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_mentee_monitoring_client_nomentees",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 8,
+      "community_name": "Memo Page & User Backend",
       "norm_label": "nomentees()"
     },
     {
@@ -19462,8 +19462,8 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_mentee_monitoring_client_neutralcard",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 8,
+      "community_name": "Memo Page & User Backend",
       "norm_label": "neutralcard()"
     },
     {
@@ -19473,8 +19473,8 @@
       "source_location": "L68",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_mentee_monitoring_client_menteemonitoringclient",
-      "community": 29,
-      "community_name": "Backend API Docs & Codebase Notes",
+      "community": 114,
+      "community_name": "Dashboard Breadcrumb Agent Log",
       "norm_label": "menteemonitoringclient()"
     },
     {
@@ -19583,8 +19583,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_section_error",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 4,
+      "community_name": "Session Log Backend",
       "norm_label": "section-error.tsx"
     },
     {
@@ -19594,8 +19594,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_section_error_sectionerrorprops",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 4,
+      "community_name": "Session Log Backend",
       "norm_label": "sectionerrorprops"
     },
     {
@@ -19605,8 +19605,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_section_error_sectionerror",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 4,
+      "community_name": "Session Log Backend",
       "norm_label": "sectionerror()"
     },
     {
@@ -19616,8 +19616,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_semester_grid",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 4,
+      "community_name": "Session Log Backend",
       "norm_label": "semester-grid.tsx"
     },
     {
@@ -19627,8 +19627,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_semester_grid_rowid",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 4,
+      "community_name": "Session Log Backend",
       "norm_label": "rowid"
     },
     {
@@ -19638,8 +19638,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_semester_grid_rows",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 4,
+      "community_name": "Session Log Backend",
       "norm_label": "rows"
     },
     {
@@ -19660,8 +19660,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_semester_grid_celltone",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 4,
+      "community_name": "Session Log Backend",
       "norm_label": "celltone"
     },
     {
@@ -19671,8 +19671,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_semester_grid_tone_classes",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 4,
+      "community_name": "Session Log Backend",
       "norm_label": "tone_classes"
     },
     {
@@ -19682,8 +19682,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_semester_grid_tone_backgrounds",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 4,
+      "community_name": "Session Log Backend",
       "norm_label": "tone_backgrounds"
     },
     {
@@ -19715,8 +19715,8 @@
       "source_location": "L76",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_semester_grid_cellfor",
-      "community": 29,
-      "community_name": "Backend API Docs & Codebase Notes",
+      "community": 119,
+      "community_name": "settings-client.tsx",
       "norm_label": "cellfor()"
     },
     {
@@ -19726,8 +19726,8 @@
       "source_location": "L134",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_semester_grid_semestergridprops",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 8,
+      "community_name": "Memo Page & User Backend",
       "norm_label": "semestergridprops"
     },
     {
@@ -19748,8 +19748,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_seminars_card",
-      "community": 4,
-      "community_name": "Session Log Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "seminars-card.tsx"
     },
     {
@@ -19759,8 +19759,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_seminars_card_mock_seminars",
-      "community": 4,
-      "community_name": "Session Log Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "mock_seminars"
     },
     {
@@ -19770,8 +19770,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_seminars_card_seminarscard",
-      "community": 4,
-      "community_name": "Session Log Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "seminarscard()"
     },
     {
@@ -19979,8 +19979,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_utils",
-      "community": 29,
-      "community_name": "Backend API Docs & Codebase Notes",
+      "community": 114,
+      "community_name": "Dashboard Breadcrumb Agent Log",
       "norm_label": "utils.ts"
     },
     {
@@ -20001,8 +20001,8 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_utils_day_labels",
-      "community": 29,
-      "community_name": "Backend API Docs & Codebase Notes",
+      "community": 114,
+      "community_name": "Dashboard Breadcrumb Agent Log",
       "norm_label": "day_labels"
     },
     {
@@ -20012,8 +20012,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_utils_day_minute_keys",
-      "community": 29,
-      "community_name": "Backend API Docs & Codebase Notes",
+      "community": 114,
+      "community_name": "Dashboard Breadcrumb Agent Log",
       "norm_label": "day_minute_keys"
     },
     {
@@ -20067,8 +20067,8 @@
       "source_location": "L121",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_utils_wahfstatus",
-      "community": 304,
-      "community_name": "wahf-card.tsx",
+      "community": 282,
+      "community_name": "getWeeklyMemoPdf",
       "norm_label": "wahfstatus"
     },
     {
@@ -20166,8 +20166,8 @@
       "source_location": "L274",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_utils_menteename",
-      "community": 29,
-      "community_name": "Backend API Docs & Codebase Notes",
+      "community": 114,
+      "community_name": "Dashboard Breadcrumb Agent Log",
       "norm_label": "menteename()"
     },
     {
@@ -20177,8 +20177,8 @@
       "source_location": "L280",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_utils_gettodaydaylabel",
-      "community": 29,
-      "community_name": "Backend API Docs & Codebase Notes",
+      "community": 114,
+      "community_name": "Dashboard Breadcrumb Agent Log",
       "norm_label": "gettodaydaylabel()"
     },
     {
@@ -20188,8 +20188,8 @@
       "source_location": "L289",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_utils_hour_band_styles",
-      "community": 29,
-      "community_name": "Backend API Docs & Codebase Notes",
+      "community": 114,
+      "community_name": "Dashboard Breadcrumb Agent Log",
       "norm_label": "hour_band_styles"
     },
     {
@@ -20199,8 +20199,8 @@
       "source_location": "L308",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_utils_pending_styles",
-      "community": 29,
-      "community_name": "Backend API Docs & Codebase Notes",
+      "community": 114,
+      "community_name": "Dashboard Breadcrumb Agent Log",
       "norm_label": "pending_styles"
     },
     {
@@ -20221,8 +20221,8 @@
       "source_location": "L322",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_utils_weekday_names",
-      "community": 29,
-      "community_name": "Backend API Docs & Codebase Notes",
+      "community": 114,
+      "community_name": "Dashboard Breadcrumb Agent Log",
       "norm_label": "weekday_names"
     },
     {
@@ -20232,8 +20232,8 @@
       "source_location": "L333",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_utils_hoursfromminutes",
-      "community": 29,
-      "community_name": "Backend API Docs & Codebase Notes",
+      "community": 119,
+      "community_name": "settings-client.tsx",
       "norm_label": "hoursfromminutes()"
     },
     {
@@ -20243,8 +20243,8 @@
       "source_location": "L337",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_utils_formathours",
-      "community": 29,
-      "community_name": "Backend API Docs & Codebase Notes",
+      "community": 119,
+      "community_name": "settings-client.tsx",
       "norm_label": "formathours()"
     },
     {
@@ -20254,8 +20254,8 @@
       "source_location": "L341",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_utils_formatpercent",
-      "community": 29,
-      "community_name": "Backend API Docs & Codebase Notes",
+      "community": 119,
+      "community_name": "settings-client.tsx",
       "norm_label": "formatpercent()"
     },
     {
@@ -20265,8 +20265,8 @@
       "source_location": "L346",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_utils_formatcompacthours",
-      "community": 29,
-      "community_name": "Backend API Docs & Codebase Notes",
+      "community": 119,
+      "community_name": "settings-client.tsx",
       "norm_label": "formatcompacthours()"
     },
     {
@@ -20276,8 +20276,8 @@
       "source_location": "L351",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_utils_hourcardtitle",
-      "community": 29,
-      "community_name": "Backend API Docs & Codebase Notes",
+      "community": 119,
+      "community_name": "settings-client.tsx",
       "norm_label": "hourcardtitle()"
     },
     {
@@ -20287,8 +20287,8 @@
       "source_location": "L356",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_utils_formatclock",
-      "community": 29,
-      "community_name": "Backend API Docs & Codebase Notes",
+      "community": 114,
+      "community_name": "Dashboard Breadcrumb Agent Log",
       "norm_label": "formatclock()"
     },
     {
@@ -20298,8 +20298,8 @@
       "source_location": "L369",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_utils_formatclockrange",
-      "community": 29,
-      "community_name": "Backend API Docs & Codebase Notes",
+      "community": 119,
+      "community_name": "settings-client.tsx",
       "norm_label": "formatclockrange()"
     },
     {
@@ -20309,8 +20309,8 @@
       "source_location": "L376",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_utils_formatshiftday",
-      "community": 29,
-      "community_name": "Backend API Docs & Codebase Notes",
+      "community": 119,
+      "community_name": "settings-client.tsx",
       "norm_label": "formatshiftday()"
     },
     {
@@ -20331,8 +20331,8 @@
       "source_location": "L403",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_utils_formatdaymonth",
-      "community": 29,
-      "community_name": "Backend API Docs & Codebase Notes",
+      "community": 114,
+      "community_name": "Dashboard Breadcrumb Agent Log",
       "norm_label": "formatdaymonth()"
     },
     {
@@ -20342,8 +20342,8 @@
       "source_location": "L414",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_utils_formatweektitle",
-      "community": 29,
-      "community_name": "Backend API Docs & Codebase Notes",
+      "community": 114,
+      "community_name": "Dashboard Breadcrumb Agent Log",
       "norm_label": "formatweektitle()"
     },
     {
@@ -20364,8 +20364,8 @@
       "source_location": "L425",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_utils_formatweekdaydate",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 8,
+      "community_name": "Memo Page & User Backend",
       "norm_label": "formatweekdaydate()"
     },
     {
@@ -20375,8 +20375,8 @@
       "source_location": "L437",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_utils_formatweekfriday",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 8,
+      "community_name": "Memo Page & User Backend",
       "norm_label": "formatweekfriday()"
     },
     {
@@ -20386,8 +20386,8 @@
       "source_location": "L444",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_utils_formatasof",
-      "community": 29,
-      "community_name": "Backend API Docs & Codebase Notes",
+      "community": 114,
+      "community_name": "Dashboard Breadcrumb Agent Log",
       "norm_label": "formatasof()"
     },
     {
@@ -20397,8 +20397,8 @@
       "source_location": "L455",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_utils_menteefirstname",
-      "community": 29,
-      "community_name": "Backend API Docs & Codebase Notes",
+      "community": 114,
+      "community_name": "Dashboard Breadcrumb Agent Log",
       "norm_label": "menteefirstname()"
     },
     {
@@ -20408,8 +20408,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_wahf_card",
-      "community": 304,
-      "community_name": "wahf-card.tsx",
+      "community": 282,
+      "community_name": "getWeeklyMemoPdf",
       "norm_label": "wahf-card.tsx"
     },
     {
@@ -20419,8 +20419,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_wahf_card_formatsubmittedat",
-      "community": 304,
-      "community_name": "wahf-card.tsx",
+      "community": 282,
+      "community_name": "getWeeklyMemoPdf",
       "norm_label": "formatsubmittedat()"
     },
     {
@@ -20430,8 +20430,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_wahf_card_wahfcardprops",
-      "community": 304,
-      "community_name": "wahf-card.tsx",
+      "community": 282,
+      "community_name": "getWeeklyMemoPdf",
       "norm_label": "wahfcardprops"
     },
     {
@@ -20441,8 +20441,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_wahf_card_wahfcard",
-      "community": 304,
-      "community_name": "wahf-card.tsx",
+      "community": 282,
+      "community_name": "getWeeklyMemoPdf",
       "norm_label": "wahfcard()"
     },
     {
@@ -20452,8 +20452,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_wahf_summary_card",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 8,
+      "community_name": "Memo Page & User Backend",
       "norm_label": "wahf-summary-card.tsx"
     },
     {
@@ -20474,8 +20474,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_wahf_summary_card_statuspill",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 8,
+      "community_name": "Memo Page & User Backend",
       "norm_label": "statuspill()"
     },
     {
@@ -20485,8 +20485,8 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "frontend_components_mentee_monitoring_wahf_summary_card_wahfsummarycard",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 8,
+      "community_name": "Memo Page & User Backend",
       "norm_label": "wahfsummarycard()"
     },
     {
@@ -21134,8 +21134,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_settings_settings_client",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "settings-client.tsx"
     },
     {
@@ -21145,8 +21145,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "frontend_components_settings_settings_client_tabs",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "tabs"
     },
     {
@@ -21156,8 +21156,8 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "frontend_components_settings_settings_client_tabid",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "tabid"
     },
     {
@@ -21178,8 +21178,8 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "frontend_components_settings_settings_client_displayname",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "displayname()"
     },
     {
@@ -21189,8 +21189,8 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "frontend_components_settings_settings_client_settingsclient",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "settingsclient()"
     },
     {
@@ -21200,8 +21200,8 @@
       "source_location": "L139",
       "_origin": "ast",
       "id": "frontend_components_settings_settings_client_readonlyfield",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "readonlyfield()"
     },
     {
@@ -21211,8 +21211,8 @@
       "source_location": "L148",
       "_origin": "ast",
       "id": "frontend_components_settings_settings_client_taglist",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "taglist()"
     },
     {
@@ -21222,8 +21222,8 @@
       "source_location": "L168",
       "_origin": "ast",
       "id": "frontend_components_settings_settings_client_sectionheading",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "sectionheading()"
     },
     {
@@ -21233,8 +21233,8 @@
       "source_location": "L176",
       "_origin": "ast",
       "id": "frontend_components_settings_settings_client_personaltab",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "personaltab()"
     },
     {
@@ -21244,8 +21244,8 @@
       "source_location": "L198",
       "_origin": "ast",
       "id": "frontend_components_settings_settings_client_academictab",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "academictab()"
     },
     {
@@ -21255,8 +21255,8 @@
       "source_location": "L215",
       "_origin": "ast",
       "id": "frontend_components_settings_settings_client_programtab",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "programtab()"
     },
     {
@@ -21266,8 +21266,8 @@
       "source_location": "L242",
       "_origin": "ast",
       "id": "frontend_components_settings_settings_client_menteestab",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "menteestab()"
     },
     {
@@ -21387,8 +21387,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_ui_avatar",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 6,
+      "community_name": "Backend package.json Deps",
       "norm_label": "avatar.tsx"
     },
     {
@@ -21398,8 +21398,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "frontend_components_ui_avatar_avatar",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 6,
+      "community_name": "Backend package.json Deps",
       "norm_label": "avatar()"
     },
     {
@@ -21409,8 +21409,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "frontend_components_ui_avatar_avatarimage",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 6,
+      "community_name": "Backend package.json Deps",
       "norm_label": "avatarimage()"
     },
     {
@@ -21420,8 +21420,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "frontend_components_ui_avatar_avatarfallback",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 6,
+      "community_name": "Backend package.json Deps",
       "norm_label": "avatarfallback()"
     },
     {
@@ -21431,8 +21431,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_ui_badge",
-      "community": 304,
-      "community_name": "wahf-card.tsx",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "badge.tsx"
     },
     {
@@ -21442,8 +21442,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "frontend_components_ui_badge_badgevariants",
-      "community": 304,
-      "community_name": "wahf-card.tsx",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "badgevariants"
     },
     {
@@ -21453,8 +21453,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "frontend_components_ui_badge_badge",
-      "community": 304,
-      "community_name": "wahf-card.tsx",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "badge()"
     },
     {
@@ -21552,8 +21552,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_ui_button",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 4,
+      "community_name": "Session Log Backend",
       "norm_label": "button.tsx"
     },
     {
@@ -21563,8 +21563,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "frontend_components_ui_button_buttonvariants",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 4,
+      "community_name": "Session Log Backend",
       "norm_label": "buttonvariants"
     },
     {
@@ -21574,8 +21574,8 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "frontend_components_ui_button_button",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 4,
+      "community_name": "Session Log Backend",
       "norm_label": "button()"
     },
     {
@@ -21673,8 +21673,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_ui_chart",
-      "community": 6,
-      "community_name": "Backend package.json Deps",
+      "community": 46,
+      "community_name": "Backend Auth Controller/Routes",
       "norm_label": "chart.tsx"
     },
     {
@@ -21684,8 +21684,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "frontend_components_ui_chart_themes",
-      "community": 6,
-      "community_name": "Backend package.json Deps",
+      "community": 46,
+      "community_name": "Backend Auth Controller/Routes",
       "norm_label": "themes"
     },
     {
@@ -21706,8 +21706,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "frontend_components_ui_chart_chartcontextprops",
-      "community": 6,
-      "community_name": "Backend package.json Deps",
+      "community": 46,
+      "community_name": "Backend Auth Controller/Routes",
       "norm_label": "chartcontextprops"
     },
     {
@@ -21717,8 +21717,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "frontend_components_ui_chart_chartcontext",
-      "community": 6,
-      "community_name": "Backend package.json Deps",
+      "community": 46,
+      "community_name": "Backend Auth Controller/Routes",
       "norm_label": "chartcontext"
     },
     {
@@ -21728,8 +21728,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "frontend_components_ui_chart_usechart",
-      "community": 6,
-      "community_name": "Backend package.json Deps",
+      "community": 46,
+      "community_name": "Backend Auth Controller/Routes",
       "norm_label": "usechart()"
     },
     {
@@ -21739,8 +21739,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "frontend_components_ui_chart_chartcontainer",
-      "community": 4,
-      "community_name": "Session Log Backend",
+      "community": 46,
+      "community_name": "Backend Auth Controller/Routes",
       "norm_label": "chartcontainer()"
     },
     {
@@ -21750,8 +21750,8 @@
       "source_location": "L72",
       "_origin": "ast",
       "id": "frontend_components_ui_chart_chartstyle",
-      "community": 6,
-      "community_name": "Backend package.json Deps",
+      "community": 46,
+      "community_name": "Backend Auth Controller/Routes",
       "norm_label": "chartstyle()"
     },
     {
@@ -21761,8 +21761,8 @@
       "source_location": "L107",
       "_origin": "ast",
       "id": "frontend_components_ui_chart_charttooltipcontent",
-      "community": 6,
-      "community_name": "Backend package.json Deps",
+      "community": 46,
+      "community_name": "Backend Auth Controller/Routes",
       "norm_label": "charttooltipcontent()"
     },
     {
@@ -21772,8 +21772,8 @@
       "source_location": "L273",
       "_origin": "ast",
       "id": "frontend_components_ui_chart_chartlegendcontent",
-      "community": 6,
-      "community_name": "Backend package.json Deps",
+      "community": 46,
+      "community_name": "Backend Auth Controller/Routes",
       "norm_label": "chartlegendcontent()"
     },
     {
@@ -21783,8 +21783,8 @@
       "source_location": "L334",
       "_origin": "ast",
       "id": "frontend_components_ui_chart_getpayloadconfigfrompayload",
-      "community": 6,
-      "community_name": "Backend package.json Deps",
+      "community": 46,
+      "community_name": "Backend Auth Controller/Routes",
       "norm_label": "getpayloadconfigfrompayload()"
     },
     {
@@ -21816,8 +21816,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_ui_collapsible",
-      "community": 304,
-      "community_name": "wahf-card.tsx",
+      "community": 301,
+      "community_name": "PersonalClient",
       "norm_label": "collapsible.tsx"
     },
     {
@@ -21827,8 +21827,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "frontend_components_ui_collapsible_collapsible",
-      "community": 304,
-      "community_name": "wahf-card.tsx",
+      "community": 301,
+      "community_name": "PersonalClient",
       "norm_label": "collapsible()"
     },
     {
@@ -21838,8 +21838,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "frontend_components_ui_collapsible_collapsibletrigger",
-      "community": 304,
-      "community_name": "wahf-card.tsx",
+      "community": 301,
+      "community_name": "PersonalClient",
       "norm_label": "collapsibletrigger()"
     },
     {
@@ -21849,8 +21849,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "frontend_components_ui_collapsible_collapsiblecontent",
-      "community": 304,
-      "community_name": "wahf-card.tsx",
+      "community": 301,
+      "community_name": "PersonalClient",
       "norm_label": "collapsiblecontent()"
     },
     {
@@ -21860,8 +21860,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_ui_dialog",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "dialog.tsx"
     },
     {
@@ -21871,8 +21871,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "frontend_components_ui_dialog_dialog",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "dialog()"
     },
     {
@@ -21882,8 +21882,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "frontend_components_ui_dialog_dialogtrigger",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "dialogtrigger()"
     },
     {
@@ -21904,8 +21904,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "frontend_components_ui_dialog_dialogportal",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "dialogportal()"
     },
     {
@@ -21926,8 +21926,8 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "frontend_components_ui_dialog_dialogcontent",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "dialogcontent()"
     },
     {
@@ -21937,8 +21937,8 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "frontend_components_ui_dialog_dialogheader",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "dialogheader()"
     },
     {
@@ -21948,8 +21948,8 @@
       "source_location": "L85",
       "_origin": "ast",
       "id": "frontend_components_ui_dialog_dialogfooter",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "dialogfooter()"
     },
     {
@@ -21959,8 +21959,8 @@
       "source_location": "L98",
       "_origin": "ast",
       "id": "frontend_components_ui_dialog_dialogtitle",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "dialogtitle()"
     },
     {
@@ -21970,8 +21970,8 @@
       "source_location": "L111",
       "_origin": "ast",
       "id": "frontend_components_ui_dialog_dialogdescription",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 25,
+      "community_name": "App Sidebar & Weekly Memo Access",
       "norm_label": "dialogdescription()"
     },
     {
@@ -21981,8 +21981,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_ui_dropdown_menu",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 6,
+      "community_name": "Backend package.json Deps",
       "norm_label": "dropdown-menu.tsx"
     },
     {
@@ -21992,8 +21992,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "frontend_components_ui_dropdown_menu_dropdownmenu",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 6,
+      "community_name": "Backend package.json Deps",
       "norm_label": "dropdownmenu()"
     },
     {
@@ -22003,8 +22003,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "frontend_components_ui_dropdown_menu_dropdownmenuportal",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 6,
+      "community_name": "Backend package.json Deps",
       "norm_label": "dropdownmenuportal()"
     },
     {
@@ -22014,8 +22014,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "frontend_components_ui_dropdown_menu_dropdownmenutrigger",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 6,
+      "community_name": "Backend package.json Deps",
       "norm_label": "dropdownmenutrigger()"
     },
     {
@@ -22025,8 +22025,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "frontend_components_ui_dropdown_menu_dropdownmenucontent",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 6,
+      "community_name": "Backend package.json Deps",
       "norm_label": "dropdownmenucontent()"
     },
     {
@@ -22036,8 +22036,8 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "frontend_components_ui_dropdown_menu_dropdownmenugroup",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 6,
+      "community_name": "Backend package.json Deps",
       "norm_label": "dropdownmenugroup()"
     },
     {
@@ -22047,8 +22047,8 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "frontend_components_ui_dropdown_menu_dropdownmenuitem",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 6,
+      "community_name": "Backend package.json Deps",
       "norm_label": "dropdownmenuitem()"
     },
     {
@@ -22058,8 +22058,8 @@
       "source_location": "L85",
       "_origin": "ast",
       "id": "frontend_components_ui_dropdown_menu_dropdownmenucheckboxitem",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 6,
+      "community_name": "Backend package.json Deps",
       "norm_label": "dropdownmenucheckboxitem()"
     },
     {
@@ -22069,8 +22069,8 @@
       "source_location": "L111",
       "_origin": "ast",
       "id": "frontend_components_ui_dropdown_menu_dropdownmenuradiogroup",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 6,
+      "community_name": "Backend package.json Deps",
       "norm_label": "dropdownmenuradiogroup()"
     },
     {
@@ -22080,8 +22080,8 @@
       "source_location": "L122",
       "_origin": "ast",
       "id": "frontend_components_ui_dropdown_menu_dropdownmenuradioitem",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 6,
+      "community_name": "Backend package.json Deps",
       "norm_label": "dropdownmenuradioitem()"
     },
     {
@@ -22091,8 +22091,8 @@
       "source_location": "L146",
       "_origin": "ast",
       "id": "frontend_components_ui_dropdown_menu_dropdownmenulabel",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 6,
+      "community_name": "Backend package.json Deps",
       "norm_label": "dropdownmenulabel()"
     },
     {
@@ -22102,8 +22102,8 @@
       "source_location": "L166",
       "_origin": "ast",
       "id": "frontend_components_ui_dropdown_menu_dropdownmenuseparator",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 6,
+      "community_name": "Backend package.json Deps",
       "norm_label": "dropdownmenuseparator()"
     },
     {
@@ -22113,8 +22113,8 @@
       "source_location": "L179",
       "_origin": "ast",
       "id": "frontend_components_ui_dropdown_menu_dropdownmenushortcut",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 6,
+      "community_name": "Backend package.json Deps",
       "norm_label": "dropdownmenushortcut()"
     },
     {
@@ -22124,8 +22124,8 @@
       "source_location": "L195",
       "_origin": "ast",
       "id": "frontend_components_ui_dropdown_menu_dropdownmenusub",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 6,
+      "community_name": "Backend package.json Deps",
       "norm_label": "dropdownmenusub()"
     },
     {
@@ -22135,8 +22135,8 @@
       "source_location": "L201",
       "_origin": "ast",
       "id": "frontend_components_ui_dropdown_menu_dropdownmenusubtrigger",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 6,
+      "community_name": "Backend package.json Deps",
       "norm_label": "dropdownmenusubtrigger()"
     },
     {
@@ -22146,8 +22146,8 @@
       "source_location": "L225",
       "_origin": "ast",
       "id": "frontend_components_ui_dropdown_menu_dropdownmenusubcontent",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 6,
+      "community_name": "Backend package.json Deps",
       "norm_label": "dropdownmenusubcontent()"
     },
     {
@@ -22157,8 +22157,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_ui_input",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 4,
+      "community_name": "Session Log Backend",
       "norm_label": "input.tsx"
     },
     {
@@ -22168,8 +22168,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "frontend_components_ui_input_input",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 4,
+      "community_name": "Session Log Backend",
       "norm_label": "input()"
     },
     {
@@ -22179,8 +22179,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_ui_label",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 4,
+      "community_name": "Session Log Backend",
       "norm_label": "label.tsx"
     },
     {
@@ -22190,8 +22190,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "frontend_components_ui_label_label",
-      "community": 8,
-      "community_name": "Memo Page & User Backend",
+      "community": 4,
+      "community_name": "Session Log Backend",
       "norm_label": "label()"
     },
     {
@@ -22289,8 +22289,8 @@
       "source_location": "L90",
       "_origin": "ast",
       "id": "frontend_components_ui_select_selectlabel",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 8,
+      "community_name": "Memo Page & User Backend",
       "norm_label": "selectlabel()"
     },
     {
@@ -22311,8 +22311,8 @@
       "source_location": "L130",
       "_origin": "ast",
       "id": "frontend_components_ui_select_selectseparator",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 8,
+      "community_name": "Memo Page & User Backend",
       "norm_label": "selectseparator()"
     },
     {
@@ -22322,8 +22322,8 @@
       "source_location": "L143",
       "_origin": "ast",
       "id": "frontend_components_ui_select_selectscrollupbutton",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 8,
+      "community_name": "Memo Page & User Backend",
       "norm_label": "selectscrollupbutton()"
     },
     {
@@ -22333,8 +22333,8 @@
       "source_location": "L161",
       "_origin": "ast",
       "id": "frontend_components_ui_select_selectscrolldownbutton",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 8,
+      "community_name": "Memo Page & User Backend",
       "norm_label": "selectscrolldownbutton()"
     },
     {
@@ -22344,8 +22344,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_ui_separator",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 18,
+      "community_name": "Docs tsconfig",
       "norm_label": "separator.tsx"
     },
     {
@@ -22355,8 +22355,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "frontend_components_ui_separator_separator",
-      "community": 46,
-      "community_name": "Backend Auth Controller/Routes",
+      "community": 18,
+      "community_name": "Docs tsconfig",
       "norm_label": "separator()"
     },
     {
@@ -22861,8 +22861,8 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "frontend_components_ui_table_tablefooter",
-      "community": 25,
-      "community_name": "App Sidebar & Weekly Memo Access",
+      "community": 46,
+      "community_name": "Backend Auth Controller/Routes",
       "norm_label": "tablefooter()"
     },
     {
@@ -22905,8 +22905,8 @@
       "source_location": "L94",
       "_origin": "ast",
       "id": "frontend_components_ui_table_tablecaption",
-      "community": 25,
-      "community_name": "App Sidebar & Weekly Memo Access",
+      "community": 46,
+      "community_name": "Backend Auth Controller/Routes",
       "norm_label": "tablecaption()"
     },
     {
@@ -23455,8 +23455,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_legacy_app_memo_layout",
-      "community": 86,
-      "community_name": "Onboarding Docs",
+      "community": 73,
+      "community_name": "Form Deadlines Utils",
       "norm_label": "layout.tsx"
     },
     {
@@ -23466,8 +23466,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "frontend_legacy_app_memo_layout_legacymemolayout",
-      "community": 86,
-      "community_name": "Onboarding Docs",
+      "community": 73,
+      "community_name": "Form Deadlines Utils",
       "norm_label": "legacymemolayout()"
     },
     {
@@ -25402,8 +25402,8 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "frontend_lib_auth_canaccessweeklymemo",
-      "community": 86,
-      "community_name": "Onboarding Docs",
+      "community": 73,
+      "community_name": "Form Deadlines Utils",
       "norm_label": "canaccessweeklymemo()"
     },
     {
@@ -25765,8 +25765,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_lib_format_campus_week_test",
-      "community": 58,
-      "community_name": "Dev Session Records Test Page",
+      "community": 68,
+      "community_name": "missed-session.template.ts",
       "norm_label": "campus-week.test.ts"
     },
     {
@@ -25776,8 +25776,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_lib_format_campus_week",
-      "community": 58,
-      "community_name": "Dev Session Records Test Page",
+      "community": 68,
+      "community_name": "missed-session.template.ts",
       "norm_label": "campus-week.ts"
     },
     {
@@ -25798,8 +25798,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "frontend_lib_format_campus_week_formatcampusweekdaterange",
-      "community": 58,
-      "community_name": "Dev Session Records Test Page",
+      "community": 68,
+      "community_name": "missed-session.template.ts",
       "norm_label": "formatcampusweekdaterange()"
     },
     {
@@ -25809,8 +25809,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "frontend_lib_format_campus_week_formatcampusweekoptionlabel",
-      "community": 58,
-      "community_name": "Dev Session Records Test Page",
+      "community": 68,
+      "community_name": "missed-session.template.ts",
       "norm_label": "formatcampusweekoptionlabel()"
     },
     {
@@ -25831,8 +25831,8 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "frontend_lib_format_campus_week_adjacentcampusweeks",
-      "community": 58,
-      "community_name": "Dev Session Records Test Page",
+      "community": 68,
+      "community_name": "missed-session.template.ts",
       "norm_label": "adjacentcampusweeks()"
     },
     {
@@ -26546,8 +26546,8 @@
       "source_location": "L100",
       "_origin": "ast",
       "id": "frontend_lib_server_data_fetchmentees",
-      "community": 73,
-      "community_name": "Form Deadlines Utils",
+      "community": 68,
+      "community_name": "missed-session.template.ts",
       "norm_label": "fetchmentees()"
     },
     {
@@ -26557,8 +26557,8 @@
       "source_location": "L110",
       "_origin": "ast",
       "id": "frontend_lib_server_data_fetchmenteereview",
-      "community": 73,
-      "community_name": "Form Deadlines Utils",
+      "community": 68,
+      "community_name": "missed-session.template.ts",
       "norm_label": "fetchmenteereview()"
     },
     {
@@ -26568,8 +26568,8 @@
       "source_location": "L123",
       "_origin": "ast",
       "id": "frontend_lib_server_data_fetchdirectorymenteereview",
-      "community": 301,
-      "community_name": "PersonalClient",
+      "community": 73,
+      "community_name": "Form Deadlines Utils",
       "norm_label": "fetchdirectorymenteereview()"
     },
     {
@@ -27173,8 +27173,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_lib_server_queries",
-      "community": 86,
-      "community_name": "Onboarding Docs",
+      "community": 73,
+      "community_name": "Form Deadlines Utils",
       "norm_label": "queries.ts"
     },
     {
@@ -27184,8 +27184,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "frontend_lib_server_queries_currentuserresponse",
-      "community": 86,
-      "community_name": "Onboarding Docs",
+      "community": 73,
+      "community_name": "Form Deadlines Utils",
       "norm_label": "currentuserresponse"
     },
     {
@@ -27954,8 +27954,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "frontend_lib_types_mentee_review_hourband",
-      "community": 29,
-      "community_name": "Backend API Docs & Codebase Notes",
+      "community": 114,
+      "community_name": "Dashboard Breadcrumb Agent Log",
       "norm_label": "hourband"
     },
     {
@@ -28042,8 +28042,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "frontend_lib_types_mentee_review_sectionresult",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 8,
+      "community_name": "Memo Page & User Backend",
       "norm_label": "sectionresult"
     },
     {
@@ -28119,8 +28119,8 @@
       "source_location": "L95",
       "_origin": "ast",
       "id": "frontend_lib_types_mentee_review_weekreviewsummary",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 8,
+      "community_name": "Memo Page & User Backend",
       "norm_label": "weekreviewsummary"
     },
     {
@@ -28163,8 +28163,8 @@
       "source_location": "L134",
       "_origin": "ast",
       "id": "frontend_lib_types_mentee_review_weekdescriptor",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 8,
+      "community_name": "Memo Page & User Backend",
       "norm_label": "weekdescriptor"
     },
     {
@@ -28196,8 +28196,8 @@
       "source_location": "L167",
       "_origin": "ast",
       "id": "frontend_lib_types_mentee_review_meetingpreferenceoutput",
-      "community": 309,
-      "community_name": "layout.tsx",
+      "community": 8,
+      "community_name": "Memo Page & User Backend",
       "norm_label": "meetingpreferenceoutput"
     },
     {
@@ -44111,9 +44111,9 @@
       "captured_at": "2026-07-11T063823Z",
       "author": "miguelventura1123@gmail.com",
       "contributor": null,
-      "community": 8,
+      "community": 25,
       "norm_label": "settings formatting cleanup",
-      "community_name": "Memo Page & User Backend",
+      "community_name": "App Sidebar & Weekly Memo Access",
       "id": "docs_agents_logs_2026_07_11t063823z_settings_formatting_cleanup_log"
     },
     {
@@ -44139,9 +44139,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 304,
+      "community": 282,
       "norm_label": "mentee-wahf-card.tsx (duplicate, removed)",
-      "community_name": "wahf-card.tsx",
+      "community_name": "getWeeklyMemoPdf",
       "id": "frontend_components_dashboard_mentee_wahf_card_menteewahfcard"
     },
     {
@@ -105639,7 +105639,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "frontend/components/mentee-monitoring/hour-summary-card.tsx",
-      "source_location": "L27",
+      "source_location": "L26",
       "weight": 1.0,
       "_origin": "ast",
       "source": "frontend_components_mentee_monitoring_hour_summary_card",
@@ -105650,7 +105650,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "frontend/components/mentee-monitoring/hour-summary-card.tsx",
-      "source_location": "L20",
+      "source_location": "L19",
       "weight": 1.0,
       "_origin": "ast",
       "source": "frontend_components_mentee_monitoring_hour_summary_card",
@@ -105790,18 +105790,6 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "frontend/components/mentee-monitoring/hour-summary-card.tsx",
-      "source_location": "L9",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "frontend_components_mentee_monitoring_hour_summary_card",
-      "target": "frontend_components_mentee_monitoring_utils_pending_styles",
-      "confidence_score": 1.0
-    },
-    {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -105926,7 +105914,7 @@
       "context": "field",
       "confidence": "EXTRACTED",
       "source_file": "frontend/components/mentee-monitoring/hour-summary-card.tsx",
-      "source_location": "L21",
+      "source_location": "L20",
       "weight": 1.0,
       "_origin": "ast",
       "source": "frontend_components_mentee_monitoring_hour_summary_card_hoursummarycardprops",
@@ -105938,7 +105926,7 @@
       "context": "field",
       "confidence": "EXTRACTED",
       "source_file": "frontend/components/mentee-monitoring/hour-summary-card.tsx",
-      "source_location": "L23",
+      "source_location": "L22",
       "weight": 1.0,
       "_origin": "ast",
       "source": "frontend_components_mentee_monitoring_hour_summary_card_hoursummarycardprops",
@@ -105951,7 +105939,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/components/mentee-monitoring/hour-summary-card.tsx",
-      "source_location": "L149",
+      "source_location": "L144",
       "weight": 1.0,
       "_origin": "ast",
       "source": "frontend_components_mentee_monitoring_hour_summary_card_hoursummarycard",
@@ -105963,7 +105951,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/components/mentee-monitoring/hour-summary-card.tsx",
-      "source_location": "L150",
+      "source_location": "L145",
       "weight": 1.0,
       "_origin": "ast",
       "source": "frontend_components_mentee_monitoring_hour_summary_card_hoursummarycard",
@@ -105975,7 +105963,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/components/mentee-monitoring/hour-summary-card.tsx",
-      "source_location": "L95",
+      "source_location": "L90",
       "weight": 1.0,
       "_origin": "ast",
       "source": "frontend_components_mentee_monitoring_hour_summary_card_hoursummarycard",
@@ -105987,7 +105975,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/components/mentee-monitoring/hour-summary-card.tsx",
-      "source_location": "L40",
+      "source_location": "L39",
       "weight": 1.0,
       "_origin": "ast",
       "source": "frontend_components_mentee_monitoring_hour_summary_card_hoursummarycard",
@@ -105999,7 +105987,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/components/mentee-monitoring/hour-summary-card.tsx",
-      "source_location": "L148",
+      "source_location": "L143",
       "weight": 1.0,
       "_origin": "ast",
       "source": "frontend_components_mentee_monitoring_hour_summary_card_hoursummarycard",
@@ -106011,7 +105999,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/components/mentee-monitoring/hour-summary-card.tsx",
-      "source_location": "L28",
+      "source_location": "L27",
       "weight": 1.0,
       "_origin": "ast",
       "source": "frontend_components_mentee_monitoring_hour_summary_card_hoursummarycard",
@@ -106023,7 +106011,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/components/mentee-monitoring/hour-summary-card.tsx",
-      "source_location": "L39",
+      "source_location": "L38",
       "weight": 1.0,
       "_origin": "ast",
       "source": "frontend_components_mentee_monitoring_hour_summary_card_hoursummarycard",
@@ -108919,7 +108907,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "frontend/components/mentee-monitoring/semester-grid.tsx",
-      "source_location": "L243",
+      "source_location": "L255",
       "weight": 1.0,
       "_origin": "ast",
       "source": "frontend_components_mentee_monitoring_semester_grid_semestergrid",
@@ -109016,7 +109004,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/components/mentee-monitoring/semester-grid.tsx",
-      "source_location": "L234",
+      "source_location": "L246",
       "weight": 1.0,
       "_origin": "ast",
       "source": "frontend_components_mentee_monitoring_semester_grid_semestergrid",
@@ -109040,7 +109028,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/components/mentee-monitoring/semester-grid.tsx",
-      "source_location": "L240",
+      "source_location": "L196",
       "weight": 1.0,
       "_origin": "ast",
       "source": "frontend_components_mentee_monitoring_semester_grid_semestergrid",
@@ -149730,5 +149718,5 @@
       "source_file": "docs/dev/onboarding/golden-path-first-pr.md"
     }
   ],
-  "built_at_commit": "9fdcffdcdd8360b13424d5907ec09c9a9cf53c3a"
+  "built_at_commit": "13fabeefda7d3ef287f856053a53a463d8e9a329"
 }

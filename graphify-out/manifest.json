@@ -3200,8 +3200,8 @@
     "semantic_hash": ""
   },
   "frontend/components/mentee-monitoring/mentee-monitoring-client.test.tsx": {
-    "mtime": 1792979971.7679193,
-    "ast_hash": "79361147e49d3490c52e529ce02101af",
+    "mtime": 1793200109.4730356,
+    "ast_hash": "af038294bb640bf2e6eb6f34aecd8e7b",
     "semantic_hash": ""
   },
   "frontend/components/personal/personal-client.test.tsx": {
@@ -3540,8 +3540,8 @@
     "semantic_hash": ""
   },
   "frontend/components/mentee-monitoring/hour-summary-card.tsx": {
-    "mtime": 1792979971.7224724,
-    "ast_hash": "dcd5c1f9dfe2d72d4d700d3a10ce7141",
+    "mtime": 1793200109.4726996,
+    "ast_hash": "406e5d170146eae08a8f847667aa5f57",
     "semantic_hash": ""
   },
   "frontend/components/mentee-monitoring/mcf-bar.tsx": {
@@ -3565,8 +3565,8 @@
     "semantic_hash": ""
   },
   "frontend/components/mentee-monitoring/semester-grid.tsx": {
-    "mtime": 1792979971.7686777,
-    "ast_hash": "353b9f390ee3a984f90c9b5a05be5ad1",
+    "mtime": 1793200109.4724998,
+    "ast_hash": "176196e63a394bd6a2b31ce5285dbd39",
     "semantic_hash": ""
   },
   "frontend/components/mentee-monitoring/tutoring-summary-card.tsx": {
@@ -3615,8 +3615,8 @@
     "semantic_hash": ""
   },
   "frontend/components/mentee-monitoring/hour-summary-card.test.tsx": {
-    "mtime": 1792979971.7219598,
-    "ast_hash": "3c63d0abbfb8813dc56e19cad20aeff6",
+    "mtime": 1793200109.4728692,
+    "ast_hash": "688a35bbc1ad37a881bce00c218f275d",
     "semantic_hash": ""
   },
   "frontend/components/mentee-monitoring/tier-badge.tsx": {

@@ -570,18 +570,26 @@ describe("MenteeMonitoringClient", () => {
     expect(within(legend).getByText("<60% / missed")).toBeTruthy()
   })
 
-  it("uses solid green and orange completion legend swatches", () => {
-    render(<MenteeMonitoringClient {...makeProps()} />)
+  it.each([
+    { label: "90%+", band: "green", percent: 95, backgroundClass: "bg-success/20" },
+    { label: "60–89%", band: "orange", percent: 75, backgroundClass: "bg-warning/25" },
+    { label: "<60% / missed", band: "red", percent: 40, backgroundClass: "bg-destructive/20" },
+  ] as const)("matches the $band completion legend swatch to its grid cells", ({ label, band, percent, backgroundClass }) => {
+    const review = makeReview({
+      semesterGrid: ok([
+        weekSummary(1, { phase: "past", hours: [hours("front_desk", { percent, band })] }),
+        weekSummary(2),
+        weekSummary(3, { phase: "future" }),
+      ]),
+    })
+    render(<MenteeMonitoringClient {...makeProps({ review })} />)
 
     const legend = within(screen.getByTestId("semester-legend"))
-    const green = legend.getByText("90%+").querySelector("span")!
-    const orange = legend.getByText("60–89%").querySelector("span")!
-    expect(green.className).toContain("bg-green-500")
-    expect(green.className).toContain("dark:bg-green-400")
-    expect(green.className).not.toContain("bg-success/20")
-    expect(orange.className).toContain("bg-orange-500")
-    expect(orange.className).toContain("dark:bg-orange-400")
-    expect(orange.className).not.toContain("bg-warning/25")
+    const swatch = legend.getByText(label).querySelector("span")!
+    const cell = screen.getByRole("button", { name: /^Front desk: week 1,/ })
+    expect(swatch.className).toContain(backgroundClass)
+    expect(cell.className).toContain(backgroundClass)
+    expect(swatch.style.backgroundColor).toBe(cell.style.backgroundColor)
   })
 
   it.each([

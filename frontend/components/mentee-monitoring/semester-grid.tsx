@@ -192,15 +192,27 @@ export function SemesterGrid({
             className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[13px] text-muted-foreground"
           >
             <li className="inline-flex items-center gap-1.5">
-              <span className="size-3.5 shrink-0 rounded-sm border border-green-600 bg-green-500 dark:border-green-300 dark:bg-green-400" aria-hidden />
+              <span
+                className={cn("size-3.5 shrink-0 rounded-sm border", TONE_CLASSES.green)}
+                style={{ backgroundColor: TONE_BACKGROUNDS.green }}
+                aria-hidden
+              />
               90%+
             </li>
             <li className="inline-flex items-center gap-1.5">
-              <span className="size-3.5 shrink-0 rounded-sm border border-orange-600 bg-orange-500 dark:border-orange-300 dark:bg-orange-400" aria-hidden />
+              <span
+                className={cn("size-3.5 shrink-0 rounded-sm border", TONE_CLASSES.orange)}
+                style={{ backgroundColor: TONE_BACKGROUNDS.orange }}
+                aria-hidden
+              />
               60–89%
             </li>
             <li className="inline-flex items-center gap-1.5">
-              <span className="size-3.5 rounded-sm border border-destructive/35 bg-destructive/20" aria-hidden />
+              <span
+                className={cn("size-3.5 rounded-sm border", TONE_CLASSES.red)}
+                style={{ backgroundColor: TONE_BACKGROUNDS.red }}
+                aria-hidden
+              />
               &lt;60% / missed
             </li>
             <li className="inline-flex items-center gap-1.5">
