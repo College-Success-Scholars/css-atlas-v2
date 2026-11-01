@@ -15,8 +15,10 @@ import {
   directoryMenteePath,
   directoryPath,
   initialDirectoryState,
+  teamLeadersByUid,
   type DirectoryFilters,
   type DirectoryState,
+  type DirectoryTeamLeader,
 } from "./directory-state";
 import { directoryTeamFilterOptions, directoryTeamPresentationFor } from "./directory-team-presentation";
 
@@ -383,6 +385,7 @@ export function DirectoryDashboard({ canViewTeamLeaderForms = false }: Directory
   const [selectedPerson, setSelectedPerson] = useState<DirectoryPerson | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [teamLeaders, setTeamLeaders] = useState<ReadonlyMap<string, DirectoryTeamLeader>>(() => new Map());
   const filters = { team: state.team, programRole: state.programRole, cohort: state.cohort };
   const effectiveState = { ...state, search: debouncedSearch };
 
@@ -391,6 +394,14 @@ export function DirectoryDashboard({ canViewTeamLeaderForms = false }: Directory
       if (result.ok) setFacets(result.data);
     });
   }, []);
+
+  useEffect(() => {
+    // Only team_leader+ viewers get the team leader popup, so nobody else loads the lookup.
+    if (!canViewTeamLeaderForms) return;
+    backendGet<DirectoryTeamLeader[]>("/api/users/team-leaders").then((result) => {
+      if (result.ok) setTeamLeaders(teamLeadersByUid(result.data));
+    });
+  }, [canViewTeamLeaderForms]);
 
   useEffect(() => {
     let cancelled = false;
