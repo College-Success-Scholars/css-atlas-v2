@@ -365,7 +365,12 @@ function useGroupCursorPagination() {
   return { currentCursor, currentPage, goNext, goPrevious, reset };
 }
 
-export function DirectoryDashboard() {
+type DirectoryDashboardProps = {
+  /** Server-checked team_leader+ gate; viewers below it never get the team leader forms popup. */
+  canViewTeamLeaderForms?: boolean;
+};
+
+export function DirectoryDashboard({ canViewTeamLeaderForms = false }: DirectoryDashboardProps) {
   const router = useRouter();
   const [state, setState] = useState<DirectoryState>(initialDirectoryState);
   const [searchInput, setSearchInput] = useState(initialDirectoryState.search);
