@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { DirectoryDashboard } from "./directory-dashboard";
 
 const api = vi.hoisted(() => ({ backendGet: vi.fn(), backendPost: vi.fn() }));
@@ -26,6 +26,69 @@ const directory = {
   pagination: { total: 2, range: { start: 1, end: 2 }, hasNext: false, nextCursor: null },
 };
 
+describe("DirectoryDashboard pins", () => {
+  beforeEach(() => {
+    window.matchMedia = vi.fn().mockReturnValue({ addEventListener() {}, removeEventListener() {} });
+    api.backendGet.mockImplementation(async (path: string) =>
+      path.startsWith("/api/users/directory/facets")
+        ? { ok: true, data: { teams: [], programRoles: [], cohorts: [] } }
+        : { ok: true, data: directory },
+    );
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+    localStorage.clear();
+  });
+
+  const pinnedSection = () => screen.getByRole("heading", { name: "Pinned" }).closest("section") as HTMLElement;
+
+  it("starts empty and explains how to pin", async () => {
+    render(<DirectoryDashboard viewerId="viewer-a" />);
+    await screen.findByText("Sam Rivera");
+    expect(within(pinnedSection()).getByText(/No one pinned yet/)).toBeDefined();
+  });
+
+  it("pins a person into the Pinned section and keeps them for the next visit", async () => {
+    const { unmount } = render(<DirectoryDashboard viewerId="viewer-a" />);
+    fireEvent.click(await screen.findByRole("button", { name: "Pin Sam Rivera" }));
+    expect(within(pinnedSection()).getByText("Sam Rivera")).toBeDefined();
+    expect(within(pinnedSection()).getByRole("button", { name: "Unpin Sam Rivera" }).getAttribute("aria-pressed")).toBe("true");
+    unmount();
+
+    render(<DirectoryDashboard viewerId="viewer-a" />);
+    await waitFor(() => expect(within(pinnedSection()).getByText("Sam Rivera")).toBeDefined());
+  });
+
+  it("only shows a viewer their own pins", async () => {
+    localStorage.setItem("directory:pins:viewer-a", JSON.stringify([directory.members[1]]));
+    render(<DirectoryDashboard viewerId="viewer-b" />);
+    await screen.findByText("Sam Rivera");
+    expect(within(pinnedSection()).queryByText("Sam Rivera")).toBeNull();
+  });
+
+  it("hides everyone else when Pinned only is on", async () => {
+    localStorage.setItem("directory:pins:viewer-a", JSON.stringify([directory.members[1]]));
+    render(<DirectoryDashboard viewerId="viewer-a" />);
+    await screen.findByText("Jordan Ellis");
+    fireEvent.click(screen.getByRole("button", { name: /Pinned only/ }));
+    expect(screen.queryByText("Jordan Ellis")).toBeNull();
+    expect(screen.queryByText("All members")).toBeNull();
+    expect(within(pinnedSection()).getByText("Sam Rivera")).toBeDefined();
+  });
+
+  it("unpins without opening the person", async () => {
+    localStorage.setItem("directory:pins:viewer-a", JSON.stringify([directory.members[1]]));
+    render(<DirectoryDashboard viewerId="viewer-a" />);
+    await waitFor(() => expect(within(pinnedSection()).getByText("Sam Rivera")).toBeDefined());
+    fireEvent.click(within(pinnedSection()).getByRole("button", { name: "Unpin Sam Rivera" }));
+    expect(within(pinnedSection()).queryByText("Sam Rivera")).toBeNull();
+    expect(screen.queryByText(/Profile details are coming soon/)).toBeNull();
+    expect(JSON.parse(localStorage.getItem("directory:pins:viewer-a") ?? "[]")).toEqual([]);
+  });
+});
+
 describe("DirectoryDashboard team leader popup", () => {
   beforeEach(() => {
     window.matchMedia = vi.fn().mockReturnValue({ addEventListener() {}, removeEventListener() {} });
@@ -40,6 +103,7 @@ describe("DirectoryDashboard team leader popup", () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
   const row = async (name: string) => (await screen.findByText(name)).closest('[role="button"]') as HTMLElement;
