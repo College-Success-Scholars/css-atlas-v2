@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, type ReactNode } from "react"
 import { ExternalLink } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -20,6 +20,7 @@ import {
   mcfProgressLabel,
   type FormType,
   type FormStatusResult,
+  type McfMenteeOption,
 } from "./utils"
 import {
   gradeScoreClass,
@@ -30,8 +31,8 @@ import {
 } from "@/lib/format/form-view-helpers"
 
 // Form detail views shared by the Personal page and the Directory team leader
-// popup. `readOnly` drops the viewer's own write shortcuts (Workday) so another
-// person's submissions can be shown without them.
+// popup. The popup shows someone else's submissions, so it passes `readOnly` to
+// drop the viewer's own Workday shortcut and `variant="directory"` for its layout.
 
 const WORKDAY_URL = "https://www.myworkday.com/umd/login-saml2.htmld"
 
@@ -105,14 +106,19 @@ export function StatusBadge({ status }: { status: FormStatusResult["status"] }) 
 // Form Type Tabs
 // ---------------------------------------------------------------------------
 
+/** A status shown inside a form tab, e.g. a green dot and "On time". */
+export type FormTabStatus = { label: string; dotClassName: string }
+
 export function FormTypeTabs({
   activeTab,
   onTabChange,
   panelId,
+  statuses,
 }: {
   activeTab: FormType
   onTabChange: (formType: FormType) => void
   panelId: string
+  statuses?: Partial<Record<FormType, FormTabStatus>>
 }) {
   return (
     <div
@@ -122,6 +128,7 @@ export function FormTypeTabs({
     >
       {FORM_TYPES.map((ft) => {
         const selected = activeTab === ft
+        const tabStatus = statuses?.[ft]
         return (
           <button
             key={ft}
@@ -131,13 +138,19 @@ export function FormTypeTabs({
             id={`${panelId}-tab-${ft}`}
             aria-controls={panelId}
             onClick={() => onTabChange(ft)}
-            className={`cursor-pointer rounded-full border px-4 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+            className={`inline-flex cursor-pointer items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
               selected
                 ? "border-primary/50 bg-primary/5 text-foreground ring-1 ring-primary/35"
                 : "border-border text-muted-foreground hover:text-foreground"
             }`}
           >
+            {tabStatus && (
+              <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${tabStatus.dotClassName}`} />
+            )}
             {ft}
+            {tabStatus && (
+              <span className="text-xs font-normal text-muted-foreground">{tabStatus.label}</span>
+            )}
           </button>
         )
       })}
@@ -223,10 +236,16 @@ export function McfWeekPanel({
   campusWeek,
   mcf,
   mentees,
+  picker = "select",
+  notYetDue = false,
 }: {
   campusWeek: number
   mcf: McfRow[]
   mentees: MenteeRow[]
+  /** "list" shows every mentee as a button with their submission state. */
+  picker?: "select" | "list"
+  /** The week's deadline hasn't passed, so a missing MCF is not yet late. */
+  notYetDue?: boolean
 }) {
   const options = useMemo(
     () => buildMcfMenteeOptions(mentees, mcf, campusWeek),
@@ -242,7 +261,14 @@ export function McfWeekPanel({
 
   return (
     <div className="space-y-4">
-      {options.length >= 1 ? (
+      {picker === "list" ? (
+        <McfMenteeList
+          options={options}
+          selectedKey={selected?.key ?? ""}
+          onSelect={setSelectedKey}
+          notYetDue={notYetDue}
+        />
+      ) : (
         <div className="space-y-1.5">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Mentee
@@ -264,7 +290,7 @@ export function McfWeekPanel({
             </SelectContent>
           </Select>
         </div>
-      ) : null}
+      )}
       <McfTabBody
         row={selected?.submission ?? null}
         emptyLabel={
@@ -277,9 +303,73 @@ export function McfWeekPanel({
   )
 }
 
-export function WahfTabBody({ row }: { row: WahfRow | null }) {
+const MENTEE_STATE_DOT_CLASSES = {
+  submitted: "bg-success",
+  "not yet due": "bg-info",
+  missing: "bg-destructive",
+}
+
+function McfMenteeList({
+  options,
+  selectedKey,
+  onSelect,
+  notYetDue,
+}: {
+  options: McfMenteeOption[]
+  selectedKey: string
+  onSelect: (key: string) => void
+  notYetDue: boolean
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        Mentees · select one to see their form
+      </p>
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        {options.map((option) => {
+          const selected = option.key === selectedKey
+          const state = option.submission ? "submitted" : notYetDue ? "not yet due" : "missing"
+          return (
+            <button
+              key={option.key}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => onSelect(option.key)}
+              className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-4 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+                selected
+                  ? "border-primary/50 bg-primary/5 ring-1 ring-primary/35"
+                  : "border-border hover:bg-muted/60"
+              }`}
+            >
+              <span
+                aria-hidden="true"
+                className={`size-2 shrink-0 rounded-full ${MENTEE_STATE_DOT_CLASSES[state]}`}
+              />
+              <span className="flex-1 font-medium">{option.menteeName}</span>
+              <span className="text-xs text-muted-foreground">{state}</span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+/** "directory" is the Directory team leader popup's layout; Personal uses the default. */
+type FormBodyVariant = "default" | "directory"
+
+export function WahfTabBody({
+  row,
+  emptyLabel,
+  variant = "default",
+}: {
+  row: WahfRow | null
+  emptyLabel?: string
+  variant?: FormBodyVariant
+}) {
+  if (variant === "directory") return <WahfOverview row={row} emptyLabel={emptyLabel} />
   if (!row) {
-    return <p className="text-sm text-muted-foreground">Not submitted for this week.</p>
+    return <p className="text-sm text-muted-foreground">{emptyLabel ?? "Not submitted for this week."}</p>
   }
 
   const grades = row.assignment_grades && Object.keys(row.assignment_grades).length > 0
@@ -360,15 +450,31 @@ export function WahfTabBody({ row }: { row: WahfRow | null }) {
   )
 }
 
-export function WplTabBody({ row }: { row: WplRow | null }) {
+export function WplTabBody({
+  row,
+  emptyLabel,
+  variant = "default",
+}: {
+  row: WplRow | null
+  emptyLabel?: string
+  variant?: FormBodyVariant
+}) {
+  const isDirectory = variant === "directory"
   if (!row) {
-    return <p className="text-sm text-muted-foreground">Not submitted for this week.</p>
+    const label = emptyLabel ?? "Not submitted for this week."
+    return isDirectory ? (
+      <EmptyFormState>{label}</EmptyFormState>
+    ) : (
+      <p className="text-sm text-muted-foreground">{label}</p>
+    )
   }
 
   const projects = parseWplProjectRows(row.projects)
   const met = row.met_with_all?.trim() || "—"
   const hours = row.hours_worked
   const explanation = row.explanation?.trim() ?? ""
+  // The form only asks for an explanation when the TL didn't meet every scholar.
+  const showExplanationUnderMet = isDirectory && /^no\b/i.test(met)
 
   const additional: { label: string; value: string }[] = []
   if (row.full_name?.trim()) additional.push({ label: "Name", value: row.full_name })
@@ -387,11 +493,23 @@ export function WplTabBody({ row }: { row: WplRow | null }) {
         </p>
       </div>
 
-      <div>
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Met with all scholars
-        </p>
-        <p className="mt-1 font-semibold text-foreground">{met}</p>
+      <div className="space-y-2">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Met with all scholars
+          </p>
+          <p className="mt-1 font-semibold text-foreground">{met}</p>
+        </div>
+        {showExplanationUnderMet && (
+          <div>
+            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Explanation
+            </p>
+            <div className="whitespace-pre-line rounded-lg border border-border bg-muted/40 px-3 py-3 text-foreground">
+              {explanation || "—"}
+            </div>
+          </div>
+        )}
       </div>
 
       <div>
@@ -412,25 +530,106 @@ export function WplTabBody({ row }: { row: WplRow | null }) {
         )}
       </div>
 
-      <div>
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Explanation / notes
-        </p>
-        {explanation ? (
-          <div className="rounded-lg border border-border bg-muted/40 px-3 py-3 text-foreground">
-            {explanation}
-          </div>
-        ) : (
-          <p className="text-muted-foreground">—</p>
-        )}
-      </div>
+      {!isDirectory && (
+        <div>
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Explanation / notes
+          </p>
+          {explanation ? (
+            <div className="rounded-lg border border-border bg-muted/40 px-3 py-3 text-foreground">
+              {explanation}
+            </div>
+          ) : (
+            <p className="text-muted-foreground">—</p>
+          )}
+        </div>
+      )}
 
-      {additional.length > 0 && <AdditionalDetailsSection items={additional} />}
+      {!isDirectory && additional.length > 0 && <AdditionalDetailsSection items={additional} />}
     </div>
   )
 }
 
-export function McfTabBody({ row, emptyLabel }: { row: McfRow | null; emptyLabel?: string }) {
+// ---------------------------------------------------------------------------
+// Directory popup layout
+// ---------------------------------------------------------------------------
+
+function OverviewLabel({ children }: { children: ReactNode }) {
+  return (
+    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground sm:text-xs">
+      {children}
+    </p>
+  )
+}
+
+function EmptyFormState({ children }: { children: ReactNode }) {
+  return (
+    <p className="rounded-lg border border-dashed px-3 py-6 text-center text-sm text-muted-foreground sm:px-4 sm:py-7 sm:text-[15px]">
+      {children}
+    </p>
+  )
+}
+
+/** WAHF as the Directory popup lays it out: key facts, then grades, then misses. */
+function WahfOverview({ row, emptyLabel }: { row: WahfRow | null; emptyLabel?: string }) {
+  if (!row) return <EmptyFormState>{emptyLabel ?? "Not submitted for this week."}</EmptyFormState>
+
+  const facts = [
+    { label: "Scholar", value: row.scholar_name?.trim() || "—" },
+    { label: "Submitted", value: formatSubmittedDay(row.created_at) },
+    { label: "TL meeting in person", value: row.tl_meeting_in_person?.trim() || "—" },
+  ]
+  const grades = Object.entries(row.assignment_grades ?? {}).flatMap(([course, assignments]) =>
+    Object.entries(assignments).map(([assignment, grade]) => ({ course, assignment, grade: String(grade) })),
+  )
+  const details = [
+    { label: "Missed classes", value: missedFieldDisplay(row.missed_classes) },
+    { label: "Missed assignments", value: missedFieldDisplay(row.missed_assignments) },
+    { label: "Course changes", value: row.course_changes?.trim() || "—" },
+  ]
+  if (row.course_change_details?.trim()) {
+    details.push({ label: "Course change details", value: row.course_change_details.trim() })
+  }
+
+  return (
+    <div className="space-y-4 sm:space-y-5">
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-3.5 sm:grid-cols-3 sm:gap-x-6 sm:gap-y-4">
+        {facts.map((fact) => (
+          <div key={fact.label} className="space-y-1 sm:space-y-1.5">
+            <dt><OverviewLabel>{fact.label}</OverviewLabel></dt>
+            <dd className="text-[15px] font-semibold text-foreground sm:text-[17px]">{fact.value}</dd>
+          </div>
+        ))}
+      </dl>
+
+      {grades.length > 0 && (
+        <div className="space-y-1.5 sm:space-y-2">
+          <OverviewLabel>Assignment grades</OverviewLabel>
+          <ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-3 sm:gap-2">
+            {grades.map((g) => (
+              <li
+                key={`${g.course}-${g.assignment}`}
+                className="flex items-center justify-between gap-2 rounded-lg bg-muted px-3 py-2.5 text-sm"
+              >
+                <span className="min-w-0 text-foreground/80">{g.course} · {g.assignment}</span>
+                <span className="shrink-0 font-semibold tabular-nums">{g.grade}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {details.map((detail) => (
+        <div key={detail.label} className="space-y-1 sm:space-y-1.5">
+          <OverviewLabel>{detail.label}</OverviewLabel>
+          <p className="text-[15px] leading-relaxed text-foreground/90 sm:text-base">{detail.value}</p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function McfTabBody({ row, emptyLabel }: { row: McfRow | null; emptyLabel?: string }) {
   if (!row) {
     return (
       <p className="text-sm text-muted-foreground">
@@ -512,7 +711,7 @@ export function McfTabBody({ row, emptyLabel }: { row: McfRow | null; emptyLabel
   )
 }
 
-export function AdditionalDetailsSection({ items }: { items: { label: string; value: string }[] }) {
+function AdditionalDetailsSection({ items }: { items: { label: string; value: string }[] }) {
   return (
     <div className="space-y-2 border-t border-border pt-4">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">

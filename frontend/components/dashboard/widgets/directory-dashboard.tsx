@@ -14,29 +14,20 @@ import {
   activeFilterCount,
   directoryMenteePath,
   directoryPath,
+  directoryTeamLeaderFor,
   initialDirectoryState,
   teamLeadersByUid,
   type DirectoryFilters,
+  type DirectoryPerson,
   type DirectoryState,
   type DirectoryTeamLeader,
 } from "./directory-state";
+import { Avatar, teamBadgeClassName } from "./directory-person-badges";
 import { directoryTeamFilterOptions, directoryTeamPresentationFor } from "./directory-team-presentation";
+import { TeamLeaderFormsPopup, type TeamLeaderSelection } from "./team-leader-forms-popup";
 
 const PAGE_SIZE = 10;
 const ALL_VALUE = "all";
-
-type DirectoryPerson = {
-  id: string;
-  name: string;
-  uid: string | null;
-  cohort: number | null;
-  email: string | null;
-  phoneNumber: string | null;
-  teams: string[];
-  programRole: string | null;
-  /** Team-leader viewers see this; RLS returns false for everyone else. */
-  isMentee: boolean;
-};
 
 type Pagination = {
   total: number;
@@ -57,70 +48,6 @@ const LARGE_GROUP_THRESHOLD = 50;
 
 /** Shared column template so the header row and every person row line up. */
 const DIRECTORY_GRID_COLS = "grid-cols-[minmax(11rem,1.4fr)_4.5rem_minmax(13rem,1.2fr)_minmax(11rem,1fr)_1.5rem]";
-
-/** Deterministic pastel palette so the same team or name always gets the same color. */
-function paletteIndex(value: string, size: number): number {
-  let hash = 0;
-  for (let i = 0; i < value.length; i++) hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
-  return hash % size;
-}
-
-const TEAM_BADGE_STYLES = [
-    "border-blue-400/40 bg-blue-500/10 text-blue-700 dark:text-blue-300",
-    "border-cyan-400/40 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300",
-    "border-teal-400/40 bg-teal-500/10 text-teal-700 dark:text-teal-300",
-    "border-emerald-400/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-    "border-green-400/40 bg-green-500/10 text-green-700 dark:text-green-300",
-    "border-lime-400/40 bg-lime-500/10 text-lime-700 dark:text-lime-300",
-    "border-yellow-400/40 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300",
-    "border-amber-400/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-    "border-orange-400/40 bg-orange-500/10 text-orange-700 dark:text-orange-300",
-    "border-red-400/40 bg-red-500/10 text-red-700 dark:text-red-300",
-    "border-rose-400/40 bg-rose-500/10 text-rose-700 dark:text-rose-300",
-    "border-pink-400/40 bg-pink-500/10 text-pink-700 dark:text-pink-300",
-    "border-fuchsia-400/40 bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300",
-    "border-purple-400/40 bg-purple-500/10 text-purple-700 dark:text-purple-300",
-    "border-violet-400/40 bg-violet-500/10 text-violet-700 dark:text-violet-300",
-    "border-indigo-400/40 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
-    "border-sky-400/40 bg-sky-500/10 text-sky-700 dark:text-sky-300",
-    "border-fuchsia-300/40 bg-fuchsia-400/10 text-fuchsia-700 dark:text-fuchsia-300",
-    "border-purple-300/40 bg-purple-400/10 text-purple-700 dark:text-purple-300",
-    "border-rose-300/40 bg-rose-400/10 text-rose-700 dark:text-rose-300",
-  ];
-
-function teamBadgeClassName(team: string): string {
-  return TEAM_BADGE_STYLES[paletteIndex(team, TEAM_BADGE_STYLES.length)]!;
-}
-
-const AVATAR_STYLES = [
-  "bg-rose-500/15 text-rose-700 dark:text-rose-300",
-  "bg-sky-500/15 text-sky-700 dark:text-sky-300",
-  "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
-  "bg-amber-500/15 text-amber-700 dark:text-amber-300",
-  "bg-violet-500/15 text-violet-700 dark:text-violet-300",
-];
-
-function avatarClassName(name: string): string {
-  return AVATAR_STYLES[paletteIndex(name, AVATAR_STYLES.length)]!;
-}
-
-function initialsFor(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  const first = parts[0]?.[0] ?? "";
-  const last = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? "" : "";
-  return (first + last).toUpperCase() || "?";
-}
-
-function Avatar({ name }: { name: string }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${avatarClassName(name)}`}
-    >
-      {initialsFor(name)}
-    </span>
-  );
-}
 
 /** Long enough that a double-click can select a UID before the row opens the profile. */
 const ROW_OPEN_DELAY_MS = 300;
@@ -383,6 +310,7 @@ export function DirectoryDashboard({ canViewTeamLeaderForms = false }: Directory
   const groupPages = useGroupCursorPagination();
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [selectedPerson, setSelectedPerson] = useState<DirectoryPerson | null>(null);
+  const [selectedTeamLeader, setSelectedTeamLeader] = useState<TeamLeaderSelection | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [teamLeaders, setTeamLeaders] = useState<ReadonlyMap<string, DirectoryTeamLeader>>(() => new Map());
@@ -454,6 +382,11 @@ export function DirectoryDashboard({ canViewTeamLeaderForms = false }: Directory
   const toggleGroup = (team: string) => setExpandedGroup((current) => (current === team ? null : team));
 
   const openPerson = (person: DirectoryPerson) => {
+    const teamLeader = canViewTeamLeaderForms ? directoryTeamLeaderFor(person.uid, teamLeaders) : null;
+    if (teamLeader) {
+      setSelectedTeamLeader({ person, teamLeader });
+      return;
+    }
     const menteePath = directoryMenteePath(person.uid, person.isMentee, person.cohort);
     if (menteePath) {
       router.push(menteePath);
@@ -602,6 +535,8 @@ export function DirectoryDashboard({ canViewTeamLeaderForms = false }: Directory
           {!response.groups.length && <p className="py-8 text-center text-muted-foreground">No matching teams.</p>}
         </section>
       )}
+
+      <TeamLeaderFormsPopup selection={selectedTeamLeader} onClose={() => setSelectedTeamLeader(null)} />
 
       <Dialog open={selectedPerson !== null} onOpenChange={(open) => { if (!open) setSelectedPerson(null); }}>
         <DialogContent>

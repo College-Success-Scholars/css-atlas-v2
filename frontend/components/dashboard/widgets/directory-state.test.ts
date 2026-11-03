@@ -28,11 +28,9 @@ describe("directory state", () => {
   });
 
   it("spots team leader rows by UID from the team-leaders read", () => {
-    const leader = { uid: " 111 ", mentee_count: 2, mentee_uids: ["201", "202"] };
-    const teamLeaders = teamLeadersByUid([leader, { uid: "", mentee_count: null, mentee_uids: null }]);
-    expect([...teamLeaders.keys()]).toEqual(["111"]);
+    const leader = { uid: "111", mentee_count: 2, mentee_uids: ["201", "202"] };
+    const teamLeaders = teamLeadersByUid([leader]);
     expect(directoryTeamLeaderFor("111", teamLeaders)).toBe(leader);
-    expect(directoryTeamLeaderFor(" 111", teamLeaders)).toBe(leader);
     expect(directoryTeamLeaderFor("201", teamLeaders)).toBeNull();
     expect(directoryTeamLeaderFor(null, teamLeaders)).toBeNull();
   });

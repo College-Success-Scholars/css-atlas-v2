@@ -16,7 +16,7 @@
 
 import { format } from "date-fns"
 
-import { campusWeekToDateRange } from "./time"
+import { WINTER_BREAK_CAMPUS_WEEK_NUMBER, campusWeekToDateRange } from "./time"
 
 export function parseWeekParam(weekParam?: string): number | null {
   if (!weekParam || !/^\d+$/.test(weekParam)) return null
@@ -46,6 +46,23 @@ export function formatCampusWeekOptionLabel(
 export function campusWeekNumbers(maxWeek: number | null): number[] {
   if (maxWeek == null || maxWeek < 1) return []
   return Array.from({ length: maxWeek }, (_, i) => i + 1)
+}
+
+/**
+ * Campus weeks of the semester `currentCampusWeek` falls in, ascending. Fall runs
+ * from week 1 to the week before winter break, and winter break still shows Fall.
+ * Spring has no configured end, so it is assumed to run as many weeks as Fall.
+ */
+export function semesterCampusWeeks(
+  currentCampusWeek: number | null,
+  winterBreakWeek: number = WINTER_BREAK_CAMPUS_WEEK_NUMBER,
+): number[] {
+  if (currentCampusWeek == null || currentCampusWeek < 1) return []
+  const fallWeeks = winterBreakWeek - 1
+  if (currentCampusWeek <= winterBreakWeek) return campusWeekNumbers(fallWeeks)
+  const springStart = winterBreakWeek + 1
+  const springEnd = Math.max(currentCampusWeek, winterBreakWeek + fallWeeks)
+  return Array.from({ length: springEnd - springStart + 1 }, (_, i) => springStart + i)
 }
 
 /**
