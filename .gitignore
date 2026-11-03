@@ -12,6 +12,7 @@ backend/dist
 site/
 docs/dev/backend/api.md
 docs/reference/api/
+docs/dev/supabase/tables-overview.md
 openspec/
 .opencode/
 graphify-out

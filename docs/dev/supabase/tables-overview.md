@@ -21,119 +21,64 @@ This doc describes **structure and product use only** — not row data.
 
 ---
 
+## Categories
+
+Every public table has **exactly one** primary category. Use this to scan by role (e.g. all Google Form raw intake) instead of hunting by secrecy or name.
+
+| Category | Meaning |
+|----------|---------|
+| **Form intake** | Raw rows from Google Forms → Postgres. Atlas mostly reads; intake lives outside the app. |
+| **Identity & roster** | People, auth profile, and mentor ↔ mentee links. |
+| **Attendance ops** | App/DB attendance math outside raw form tickets (excuses, shifts, daily rollup). |
+| **Semester config** | Academic calendar windows used as FK / detector scope. |
+| **Kiosk traffic** | Public foot-traffic events and their legacy weekly rollup. |
+| **Ops plumbing** | Delivery / sync machinery — not scholar-facing domain tables. |
+| **Legacy / frozen** | Do not use for new features; kept for history or old RPCs. |
+| **Dev tooling** | Developer-only personas and QA helpers. |
+| **Unused stubs** | Schema present; no Atlas product path yet. |
+
+Writer is implied by category: Form intake = Google Forms; Identity / Attendance / Semester / Kiosk / Dev = Atlas or ops (plus triggers for `daily_scholar_activity`); Ops plumbing calendar tables = external/future sync; Legacy and Unused as named.
+
+---
+
 ## Summary matrix
 
-| Table | Importance | Table secrecy (max) | Atlas status |
-|-------|------------|---------------------|--------------|
-| [`profiles`](#profiles) | Critical | Critical | Core auth / identity |
-| [`user_roster`](#user_roster) | Critical | Critical | Roster source of truth |
-| [`mentor_mentee`](#mentor_mentee) | Critical | High | Mentor ↔ mentee map |
-| [`front_desk_logs`](#front_desk_logs) | Critical | High | FD attendance (compute-on-read) |
-| [`study_session_logs`](#study_session_logs) | Critical | High | SS attendance (compute-on-read) |
-| [`whaf_form_logs`](#whaf_form_logs) | High | Critical | Weekly grades / honors form |
-| [`mcf_form_logs`](#mcf_form_logs) | High | Critical | Mentee check-in notes |
-| [`wpl_form_logs`](#wpl_form_logs) | High | High | TL weekly project list |
-| [`tutor_report_logs`](#tutor_report_logs) | High | High | Tutoring board + Memo |
-| [`scholar_week_excuses`](#scholar_week_excuses) | High | High | TL excuses in attendance math |
-| [`scholar_shift_assignments`](#scholar_shift_assignments) | High | High | Shift compliance + Slack detectors |
-| [`notification_log`](#notification_log) | Medium | Critical | Slack delivery idempotency |
-| [`semesters`](#semesters) / [`semester_breaks`](#semester_breaks) | Medium | Low | DB semester scope + break skips |
-| [`traffic`](#traffic) | Medium | High* | Kiosk + Memo traffic KPIs |
-| [`daily_scholar_activity`](#daily_scholar_activity) | Low | High | Trigger rollup; not Memo path |
-| [`dev_test_profiles`](#dev_test_profiles) | Low (ops) | Dev-only | `/dev` act-as personas |
-| [`scholar_weekly_stats`](#scholar_weekly_stats) | Low | High | Legacy memo aggregate |
-| [`traffic_weekly_summary`](#traffic_weekly_summary) | Low | Low | Legacy memo aggregate |
-| [`front_desk_records_legacy`](#front_desk_records_legacy) / [`study_session_records_legacy`](#study_session_records_legacy) | None | High | Frozen — do not use |
-| [`am_pm_form_logs`](#am_pm_form_logs) | None yet | High | Google intake; unread by app |
-| [`calendar_events`](#calendar_events) | None yet | Medium | Schema present; UI still mock |
-| [`calendar_sync_state`](#calendar_sync_state) | None yet | Ops-secret | Sync cursor only |
-| [`career_opportunities`](#career_opportunities) | None yet | Low | Stub; internship board is mock |
-| [`mentee_meeting_preferences`](#mentee_meeting_preferences) | None yet | High | Remote/schema; no app code |
+| Table | Category | Importance | Table secrecy (max) | Atlas status |
+|-------|----------|------------|---------------------|--------------|
+| [`front_desk_logs`](#front_desk_logs) | Form intake | Critical | High | FD attendance (compute-on-read) |
+| [`study_session_logs`](#study_session_logs) | Form intake | Critical | High | SS attendance (compute-on-read) |
+| [`whaf_form_logs`](#whaf_form_logs) | Form intake | High | Critical | Weekly grades / honors form |
+| [`mcf_form_logs`](#mcf_form_logs) | Form intake | High | Critical | Mentee check-in notes |
+| [`wpl_form_logs`](#wpl_form_logs) | Form intake | High | High | TL weekly project list |
+| [`tutor_report_logs`](#tutor_report_logs) | Form intake | High | High | Tutoring board + Memo |
+| [`am_pm_form_logs`](#am_pm_form_logs) | Form intake | None yet | High | Google intake; unread by app |
+| [`profiles`](#profiles) | Identity & roster | Critical | Critical | Core auth / identity |
+| [`user_roster`](#user_roster) | Identity & roster | Critical | Critical | Roster source of truth |
+| [`mentor_mentee`](#mentor_mentee) | Identity & roster | Critical | High | Mentor ↔ mentee map |
+| [`scholar_week_excuses`](#scholar_week_excuses) | Attendance ops | High | High | TL excuses in attendance math |
+| [`scholar_shift_assignments`](#scholar_shift_assignments) | Attendance ops | High | High | Shift compliance + Slack detectors |
+| [`daily_scholar_activity`](#daily_scholar_activity) | Attendance ops | Low | High | Trigger rollup; not Memo path |
+| [`semesters`](#semesters) | Semester config | Medium | Low | DB semester scope |
+| [`semester_breaks`](#semester_breaks) | Semester config | Medium | Low | Break-day skips for detectors |
+| [`traffic`](#traffic) | Kiosk traffic | Medium | High* | Kiosk + Memo traffic KPIs |
+| [`traffic_weekly_summary`](#traffic_weekly_summary) | Kiosk traffic | Low | Low | Legacy memo aggregate |
+| [`notification_log`](#notification_log) | Ops plumbing | Medium | Critical | Slack delivery idempotency |
+| [`calendar_events`](#calendar_events) | Ops plumbing | None yet | Medium | Schema present; UI still mock |
+| [`calendar_sync_state`](#calendar_sync_state) | Ops plumbing | None yet | Ops-secret | Sync cursor only |
+| [`front_desk_records_legacy`](#front_desk_records_legacy--study_session_records_legacy) | Legacy / frozen | None | High | Frozen — do not use |
+| [`study_session_records_legacy`](#front_desk_records_legacy--study_session_records_legacy) | Legacy / frozen | None | High | Frozen — do not use |
+| [`scholar_weekly_stats`](#scholar_weekly_stats) | Legacy / frozen | Low | High | Legacy memo aggregate |
+| [`dev_test_profiles`](#dev_test_profiles) | Dev tooling | Low (ops) | Dev-only | `/dev` act-as personas |
+| [`career_opportunities`](#career_opportunities) | Unused stubs | None yet | Low | Stub; internship board is mock |
+| [`mentee_meeting_preferences`](#mentee_meeting_preferences) | Unused stubs | None yet | High | Remote/schema; no app code |
 
 \* `traffic.uid` is High when present; anonymous entry/exit rows are Low.
 
 ---
 
-## Identity & roster
+## Form intake
 
-### `profiles`
-
-| | |
-|--|--|
-| **Importance** | Critical — signed-in user record; roles, `student_id` → roster, Slack id. |
-| **Table secrecy** | Critical |
-| **How Atlas uses it** | Auth middleware and `/api/auth/me`; complete-profile / login; dual-write with roster on `/dev/profiles`; notification recipient resolution. Created/updated by app (+ `handle_new_user` on auth). |
-
-| Column | Secrecy | Why |
-|--------|---------|-----|
-| `emails` | Critical | Direct contact; account recovery surface |
-| `phone_number` | Critical | Direct contact |
-| `slack_user_id` | Critical | Opens Slack DM / identity across systems |
-| `student_id` | High | Scholar UID; joins to roster + all scholar data |
-| `id` | High | Auth user PK; joins everything about the signed-in person |
-| `first_name` / `last_name` / `full_name` | High | Direct identifiers |
-| `app_role` | Medium | Privilege level (not PII, but security-sensitive) |
-| `program_role` / `status` / `teams` | Medium | Program affiliation |
-| `majors` / `minors` / `cohort` | Medium | Soft academic/demographic context |
-| `fd_required` / `ss_required` / `mentee_count` | Low | Program numbers |
-| `created_at` | Low | Metadata |
-
-### `user_roster`
-
-| | |
-|--|--|
-| **Importance** | Critical — pre-invite directory and required FD/SS hours; source of truth for roster ops. |
-| **Table secrecy** | Critical |
-| **How Atlas uses it** | Directory, Memo scholar lists, eligibility, `/dashboard/roster`, mentee joins, developer roster RPCs. App/ops-written. |
-
-| Column | Secrecy | Why |
-|--------|---------|-----|
-| `email` | Critical | Invite + contact |
-| `phone_number` | Critical | Direct contact |
-| `uid` | High | Canonical scholar key across Atlas |
-| `first_name` / `last_name` | High | Direct identifiers |
-| `mentee_uids` | High | Reveals who is assigned to whom |
-| `app_role` | Medium | Privilege to copy onto profile |
-| `program_role` / `status` / `teams` | Medium | Program affiliation |
-| `majors` / `minors` / `cohort` | Medium | Soft academic context |
-| `invite_sent_at` / `invite_accepted_at` | Medium | Auth lifecycle (who was invited when) |
-| `fd_required` / `ss_required` / `mentee_count` | Low | Program numbers |
-| `id` / `created_at` | Low | Row metadata |
-
-### `mentor_mentee`
-
-| | |
-|--|--|
-| **Importance** | Critical — who mentors whom. |
-| **Table secrecy** | High |
-| **How Atlas uses it** | `/dashboard/mentee`, Memo “Unassigned”, Slack TL routing, developer assignment replace. App-written. |
-
-| Column | Secrecy | Why |
-|--------|---------|-----|
-| `mentee_uid` | High | Identifies mentee |
-| `mentor_id` | High | Identifies mentor profile |
-| `id` / `created_at` | Low | Row metadata |
-
-### `dev_test_profiles`
-
-| | |
-|--|--|
-| **Importance** | Low for production scholars; high for developer QA. |
-| **Table secrecy** | Dev-only (entire table) |
-| **How Atlas uses it** | `/dev` profile switcher → `POST /api/dev/active-profile`. RLS hides from non-developers. |
-
-| Column | Secrecy | Why |
-|--------|---------|-----|
-| `roster_uid` | Dev-only | Impersonation target UID |
-| `mentee_uids` | Dev-only | Impersonated TL’s mentee set |
-| `app_role` / `program_role` | Dev-only | Privilege while acting as |
-| `first_name` / `last_name` / `label` | Dev-only | Persona display |
-| `teams` / `cohort` / `fd_required` / `ss_required` / `mentee_count` | Dev-only | Persona snapshot |
-| `id` / `is_active` / `created_at` | Dev-only | Switcher plumbing (still developer-gated) |
-
----
-
-## Attendance & compliance
+Raw Google Forms → Postgres destinations. See [Form / log intake](README.md#form--log-intake-google-forms). Subdomains differ (WAHF grades vs FD/SS tickets vs tutoring) but the category is the same: external intake, app mostly reads.
 
 ### `front_desk_logs`
 
@@ -170,72 +115,6 @@ This doc describes **structure and product use only** — not row data.
 | `created_at` | Medium | Presence timeline when joined to UID |
 | `action_type` / `session_type` | Low | Enums |
 | `id` | Low | Ticket PK |
-
-### `scholar_week_excuses`
-
-| | |
-|--|--|
-| **Importance** | High — adjusts weekly completion with TL-entered excuse minutes. |
-| **Table secrecy** | High |
-| **How Atlas uses it** | `PATCH /api/attendance/excuse`; Teams FD/SS boards, mentee monitoring, Memo. App-written. |
-
-| Column | Secrecy | Why |
-|--------|---------|-----|
-| `description` | High | Free-text reason (often personal) |
-| `scholar_uid` | High | Who the excuse is for |
-| `updated_by` | Medium | Who wrote it |
-| `excuse_min` | Medium | Credited minutes |
-| `kind` / `week_start` / `week_num` | Low | Duty kind + week keys |
-| `updated_at` | Low | Metadata |
-
-### `scholar_shift_assignments`
-
-| | |
-|--|--|
-| **Importance** | High — standing weekly FD/SS schedule for no-show / compliance. |
-| **Table secrecy** | High |
-| **How Atlas uses it** | Compliance APIs and Slack missed-session detectors; updated via ops scripts, not an in-app editor. |
-
-| Column | Secrecy | Why |
-|--------|---------|-----|
-| `scholar_id` | High | Whose schedule |
-| `day_of_week` / `start_time` / `end_time` / `week_minute_range` | Medium | When they are expected in room |
-| `session_kind` / `semester_id` / `is_active` | Low | Classification |
-| `id` / `created_at` | Low | Row metadata |
-
-### `daily_scholar_activity`
-
-| | |
-|--|--|
-| **Importance** | Low for primary product — trigger rollup; Memo/attendance use compute-on-read from logs. |
-| **Table secrecy** | High |
-| **How Atlas uses it** | Optional `GET /api/daily-activity/minutes`; maintained by triggers / `full_resync_daily_scholar_activity`. |
-
-| Column | Secrecy | Why |
-|--------|---------|-----|
-| `scholar_uid` | High | Who accrued minutes |
-| `duration_minutes` | Medium | Activity volume for that person/day |
-| `activity_date` / `week_num` / `log_source` | Low | Time + source keys |
-
-### `front_desk_records_legacy` / `study_session_records_legacy`
-
-| | |
-|--|--|
-| **Importance** | None — frozen; do not read or write. |
-| **Table secrecy** | High |
-| **How Atlas uses it** | Explicitly avoided (ADR 001). `/dev/session-records` only points people at live attendance APIs. |
-
-| Column | Secrecy | Why |
-|--------|---------|-----|
-| `excuse` | High | Free-text personal reason |
-| `uid` | High | Scholar key (legacy int) |
-| `excuse_min` | Medium | Credited minutes |
-| `mon_min` … `fri_min` | Medium | Daily presence minutes |
-| `week_num` / `id` | Low | Keys |
-
----
-
-## Weekly forms & academics
 
 ### `whaf_form_logs`
 
@@ -329,7 +208,182 @@ This doc describes **structure and product use only** — not row data.
 
 ---
 
-## Notifications & calendar stubs
+## Identity & roster
+
+### `profiles`
+
+| | |
+|--|--|
+| **Importance** | Critical — signed-in user record; roles, `student_id` → roster, Slack id. |
+| **Table secrecy** | Critical |
+| **How Atlas uses it** | Auth middleware and `/api/auth/me`; complete-profile / login; dual-write with roster on `/dev/profiles`; notification recipient resolution. Created/updated by app (+ `handle_new_user` on auth). |
+
+| Column | Secrecy | Why |
+|--------|---------|-----|
+| `emails` | Critical | Direct contact; account recovery surface |
+| `phone_number` | Critical | Direct contact |
+| `slack_user_id` | Critical | Opens Slack DM / identity across systems |
+| `student_id` | High | Scholar UID; joins to roster + all scholar data |
+| `id` | High | Auth user PK; joins everything about the signed-in person |
+| `first_name` / `last_name` / `full_name` | High | Direct identifiers |
+| `app_role` | Medium | Privilege level (not PII, but security-sensitive) |
+| `program_role` / `status` / `teams` | Medium | Program affiliation |
+| `majors` / `minors` / `cohort` | Medium | Soft academic/demographic context |
+| `fd_required` / `ss_required` / `mentee_count` | Low | Program numbers |
+| `created_at` | Low | Metadata |
+
+### `user_roster`
+
+| | |
+|--|--|
+| **Importance** | Critical — pre-invite directory and required FD/SS hours; source of truth for roster ops. |
+| **Table secrecy** | Critical |
+| **How Atlas uses it** | Directory, Memo scholar lists, eligibility, `/dashboard/roster`, mentee joins, developer roster RPCs. App/ops-written. |
+
+| Column | Secrecy | Why |
+|--------|---------|-----|
+| `email` | Critical | Invite + contact |
+| `phone_number` | Critical | Direct contact |
+| `uid` | High | Canonical scholar key across Atlas |
+| `first_name` / `last_name` | High | Direct identifiers |
+| `mentee_uids` | High | Reveals who is assigned to whom |
+| `app_role` | Medium | Privilege to copy onto profile |
+| `program_role` / `status` / `teams` | Medium | Program affiliation |
+| `majors` / `minors` / `cohort` | Medium | Soft academic context |
+| `invite_sent_at` / `invite_accepted_at` | Medium | Auth lifecycle (who was invited when) |
+| `fd_required` / `ss_required` / `mentee_count` | Low | Program numbers |
+| `id` / `created_at` | Low | Row metadata |
+
+### `mentor_mentee`
+
+| | |
+|--|--|
+| **Importance** | Critical — who mentors whom. |
+| **Table secrecy** | High |
+| **How Atlas uses it** | `/dashboard/mentee`, Memo “Unassigned”, Slack TL routing, developer assignment replace. App-written. |
+
+| Column | Secrecy | Why |
+|--------|---------|-----|
+| `mentee_uid` | High | Identifies mentee |
+| `mentor_id` | High | Identifies mentor profile |
+| `id` / `created_at` | Low | Row metadata |
+
+---
+
+## Attendance ops
+
+App- or trigger-maintained attendance math — not the raw Google Form tickets (those stay under Form intake).
+
+### `scholar_week_excuses`
+
+| | |
+|--|--|
+| **Importance** | High — adjusts weekly completion with TL-entered excuse minutes. |
+| **Table secrecy** | High |
+| **How Atlas uses it** | `PATCH /api/attendance/excuse`; Teams FD/SS boards, mentee monitoring, Memo. App-written. |
+
+| Column | Secrecy | Why |
+|--------|---------|-----|
+| `description` | High | Free-text reason (often personal) |
+| `scholar_uid` | High | Who the excuse is for |
+| `updated_by` | Medium | Who wrote it |
+| `excuse_min` | Medium | Credited minutes |
+| `kind` / `week_start` / `week_num` | Low | Duty kind + week keys |
+| `updated_at` | Low | Metadata |
+
+### `scholar_shift_assignments`
+
+| | |
+|--|--|
+| **Importance** | High — standing weekly FD/SS schedule for no-show / compliance. |
+| **Table secrecy** | High |
+| **How Atlas uses it** | Compliance APIs and Slack missed-session detectors; updated via ops scripts, not an in-app editor. |
+
+| Column | Secrecy | Why |
+|--------|---------|-----|
+| `scholar_id` | High | Whose schedule |
+| `day_of_week` / `start_time` / `end_time` / `week_minute_range` | Medium | When they are expected in room |
+| `session_kind` / `semester_id` / `is_active` | Low | Classification |
+| `id` / `created_at` | Low | Row metadata |
+
+### `daily_scholar_activity`
+
+| | |
+|--|--|
+| **Importance** | Low for primary product — trigger rollup; Memo/attendance use compute-on-read from logs. |
+| **Table secrecy** | High |
+| **How Atlas uses it** | Optional `GET /api/daily-activity/minutes`; maintained by triggers / `full_resync_daily_scholar_activity`. |
+
+| Column | Secrecy | Why |
+|--------|---------|-----|
+| `scholar_uid` | High | Who accrued minutes |
+| `duration_minutes` | Medium | Activity volume for that person/day |
+| `activity_date` / `week_num` / `log_source` | Low | Time + source keys |
+
+---
+
+## Semester config
+
+### `semesters`
+
+| | |
+|--|--|
+| **Importance** | Medium — active semester row and FK target for semester-scoped tables/RPCs. |
+| **Table secrecy** | Low |
+| **How Atlas uses it** | `GET /api/auth/semester`; detectors. Product week math mostly comes from `shared/time-config`. |
+
+| Column | Secrecy | Why |
+|--------|---------|-----|
+| `id` / `name` / `start_date` / `end_date` / `is_active` / `iso_week_offset` / `created_at` | Low | Public program calendar |
+
+### `semester_breaks`
+
+| | |
+|--|--|
+| **Importance** | Medium for notifications (skip break days). |
+| **Table secrecy** | Low |
+| **How Atlas uses it** | Notification detectors; not a first-class UI API. |
+
+| Column | Secrecy | Why |
+|--------|---------|-----|
+| `id` / `semester_id` / `name` / `start_date` / `end_date` / `created_at` | Low | Named break windows |
+
+---
+
+## Kiosk traffic
+
+### `traffic`
+
+| | |
+|--|--|
+| **Importance** | Medium — room foot traffic for kiosk + Memo charts. |
+| **Table secrecy** | High when `uid` set; otherwise Low |
+| **How Atlas uses it** | Public `/traffic` inserts; `/dev/traffic`; Memo KPIs via `traffic.service.ts`. One of the few tables Next writes directly. |
+
+| Column | Secrecy | Why |
+|--------|---------|-----|
+| `uid` | High | Optional scholar identity at kiosk |
+| `created_at` | Medium | Timeline (with `uid` = presence) |
+| `traffic_type` / `duration_min` | Low | entry/exit + duration string |
+| `id` | Low | Event PK |
+
+### `traffic_weekly_summary`
+
+| | |
+|--|--|
+| **Importance** | Low — legacy weekly aggregate. |
+| **Table secrecy** | Low |
+| **How Atlas uses it** | Inside legacy `get_weekly_memo` RPC; live Memo uses raw `traffic`. |
+
+| Column | Secrecy | Why |
+|--------|---------|-----|
+| `semester_id` / `week_num` / `total_entries` / `tutoring_sessions` | Low | Counts only |
+
+---
+
+## Ops plumbing
+
+Delivery and sync machinery — not scholar-facing domain tables.
 
 ### `notification_log`
 
@@ -378,6 +432,72 @@ This doc describes **structure and product use only** — not row data.
 | `sync_token` | Ops-secret | Google sync credential/cursor — do not log or export |
 | `last_synced_at` / `id` | Low | Sync bookkeeping |
 
+---
+
+## Legacy / frozen
+
+Do not use for new features.
+
+### `front_desk_records_legacy` / `study_session_records_legacy`
+
+| | |
+|--|--|
+| **Importance** | None — frozen; do not read or write. |
+| **Table secrecy** | High |
+| **How Atlas uses it** | Explicitly avoided (ADR 001). `/dev/session-records` only points people at live attendance APIs. |
+
+| Column | Secrecy | Why |
+|--------|---------|-----|
+| `excuse` | High | Free-text personal reason |
+| `uid` | High | Scholar key (legacy int) |
+| `excuse_min` | Medium | Credited minutes |
+| `mon_min` … `fri_min` | Medium | Daily presence minutes |
+| `week_num` / `id` | Low | Keys |
+
+### `scholar_weekly_stats`
+
+| | |
+|--|--|
+| **Importance** | Low — historical weekly memo/flagging aggregate. |
+| **Table secrecy** | High |
+| **How Atlas uses it** | Legacy `get_weekly_memo` / refresh path; current Memo uses `/api/memo/page-data` (compute-on-read). |
+
+| Column | Secrecy | Why |
+|--------|---------|-----|
+| `grade_trend` | High | Academic trend derived from grades |
+| `scholar_uid` | High | Whose week |
+| `is_flagged` / `weeks_flagged` / `missed_tutoring` | Medium | Risk / compliance flags |
+| `fd_minutes` / `ss_minutes` / `fd_completion` / `ss_completion` | Medium | Attendance performance |
+| `wahf_submitted` / `mcf_submitted` / `wpl_submitted` | Medium | Form compliance booleans |
+| `semester_id` / `week_num` / `updated_at` | Low | Keys / metadata |
+
+---
+
+## Dev tooling
+
+### `dev_test_profiles`
+
+| | |
+|--|--|
+| **Importance** | Low for production scholars; high for developer QA. |
+| **Table secrecy** | Dev-only (entire table) |
+| **How Atlas uses it** | `/dev` profile switcher → `POST /api/dev/active-profile`. RLS hides from non-developers. |
+
+| Column | Secrecy | Why |
+|--------|---------|-----|
+| `roster_uid` | Dev-only | Impersonation target UID |
+| `mentee_uids` | Dev-only | Impersonated TL’s mentee set |
+| `app_role` / `program_role` | Dev-only | Privilege while acting as |
+| `first_name` / `last_name` / `label` | Dev-only | Persona display |
+| `teams` / `cohort` / `fd_required` / `ss_required` / `mentee_count` | Dev-only | Persona snapshot |
+| `id` / `is_active` / `created_at` | Dev-only | Switcher plumbing (still developer-gated) |
+
+---
+
+## Unused stubs
+
+Schema present; no Atlas product path yet.
+
 ### `career_opportunities`
 
 | | |
@@ -405,91 +525,6 @@ This doc describes **structure and product use only** — not row data.
 | `mentor_id` | High | Which mentor |
 | `weekday` / `meeting_time` | Medium | Recurring personal schedule |
 | `created_at` / `updated_at` | Low | Metadata |
-
----
-
-## Calendar config, traffic, legacy aggregates
-
-### `semesters`
-
-| | |
-|--|--|
-| **Importance** | Medium — active semester row and FK target for semester-scoped tables/RPCs. |
-| **Table secrecy** | Low |
-| **How Atlas uses it** | `GET /api/auth/semester`; detectors. Product week math mostly comes from `shared/time-config`. |
-
-| Column | Secrecy | Why |
-|--------|---------|-----|
-| `id` / `name` / `start_date` / `end_date` / `is_active` / `iso_week_offset` / `created_at` | Low | Public program calendar |
-
-### `semester_breaks`
-
-| | |
-|--|--|
-| **Importance** | Medium for notifications (skip break days). |
-| **Table secrecy** | Low |
-| **How Atlas uses it** | Notification detectors; not a first-class UI API. |
-
-| Column | Secrecy | Why |
-|--------|---------|-----|
-| `id` / `semester_id` / `name` / `start_date` / `end_date` / `created_at` | Low | Named break windows |
-
-### `traffic`
-
-| | |
-|--|--|
-| **Importance** | Medium — room foot traffic for kiosk + Memo charts. |
-| **Table secrecy** | High when `uid` set; otherwise Low |
-| **How Atlas uses it** | Public `/traffic` inserts; `/dev/traffic`; Memo KPIs via `traffic.service.ts`. One of the few tables Next writes directly. |
-
-| Column | Secrecy | Why |
-|--------|---------|-----|
-| `uid` | High | Optional scholar identity at kiosk |
-| `created_at` | Medium | Timeline (with `uid` = presence) |
-| `traffic_type` / `duration_min` | Low | entry/exit + duration string |
-| `id` | Low | Event PK |
-
-### `traffic_weekly_summary`
-
-| | |
-|--|--|
-| **Importance** | Low — legacy weekly aggregate. |
-| **Table secrecy** | Low |
-| **How Atlas uses it** | Inside legacy `get_weekly_memo` RPC; live Memo uses raw `traffic`. |
-
-| Column | Secrecy | Why |
-|--------|---------|-----|
-| `semester_id` / `week_num` / `total_entries` / `tutoring_sessions` | Low | Counts only |
-
-### `scholar_weekly_stats`
-
-| | |
-|--|--|
-| **Importance** | Low — historical weekly memo/flagging aggregate. |
-| **Table secrecy** | High |
-| **How Atlas uses it** | Legacy `get_weekly_memo` / refresh path; current Memo uses `/api/memo/page-data` (compute-on-read). |
-
-| Column | Secrecy | Why |
-|--------|---------|-----|
-| `grade_trend` | High | Academic trend derived from grades |
-| `scholar_uid` | High | Whose week |
-| `is_flagged` / `weeks_flagged` / `missed_tutoring` | Medium | Risk / compliance flags |
-| `fd_minutes` / `ss_minutes` / `fd_completion` / `ss_completion` | Medium | Attendance performance |
-| `wahf_submitted` / `mcf_submitted` / `wpl_submitted` | Medium | Form compliance booleans |
-| `semester_id` / `week_num` / `updated_at` | Low | Keys / metadata |
-
----
-
-## Kind of writer (who fills the table)
-
-| Kind | Tables |
-|------|--------|
-| **Google Forms → Postgres** | `am_pm_form_logs`, `front_desk_logs`, `study_session_logs`, `mcf_form_logs`, `whaf_form_logs`, `wpl_form_logs`, `tutor_report_logs` |
-| **Atlas / ops writes** | `profiles`, `user_roster`, `mentor_mentee`, `scholar_week_excuses`, `scholar_shift_assignments`, `dev_test_profiles`, `traffic`, `notification_log`, `semesters`, `semester_breaks` |
-| **DB triggers / pipelines** | `daily_scholar_activity`; (legacy) `scholar_weekly_stats`, `traffic_weekly_summary` |
-| **External / future sync** | `calendar_events`, `calendar_sync_state` |
-| **Unused stubs** | `career_opportunities`, `mentee_meeting_preferences` |
-| **Frozen** | `front_desk_records_legacy`, `study_session_records_legacy` |
 
 ---
 
