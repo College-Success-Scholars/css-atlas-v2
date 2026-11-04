@@ -47,7 +47,7 @@ describe("personal form card layout", () => {
     { daysLeft: 1, hoursLeft: 18, label: "1 day left" },
     { daysLeft: 3, hoursLeft: 66, label: "3 days left" },
     { daysLeft: 0, hoursLeft: 0, label: "Due soon" },
-  ])("shows $label on the left with compact mentee progress on the right", ({ daysLeft, hoursLeft, label }) => {
+  ])("shows $label with compact MCF mentee progress in the card header", ({ daysLeft, hoursLeft, label }) => {
     fixture.daysLeft = daysLeft
     fixture.hoursLeft = hoursLeft
     const props = {
@@ -77,9 +77,10 @@ describe("personal form card layout", () => {
       expect(actions.querySelector("a")?.textContent).toContain("Submit")
       expect(actions.querySelector("a .lucide-external-link")).not.toBeNull()
       if (formType === "MCF") {
-        expect(summary.nextElementSibling?.textContent).toBe("0/1 mentees")
-        expect(summary.nextElementSibling?.getAttribute("aria-label")).toBe("0 of 1 mentees")
-        expect(summary.nextElementSibling?.classList.contains("ml-auto")).toBe(true)
+        // Progress lives under the form title/deadline header, not beside the countdown copy.
+        const progress = card.querySelector('[aria-label="0 of 1 mentees"]')
+        expect(progress?.textContent).toBe("0/1 mentees")
+        expect(progress?.classList.contains("ml-auto")).toBe(true)
         expect(actions.querySelector("button")).toBeNull()
       }
     }
