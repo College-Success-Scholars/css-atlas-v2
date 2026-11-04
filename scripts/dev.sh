@@ -73,9 +73,16 @@ fi
 echo "Building shared..."
 npm run build --prefix shared
 
+# Turbopack root is the monorepo (so shared/dist resolves). Next lives under
+# frontend/node_modules — without this link HMR panics: "Next.js package not found"
+# and remounts the app in a loop (repeated /api/auth/me + layout fetches).
+mkdir -p "$ROOT/node_modules"
+ln -sfn "$ROOT/frontend/node_modules/next" "$ROOT/node_modules/next"
+
 if $WATCH_SHARED; then
   echo "Watching shared for changes..."
-  npm exec --prefix shared -- tsc -p tsconfig.json --watch --preserveWatchOutput &
+  # npm run sets cwd to shared/, so tsconfig.json resolves (unlike npm exec from repo root).
+  npm run watch --prefix shared &
   PIDS+=("$!")
 fi
 

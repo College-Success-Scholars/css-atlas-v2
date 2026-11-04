@@ -118,12 +118,20 @@ try {
   Write-Host "Building shared..."
   Invoke-Npm -NpmArgs @("run", "build", "--prefix", "shared")
 
+  # Turbopack root is the monorepo (so shared/dist resolves). Next lives under
+  # frontend/node_modules — without this link HMR panics: "Next.js package not found".
+  $repoNodeModules = Join-Path $Root "node_modules"
+  $frontendNext = Join-Path $Root "frontend/node_modules/next"
+  New-Item -ItemType Directory -Force -Path $repoNodeModules | Out-Null
+  $repoNext = Join-Path $repoNodeModules "next"
+  if (Test-Path $repoNext) {
+    Remove-Item -Force $repoNext
+  }
+  New-Item -ItemType SymbolicLink -Path $repoNext -Target $frontendNext | Out-Null
+
   if (-not $NoWatch) {
     Write-Host "Watching shared for changes..."
-    Register-ChildProcess (Start-NpmProcess -NpmArgs @(
-      "exec", "--prefix", "shared", "--",
-      "tsc", "-p", "tsconfig.json", "--watch", "--preserveWatchOutput"
-    ))
+    Register-ChildProcess (Start-NpmProcess -NpmArgs @("run", "watch", "--prefix", "shared"))
   }
 
   Write-Host "Starting backend (port 3001)..."

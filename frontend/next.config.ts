@@ -15,6 +15,12 @@
  * - Route configuration (that's in app/ directory structure)
  */
 import type { NextConfig } from "next";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const frontendDir = path.dirname(fileURLToPath(import.meta.url));
+/** Repo root — Turbopack must see `shared/dist` via relative imports. */
+const repoRoot = path.resolve(frontendDir, "..");
 
 const nextConfig: NextConfig = {
   // Allow webpack builds to access files above the Next.js project root.
@@ -22,11 +28,12 @@ const nextConfig: NextConfig = {
     externalDir: true,
   },
 
-  // Turbopack workspace root (Next.js 15.3+).
-  // Sets the root one level above frontend/ so Turbopack can resolve
-  // ../../../shared/dist/ imports from lib/format/time.ts and lib/types/time.ts.
+  // Absolute monorepo root so Turbopack can resolve ../../../shared/dist/*.
+  // `next` itself is installed under frontend/node_modules — scripts/dev.sh
+  // symlinks it to <repo>/node_modules/next so HMR does not panic with
+  // "Next.js package not found".
   turbopack: {
-    root: "..",
+    root: repoRoot,
   },
 
   // Deployment envs only set the server-only BACKEND_URL (read by lib/server/api-client.ts).

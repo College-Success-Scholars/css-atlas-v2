@@ -155,9 +155,7 @@ export async function getTutorReportLogsForWeek(weekNum: number): Promise<TutorR
   return fetchTutorReportsForCampusWeek(weekNum);
 }
 
-/** Week rows with roster names and session weekday for the teams table. */
-export async function getTutorReportWeekRows(weekNum: number): Promise<TutorReportWeekRow[]> {
-  const rows = await fetchTutorReportsForCampusWeek(weekNum);
+async function withScholarNames(rows: TutorReportLogRow[]): Promise<TutorReportWeekRow[]> {
   const scholarUids = rows
     .map((row) => row.scholar_uid)
     .filter((uid): uid is string => Boolean(uid) && !isEmptyTutoringSessionUid(uid));
@@ -167,6 +165,39 @@ export async function getTutorReportWeekRows(weekNum: number): Promise<TutorRepo
     scholar_name: tutorReportScholarName(row.scholar_uid, nameByUid),
     day_of_week: tutoringSessionDayOfWeek(row),
   }));
+}
+
+/** Week rows with roster names and session weekday for the teams table. */
+export async function getTutorReportWeekRows(weekNum: number): Promise<TutorReportWeekRow[]> {
+  return withScholarNames(await fetchTutorReportsForCampusWeek(weekNum));
+}
+
+/**
+ * Tutor week rows for an inclusive campus-week span (one date-bounded query).
+ * Rows outside `fromWeek`…`throughWeek` are dropped after fetch.
+ */
+export async function getTutorReportWeekRowsForWeekRange(
+  fromWeek: number,
+  throughWeek: number,
+): Promise<TutorReportWeekRow[]> {
+  if (throughWeek < fromWeek) return [];
+  const startBounds = weekDateBounds(fromWeek);
+  const endBounds = weekDateBounds(throughWeek);
+  if (!startBounds || !endBounds) return [];
+
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("tutor_report_logs")
+    .select("*")
+    .or(`and(date.gte.${startBounds.startYmd},date.lt.${endBounds.nextYmd}),date.is.null`)
+    .order("date", { ascending: true });
+  if (error) throw error;
+
+  const inRange = withoutProbeTutorReports((data ?? []) as TutorReportLogRow[]).filter((row) => {
+    const week = campusWeekForTutoringRow(row);
+    return week != null && week >= fromWeek && week <= throughWeek;
+  });
+  return withScholarNames(inRange);
 }
 
 /** Deletes one row under the caller JWT. Returns false when no row was removed. */

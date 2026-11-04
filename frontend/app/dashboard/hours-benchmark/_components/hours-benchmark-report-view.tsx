@@ -17,6 +17,7 @@ import {
   type HoursBenchmarkReport,
 } from "../types";
 import { HoursBenchmarkExportButton } from "./hours-benchmark-export-button";
+import { HoursBenchmarkTutoringSection } from "./hours-benchmark-tutoring-section";
 
 function cellTone(pct: number | null): "low" | "mid" | "met" | "empty" {
   if (pct == null) return "empty";
@@ -331,6 +332,13 @@ export function HoursBenchmarkReportView({ report }: HoursBenchmarkReportViewPro
               </div>
             </CardContent>
           </Card>
+
+          <HoursBenchmarkTutoringSection
+            weekRangeLabel={report.weekRangeLabel}
+            byScholar={report.tutoringByScholar}
+            byTutor={report.tutoringByTutor}
+            byDay={report.tutoringByDay}
+          />
         </>
       )}
     </div>
