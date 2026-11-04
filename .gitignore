@@ -16,3 +16,8 @@ docs/dev/supabase/tables-overview.md
 openspec/
 .opencode/
 graphify-out
+docs/dev/supabase/CSS-Atlas-Data-Inventory.pdf
+docs/dev/supabase/css-atlas-data-inventory.html
+docs/dev/supabase/css-atlas-data-inventory.md
+docs/dev/supabase/inventory-print.css
+scripts/build-data-inventory-pdf.sh
