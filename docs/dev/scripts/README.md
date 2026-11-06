@@ -54,6 +54,8 @@ Shell scripts for deployment validation and operational tasks. These run outside
 
 Starts the local full-stack loop: builds `shared/`, optionally watches it, then runs backend (`:3001`) and frontend (`:3000`) in one process group (Ctrl+C stops all).
 
+Also ensures `<repo>/node_modules/next` → `frontend/node_modules/next` so Turbopack (whose root is the monorepo for `shared/dist` imports) can find the Next.js package during HMR. Without that link, Next 16.2 prints `FATAL: … Next.js package not found` and remounts the dashboard in a loop. If a panic log still appears after a config change, clear the cache once: `rm -rf frontend/.next`.
+
 **Before you run it**, create env files from the examples — the script exits with an error if they are missing:
 
 ```bash

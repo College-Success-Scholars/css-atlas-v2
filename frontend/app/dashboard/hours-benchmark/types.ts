@@ -49,6 +49,22 @@ export type HoursBenchmarkSummary = {
 
 export type HoursBenchmarkHeatmapScope = "low" | "all";
 
+export type HoursBenchmarkTutoringSession = {
+  id: number;
+  scholarId: string;
+  scholarName: string;
+  tutorName: string;
+  dayOfWeek: string;
+  dateLabel: string;
+  dateKey: string;
+};
+
+export type HoursBenchmarkTutoringGroup = {
+  key: string;
+  title: string;
+  sessions: HoursBenchmarkTutoringSession[];
+};
+
 export type HoursBenchmarkReport = {
   currentCampusWeek: number;
   scoredWeeks: HoursBenchmarkScoredWeeks | null;
@@ -62,6 +78,9 @@ export type HoursBenchmarkReport = {
   allHeatmapScholars: HoursBenchmarkScholarRow[];
   byTeamLeader: HoursBenchmarkTeamLeaderRow[];
   lowEvents: HoursBenchmarkLowEvent[];
+  tutoringByScholar: HoursBenchmarkTutoringGroup[];
+  tutoringByTutor: HoursBenchmarkTutoringGroup[];
+  tutoringByDay: HoursBenchmarkTutoringGroup[];
 };
 
 export const HOURS_BENCHMARK_AT_OR_BELOW_PERCENT = 50;

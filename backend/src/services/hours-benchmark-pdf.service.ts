@@ -4,7 +4,8 @@
  *
  * HTML → PDF for the Hours Benchmark Report via Puppeteer.
  * Print layout mirrors idea.pdf (landscape letter, KPI row, heatmap,
- * team-leader bars, detail list).
+ * team-leader bars, detail list) plus tutoring appendices by scholar,
+ * tutor, and weekday (memo-style tutoring log).
  */
 import {
   HOURS_BENCHMARK_AT_OR_BELOW_PERCENT,
@@ -13,6 +14,7 @@ import {
   type HoursBenchmarkHeatmapScope,
   type HoursBenchmarkReport,
   type HoursBenchmarkScholarRow,
+  type HoursBenchmarkTutoringGroup,
 } from "./hours-benchmark.service.js";
 import {
   isMissingBundledChrome,
@@ -170,6 +172,30 @@ function detailRows(report: HoursBenchmarkReport): string {
     .join("");
 }
 
+type TutoringListMode = "scholar" | "tutor" | "day";
+
+function tutoringGroupHtml(groups: HoursBenchmarkTutoringGroup[], mode: TutoringListMode): string {
+  if (groups.length === 0) {
+    return `<p class="empty">No tutoring sessions were recorded for the scored weeks.</p>`;
+  }
+  return groups
+    .map((group) => {
+      const rows = group.sessions
+        .map((session) => {
+          if (mode === "day") {
+            return `<p><span>${escapeHtml(session.tutorName)}</span><b>${escapeHtml(session.scholarName)}</b></p>`;
+          }
+          if (mode === "scholar") {
+            return `<p><span>${escapeHtml(session.tutorName)}</span><span>${escapeHtml(`${session.dayOfWeek} · ${session.dateLabel}`)}</span></p>`;
+          }
+          return `<p><b>${escapeHtml(session.scholarName)}</b><span>${escapeHtml(`${session.dayOfWeek} · ${session.dateLabel}`)}</span></p>`;
+        })
+        .join("");
+      return `<div class="tutoring-day"><div>${escapeHtml(group.title)}</div>${rows}</div>`;
+    })
+    .join("");
+}
+
 export function renderHoursBenchmarkHtml(
   report: HoursBenchmarkReport,
   scope: HoursBenchmarkHeatmapScope = "low",
@@ -277,6 +303,13 @@ export function renderHoursBenchmarkHtml(
     .detail td.num{text-align:right;font-variant-numeric:tabular-nums}
     .detail td.completion{color:${RED};font-weight:600}
     .empty-row{color:#777;padding:12px 0!important;background:transparent!important}
+    .tutoring-log{column-count:2;column-gap:28px;margin-top:4px}
+    .tutoring-day{break-inside:avoid;margin-bottom:14px}
+    .tutoring-day>div{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#ec3013;border-bottom:1px solid rgba(32,30,29,.25);padding-bottom:3px;margin-bottom:4px}
+    .tutoring-day p{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;padding:2px 0;line-height:1.4;margin:0}
+    .tutoring-day p span{color:rgba(32,30,29,.6)}
+    .tutoring-day p b{text-align:right;font-weight:600}
+    .empty{font-size:12px;color:rgba(32,30,29,.6);margin:0}
     section.page{break-before:page;page-break-before:always}
     section.page:first-of-type{break-before:auto;page-break-before:auto}
   </style></head><body>
@@ -313,6 +346,21 @@ export function renderHoursBenchmarkHtml(
         <tbody>${detailRows(report)}</tbody>
       </table>
       <p class="legend">* had excused minutes that counted toward completion. Source: CSS Atlas attendance, ${escapeHtml(report.weekRangeLabel)}.</p>
+    </section>
+    <section class="page">
+      <h2>Tutoring by scholar</h2>
+      <p class="intro">Real tutoring sessions for ${escapeHtml(report.weekRangeLabel)}, grouped by scholar name.</p>
+      <div class="tutoring-log">${tutoringGroupHtml(report.tutoringByScholar, "scholar")}</div>
+    </section>
+    <section class="page">
+      <h2>Tutoring by tutor</h2>
+      <p class="intro">Real tutoring sessions for ${escapeHtml(report.weekRangeLabel)}, grouped by tutor name.</p>
+      <div class="tutoring-log">${tutoringGroupHtml(report.tutoringByTutor, "tutor")}</div>
+    </section>
+    <section class="page">
+      <h2>Tutoring by day</h2>
+      <p class="intro">Weekday frequency for ${escapeHtml(report.weekRangeLabel)}, matching the weekly memo tutoring printout.</p>
+      <div class="tutoring-log">${tutoringGroupHtml(report.tutoringByDay, "day")}</div>
     </section>
   </body></html>`;
 }

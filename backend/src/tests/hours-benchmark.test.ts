@@ -1,14 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
   assembleHoursBenchmark,
+  buildHoursBenchmarkTutoringBreakdowns,
   hoursBenchmarkPdfFilename,
   hoursBenchmarkPreparedAt,
   hoursBenchmarkScoredWeeks,
   type HoursBenchmarkScholarInput,
   type HoursBenchmarkWeekInput,
 } from "../services/hours-benchmark.service.js";
-import { hoursBenchmarkLeadBlurb } from "../services/hours-benchmark-pdf.service.js";
+import {
+  hoursBenchmarkLeadBlurb,
+  renderHoursBenchmarkHtml,
+} from "../services/hours-benchmark-pdf.service.js";
 import { freshmanCohortYear, sophomoreCohortYear } from "../services/time.service.js";
+import type { TutorReportWeekRow } from "../models/tutor-report-log.model.js";
 
 const freshman = freshmanCohortYear();
 const sophomore = sophomoreCohortYear();
@@ -166,6 +171,134 @@ describe("assembleHoursBenchmark", () => {
     expect(report.heatmapScholars).toEqual([]);
     expect(report.allHeatmapScholars).toHaveLength(1);
     expect(report.summary.atOrBelow50Events).toBe(0);
+    expect(report.tutoringByScholar).toEqual([]);
+    expect(report.tutoringByTutor).toEqual([]);
+    expect(report.tutoringByDay).toEqual([]);
+  });
+});
+
+function tutorRow(overrides: Partial<TutorReportWeekRow> = {}): TutorReportWeekRow {
+  return {
+    id: 1,
+    created_at: null,
+    date: "2026-09-08",
+    tutor_name: "Alex Tutor",
+    scholar_uid: "s-ada",
+    end_time: "2026-09-08T19:00:00.000Z",
+    start_time: "2026-09-08T18:00:00.000Z",
+    courses: ["MATH140"],
+    scholar_name: "Ada Lovelace",
+    day_of_week: "Tue",
+    ...overrides,
+  };
+}
+
+describe("buildHoursBenchmarkTutoringBreakdowns", () => {
+  it("drops empty sessions and sorts scholar/tutor alpha and days Mon–Sun", () => {
+    const breakdowns = buildHoursBenchmarkTutoringBreakdowns([
+      tutorRow({
+        id: 1,
+        tutor_name: "Zoe Tutor",
+        scholar_uid: "s-zoe-scholar",
+        scholar_name: "Zoe Scholar",
+        date: "2026-09-11",
+        day_of_week: "Fri",
+      }),
+      tutorRow({
+        id: 2,
+        tutor_name: "Alex Tutor",
+        scholar_uid: "s-ada",
+        scholar_name: "Ada Lovelace",
+        date: "2026-09-08",
+        day_of_week: "Tue",
+      }),
+      tutorRow({
+        id: 3,
+        tutor_name: "Alex Tutor",
+        scholar_uid: "s-blake",
+        scholar_name: "Blake Scholar",
+        date: "2026-09-07",
+        day_of_week: "Mon",
+      }),
+      tutorRow({
+        id: 4,
+        tutor_name: "Mia Tutor",
+        scholar_uid: "n/a",
+        scholar_name: "EMPTY SESSION",
+        date: "2026-09-09",
+        day_of_week: "Wed",
+      }),
+      tutorRow({
+        id: 5,
+        tutor_name: "Alex Tutor",
+        scholar_uid: "s-ada",
+        scholar_name: "Ada Lovelace",
+        date: "2026-09-14",
+        day_of_week: "Mon",
+      }),
+    ]);
+
+    expect(breakdowns.tutoringByScholar.map((group) => group.title)).toEqual([
+      "Ada Lovelace",
+      "Blake Scholar",
+      "Zoe Scholar",
+    ]);
+    expect(breakdowns.tutoringByTutor.map((group) => group.title)).toEqual([
+      "Alex Tutor",
+      "Zoe Tutor",
+    ]);
+    expect(breakdowns.tutoringByDay.map((group) => group.title)).toEqual(["Mon", "Tue", "Fri"]);
+
+    const ada = breakdowns.tutoringByScholar[0];
+    expect(ada?.sessions.map((session) => session.tutorName)).toEqual(["Alex Tutor", "Alex Tutor"]);
+    expect(ada?.sessions.map((session) => session.dateKey)).toEqual(["2026-09-08", "2026-09-14"]);
+
+    const alex = breakdowns.tutoringByTutor[0];
+    expect(alex?.sessions.map((session) => session.scholarName)).toEqual([
+      "Ada Lovelace",
+      "Ada Lovelace",
+      "Blake Scholar",
+    ]);
+
+    expect(breakdowns.tutoringByDay[0]?.sessions.map((session) => session.scholarName)).toEqual([
+      "Ada Lovelace",
+      "Blake Scholar",
+    ]);
+  });
+
+  it("returns empty groups when only empty sessions exist", () => {
+    expect(
+      buildHoursBenchmarkTutoringBreakdowns([
+        tutorRow({ scholar_uid: "111111111", scholar_name: "EMPTY SESSION" }),
+      ]),
+    ).toEqual({
+      tutoringByScholar: [],
+      tutoringByTutor: [],
+      tutoringByDay: [],
+    });
+  });
+});
+
+describe("renderHoursBenchmarkHtml tutoring appendices", () => {
+  it("includes the three tutoring headings and printout-style day rows", () => {
+    const report = {
+      ...assembleHoursBenchmark([], 5, new Date("2026-10-27T16:00:00.000Z")),
+      ...buildHoursBenchmarkTutoringBreakdowns([
+        tutorRow({
+          id: 10,
+          tutor_name: "Alex Tutor",
+          scholar_name: "Ada Lovelace",
+          day_of_week: "Tue",
+          date: "2026-09-08",
+        }),
+      ]),
+    };
+    const html = renderHoursBenchmarkHtml(report, "low");
+    expect(html).toContain("Tutoring by scholar");
+    expect(html).toContain("Tutoring by tutor");
+    expect(html).toContain("Tutoring by day");
+    expect(html).toContain('<div class="tutoring-day"><div>Tue</div>');
+    expect(html).toContain("<span>Alex Tutor</span><b>Ada Lovelace</b>");
   });
 });
 

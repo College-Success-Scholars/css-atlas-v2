@@ -4,15 +4,16 @@
  *
  * Multi-week CSS Hours Benchmark Report: front desk and study session
  * completion for enrolled hour-eligible scholars from campus week 2 through
- * the previous week.
+ * the previous week, plus tutoring session breakdowns for that same span.
  *
  * ## Responsibilities
  * - Assemble heatmap rows, KPIs, team-leader rollups, and ≤50% event lists
+ * - Group tutoring sessions by scholar, tutor, and weekday frequency
  * - Reuse compute-on-read attendance (tickets + scholar_week_excuses)
  *
  * ## What belongs here
  * - Pure aggregation math and the report assembler
- * - Reads of campus-week attendance and mentor labels
+ * - Reads of campus-week attendance, mentor labels, and tutor report rows
  *
  * ## What does NOT belong here
  * - HTML/PDF rendering
@@ -23,9 +24,16 @@ import { fetchMenteeTeamLeaderIndex, teamLeaderLabelForScholar } from "./mentee.
 import {
   campusWeekToDateRange,
   dateToCampusWeek,
+  EASTERN_TIMEZONE,
+  parseEasternDate,
   scholarYearLabel,
 } from "./time.service.js";
+import {
+  getTutorReportWeekRowsForWeekRange,
+  isEmptyTutoringSessionUid,
+} from "./tutor-report-log.service.js";
 import { fetchAllUsersForMemo, isEligibleScholar } from "./user.service.js";
+import type { TutorReportWeekRow } from "../models/tutor-report-log.model.js";
 
 /** Campus week 1 is omitted; scoring starts the following week. */
 export const HOURS_BENCHMARK_FIRST_SCORED_WEEK = 2;
@@ -113,6 +121,30 @@ export type HoursBenchmarkSummary = {
 /** Which heatmap the PDF (and optional clients) should print. */
 export type HoursBenchmarkHeatmapScope = "low" | "all";
 
+export type HoursBenchmarkTutoringSession = {
+  id: number;
+  scholarId: string;
+  scholarName: string;
+  tutorName: string;
+  dayOfWeek: string;
+  /** Short Eastern date for multi-week disambiguation (e.g. "Sep 8"). */
+  dateLabel: string;
+  /** YYYY-MM-DD (Eastern) for stable within-group date sorting. */
+  dateKey: string;
+};
+
+export type HoursBenchmarkTutoringGroup = {
+  key: string;
+  title: string;
+  sessions: HoursBenchmarkTutoringSession[];
+};
+
+export type HoursBenchmarkTutoringBreakdowns = {
+  tutoringByScholar: HoursBenchmarkTutoringGroup[];
+  tutoringByTutor: HoursBenchmarkTutoringGroup[];
+  tutoringByDay: HoursBenchmarkTutoringGroup[];
+};
+
 export type HoursBenchmarkReport = {
   currentCampusWeek: number;
   scoredWeeks: HoursBenchmarkScoredWeeks | null;
@@ -128,7 +160,145 @@ export type HoursBenchmarkReport = {
   allHeatmapScholars: HoursBenchmarkScholarRow[];
   byTeamLeader: HoursBenchmarkTeamLeaderRow[];
   lowEvents: HoursBenchmarkLowEvent[];
+} & HoursBenchmarkTutoringBreakdowns;
+
+const DAY_SORT_ORDER: Record<string, number> = {
+  Mon: 0,
+  Tue: 1,
+  Wed: 2,
+  Thu: 3,
+  Fri: 4,
+  Sat: 5,
+  Sun: 6,
 };
+
+const EMPTY_TUTORING: HoursBenchmarkTutoringBreakdowns = {
+  tutoringByScholar: [],
+  tutoringByTutor: [],
+  tutoringByDay: [],
+};
+
+function nameCompare(a: string, b: string): number {
+  return a.localeCompare(b, undefined, { sensitivity: "base" });
+}
+
+function normalizedTutorName(name: string | null | undefined): string {
+  return (name ?? "").trim().replace(/\s+/g, " ") || "—";
+}
+
+function tutoringSessionDateKey(row: Pick<TutorReportWeekRow, "date" | "start_time">): string {
+  const day = row.date?.slice(0, 10);
+  if (day && /^\d{4}-\d{2}-\d{2}$/.test(day)) return day;
+  if (!row.start_time) return "";
+  const start = new Date(row.start_time);
+  if (Number.isNaN(start.getTime())) return "";
+  return start.toLocaleDateString("en-CA", { timeZone: EASTERN_TIMEZONE });
+}
+
+function tutoringSessionDateLabel(dateKey: string): string {
+  if (!dateKey || !/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return "—";
+  try {
+    return parseEasternDate(dateKey).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      timeZone: EASTERN_TIMEZONE,
+    });
+  } catch {
+    return "—";
+  }
+}
+
+function toTutoringSession(row: TutorReportWeekRow): HoursBenchmarkTutoringSession {
+  const dateKey = tutoringSessionDateKey(row);
+  const scholarName = row.scholar_name.trim() || "—";
+  const scholarId = row.scholar_uid?.trim() || scholarName;
+  return {
+    id: row.id,
+    scholarId,
+    scholarName,
+    tutorName: normalizedTutorName(row.tutor_name),
+    dayOfWeek: row.day_of_week || "—",
+    dateLabel: tutoringSessionDateLabel(dateKey),
+    dateKey,
+  };
+}
+
+function sortSessionsInGroup(
+  sessions: HoursBenchmarkTutoringSession[],
+  counterpart: (session: HoursBenchmarkTutoringSession) => string,
+): HoursBenchmarkTutoringSession[] {
+  return [...sessions].sort((a, b) => {
+    const byName = nameCompare(counterpart(a), counterpart(b));
+    if (byName !== 0) return byName;
+    if (a.dateKey !== b.dateKey) return a.dateKey.localeCompare(b.dateKey);
+    return a.id - b.id;
+  });
+}
+
+function groupTutoringSessions(
+  sessions: HoursBenchmarkTutoringSession[],
+  keyFor: (session: HoursBenchmarkTutoringSession) => string,
+  titleFor: (session: HoursBenchmarkTutoringSession) => string,
+  counterpart: (session: HoursBenchmarkTutoringSession) => string,
+  sortGroups: (a: HoursBenchmarkTutoringGroup, b: HoursBenchmarkTutoringGroup) => number,
+): HoursBenchmarkTutoringGroup[] {
+  const groups = new Map<string, HoursBenchmarkTutoringGroup>();
+  for (const session of sessions) {
+    const key = keyFor(session);
+    const existing = groups.get(key);
+    if (existing) {
+      existing.sessions.push(session);
+    } else {
+      groups.set(key, { key, title: titleFor(session), sessions: [session] });
+    }
+  }
+  return [...groups.values()]
+    .map((group) => ({
+      ...group,
+      sessions: sortSessionsInGroup(group.sessions, counterpart),
+    }))
+    .sort(sortGroups);
+}
+
+/**
+ * Real tutoring sessions only (empty/no-show rows omitted), grouped for the
+ * benchmark page and PDF: by scholar, by tutor, and by weekday frequency.
+ */
+export function buildHoursBenchmarkTutoringBreakdowns(
+  rows: TutorReportWeekRow[],
+): HoursBenchmarkTutoringBreakdowns {
+  const sessions = rows
+    .filter((row) => !isEmptyTutoringSessionUid(row.scholar_uid) && row.scholar_name !== "EMPTY SESSION")
+    .map(toTutoringSession);
+
+  if (sessions.length === 0) return { ...EMPTY_TUTORING };
+
+  const tutoringByScholar = groupTutoringSessions(
+    sessions,
+    (session) => `scholar:${session.scholarId}`,
+    (session) => session.scholarName,
+    (session) => session.tutorName,
+    (a, b) => nameCompare(a.title, b.title),
+  );
+
+  const tutoringByTutor = groupTutoringSessions(
+    sessions,
+    (session) => `tutor:${session.tutorName.toLowerCase()}`,
+    (session) => session.tutorName,
+    (session) => session.scholarName,
+    (a, b) => nameCompare(a.title, b.title),
+  );
+
+  const tutoringByDay = groupTutoringSessions(
+    sessions,
+    (session) => session.dayOfWeek,
+    (session) => session.dayOfWeek,
+    (session) => session.scholarName,
+    (a, b) => (DAY_SORT_ORDER[a.title] ?? 99) - (DAY_SORT_ORDER[b.title] ?? 99) || nameCompare(a.title, b.title),
+  );
+
+  return { tutoringByScholar, tutoringByTutor, tutoringByDay };
+}
 
 /** Weeks 2 through the previous campus week. Null when that range is empty. */
 export function hoursBenchmarkScoredWeeks(currentCampusWeek: number): HoursBenchmarkScoredWeeks | null {
@@ -409,13 +579,15 @@ export function assembleHoursBenchmark(
     allHeatmapScholars,
     byTeamLeader,
     lowEvents,
+    ...EMPTY_TUTORING,
   };
 }
 
 /**
  * Hours benchmark from campus week 2 through the previous week.
  * The current week and week 1 are ignored. Minutes come from tickets plus
- * scholar_week_excuses (effective = logged + excuse).
+ * scholar_week_excuses (effective = logged + excuse). Tutoring breakdowns
+ * cover the same scored-week span.
  */
 export async function getHoursBenchmarkReport(now = new Date()): Promise<HoursBenchmarkReport> {
   const currentWeek = dateToCampusWeek(now);
@@ -433,10 +605,13 @@ export async function getHoursBenchmarkReport(now = new Date()): Promise<HoursBe
           (_, index) => scoredWeeks.fromWeek + index,
         );
 
-  const [weekAttendances, menteeTeamLeaderIndex, users] = await Promise.all([
+  const [weekAttendances, menteeTeamLeaderIndex, users, tutorRows] = await Promise.all([
     Promise.all(scoredWeekNums.map((weekNum) => getCampusWeekAttendance(weekNum))),
     fetchMenteeTeamLeaderIndex(),
     fetchAllUsersForMemo(),
+    scoredWeeks == null
+      ? Promise.resolve([])
+      : getTutorReportWeekRowsForWeekRange(scoredWeeks.fromWeek, scoredWeeks.throughWeek),
   ]);
   const { labelByMenteeUid: mentorByMenteeUid } = menteeTeamLeaderIndex;
 
@@ -465,5 +640,8 @@ export async function getHoursBenchmarkReport(now = new Date()): Promise<HoursBe
     }),
   }));
 
-  return assembleHoursBenchmark(inputs, currentCampusWeek, now);
+  return {
+    ...assembleHoursBenchmark(inputs, currentCampusWeek, now),
+    ...buildHoursBenchmarkTutoringBreakdowns(tutorRows),
+  };
 }
