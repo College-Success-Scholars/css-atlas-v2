@@ -25,11 +25,6 @@ describe("Memo routes — auth gating", () => {
     expect(res.headers["access-control-allow-origin"]).toBe("http://localhost:3000");
   });
 
-  it("GET /api/memo/weekly returns 401 without token", async () => {
-    const res = await request(app).get("/api/memo/weekly");
-    expect(res.status).toBe(401);
-  });
-
   it("GET /api/memo/page-data returns 401 without token", async () => {
     const res = await request(app).get("/api/memo/page-data");
     expect(res.status).toBe(401);

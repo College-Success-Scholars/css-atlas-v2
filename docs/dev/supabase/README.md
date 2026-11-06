@@ -6,7 +6,7 @@ Dashboard SQL Editor is **emergency / one-off ops only** — every lasting schem
 
 ## Access pattern
 
-**App reads and app-owned mutations** reach Postgres through the Express backend via `getSupabaseClient()` (table queries and Postgres RPCs such as `get_mentee_activity`).
+**App reads and app-owned mutations** reach Postgres through the Express backend via `getSupabaseClient()` (table queries and RLS helper functions such as `is_team_leader_or_above()` / `roster_uid()`).
 
 **Operational form / log population is already handled outside the app:** Google Forms write into Supabase tables (see [Form / log intake](#form--log-intake-google-forms)). Do not plan in-app “data entry” or seed pipelines for those weekly forms — treat the `*_form_logs` / session log tables as externally fed sources of truth the backend reads and aggregates.
 
@@ -78,9 +78,25 @@ Do this **once per academic year**, together with the `shared/time-config.ts` da
 
 Ask before changing intake destinations, secrets, or `time-config` dates — [Ask / don’t touch](../onboarding/ask-and-dont-touch.md).
 
-### Inventory — notable RPCs / functions
+### Inventory — RPCs / functions (KEEP vs OBSOLETE)
 
-`get_mentee_activity`, `get_my_mentees`, `get_week_breaks`, `get_weekly_memo`, `get_effective_requirement`, `handle_new_user`, `is_developer`, `sync_daily_scholar_activity`, …
+Atlas must not call OBSOLETE objects from Express. They may still exist in Postgres until a follow-up `DROP FUNCTION` migration (ask-before SQL). `database.types.ts` still lists them until that DROP + `npm run db:types`.
+
+| Object | Status | Notes |
+|--------|--------|-------|
+| `is_developer()` | **KEEP** | RLS for `/dev` and developer writes |
+| `is_team_leader_or_above()` | **KEEP** | RLS for form logs, tutor delete, mentee prefs, excuses |
+| `roster_uid()` | **KEEP** | Maps `auth.uid()` → roster student id for own-row RLS |
+| `full_resync_daily_scholar_activity()` | **KEEP** | Nightly cron / ops resync |
+| `sync_daily_scholar_activity()` | **KEEP** | Trigger helper |
+| `handle_new_user()` | **KEEP** | Auth signup trigger |
+| Break / requirement helpers (`get_effective_requirement`, `is_break_day`, `count_break_days`, …) | **KEEP** | Campus-week math in DB where still wired |
+| `get_weekly_memo` | **OBSOLETE** | Express `/api/memo/weekly` removed; Memo uses `/api/memo/page-data` |
+| `get_my_mentees` | **OBSOLETE** | Replaced by `mentor_mentee` + `user_roster` table queries |
+| `get_mentee_activity` | **OBSOLETE** | No Express caller; do not use for new mentee reads |
+| `get_week_breaks` | **OBSOLETE** | No Express caller |
+| `update_scholar_summary` | **OBSOLETE** | Orphan trigger fn; refs missing `logs` / `daily_scholar_summary` |
+| Edge Function `refresh_weekly_stats` | **GONE** | Never in-repo; Express `POST /api/memo/refresh-stats` removed |
 
 ### Schema ↔ app types (resolved)
 

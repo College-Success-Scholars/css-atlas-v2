@@ -17,7 +17,6 @@ const AUTH_PROTECTED_ROUTES = [
 ] as const;
 
 const TEAM_LEADER_ROUTES = [
-  "/api/memo/weekly",
   "/api/memo/page-data",
   "/api/memo/traffic-count",
   "/api/tutor-reports",

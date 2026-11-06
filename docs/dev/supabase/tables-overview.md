@@ -373,7 +373,7 @@ App- or trigger-maintained attendance math — not the raw Google Form tickets (
 |--|--|
 | **Importance** | Low — legacy weekly aggregate. |
 | **Table secrecy** | Low |
-| **How Atlas uses it** | Inside legacy `get_weekly_memo` RPC; live Memo uses raw `traffic`. |
+| **How Atlas uses it** | Obsolete — was inside legacy `get_weekly_memo` RPC; live Memo uses raw `traffic` via `/api/memo/page-data`. |
 
 | Column | Secrecy | Why |
 |--------|---------|-----|
@@ -460,7 +460,7 @@ Do not use for new features.
 |--|--|
 | **Importance** | Low — historical weekly memo/flagging aggregate. |
 | **Table secrecy** | High |
-| **How Atlas uses it** | Legacy `get_weekly_memo` / refresh path; current Memo uses `/api/memo/page-data` (compute-on-read). |
+| **How Atlas uses it** | Obsolete aggregate — Atlas does not refresh this path; Memo uses `/api/memo/page-data` (compute-on-read). |
 
 | Column | Secrecy | Why |
 |--------|---------|-----|

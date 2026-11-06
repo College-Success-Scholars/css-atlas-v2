@@ -5,11 +5,11 @@ import type { ShiftComplianceByKind } from "./session-log.model.js";
  * @module backend/models
  *
  * TypeScript types for mentee relationship data.
- * MenteeRow represents the shape returned by the get_my_mentees Supabase RPC,
- * which returns scholars assigned to the calling team leader.
+ * MenteeRow is the shape mapped from `mentor_mentee` + `user_roster` joins
+ * in mentee.service (not the obsolete `get_my_mentees` RPC).
  *
  * ## What belongs here
- * - MenteeRow type (shape from get_my_mentees RPC)
+ * - MenteeRow type (table-query shape from mentor_mentee / user_roster)
  * - MenteeTeamLeaderRow type (mentee_uid → team-leader display name)
  *
  * ## What does NOT belong here

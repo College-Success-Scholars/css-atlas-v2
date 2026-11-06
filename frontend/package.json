@@ -9,7 +9,6 @@
     "lint": "eslint",
     "test": "TZ=America/New_York vitest run",
     "test:watch": "TZ=America/New_York vitest",
-    "test:mentee-rpc": "node scripts/test-mentee-rpcs.mjs",
     "check:theme-safety": "node ../scripts/check-theme-safety.mjs"
   },
   "dependencies": {

@@ -12,7 +12,6 @@ import type { AuthenticatedRequest } from "./auth.middleware.js";
 const ACTING_BLOCKED_POST_PATHS = new Set([
   "/api/auth/profile",
   "/api/memo/sync",
-  "/api/memo/refresh-stats",
 ]);
 
 function requestPath(req: AuthenticatedRequest): string {

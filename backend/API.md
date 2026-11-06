@@ -71,7 +71,7 @@ All routes under `/api/auth` require **requireAuth**.
 ### `GET /api/auth/mentees`
 
 **Auth:** requireAuth
-**Description:** Calls the `get_my_mentees` RPC to return the current user's assigned mentees.
+**Description:** Returns the current user's assigned mentees from `mentor_mentee` + `user_roster` table queries (not the obsolete `get_my_mentees` RPC).
 **Request:** None
 **Response:**
 ```json
@@ -1100,39 +1100,6 @@ All routes under `/api/dev` require **requireDeveloper**.
 ## Memo
 
 Routes under `/api/memo` require **requireTeamLeaderOrAbove** unless noted otherwise.
-
-### `GET /api/memo/weekly`
-
-**Auth:** requireTeamLeaderOrAbove
-**Description:** Returns the weekly memo data by calling the `get_weekly_memo` Supabase RPC.
-**Query Params:**
-- `semesterId` (integer, required) -- The semester ID
-- `weekNum` (integer >= 1, required) -- The week number
-
-**Response:**
-```json
-{ "data": { /* weekly memo result from RPC */ } }
-```
-
----
-
-### `POST /api/memo/refresh-stats`
-
-**Auth:** requireTeamLeaderOrAbove
-**Description:** Triggers a fire-and-forget call to the `refresh_weekly_stats` Supabase Edge Function. Returns immediately.
-**Request Body:**
-```json
-{
-  "weekNumber": 1,     // required; legacy week_num / weekNum accepted
-  "semesterId": 1      // required; legacy semester_id accepted
-}
-```
-**Response:**
-```json
-{ "data": { "ok": true } }
-```
-
----
 
 ### `GET /api/memo/page-data`
 
