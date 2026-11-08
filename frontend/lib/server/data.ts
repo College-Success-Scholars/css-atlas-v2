@@ -398,3 +398,11 @@ export async function getTotalMinutesForMenteeWeek(params: {
 export async function getWeeklyMemoPdf(weekNumber: number): Promise<Response> {
   return backendDownload(`/api/memo/pdf?weekNumber=${weekNumber}`);
 }
+
+export async function getStudySessionNoShows(): Promise<import("../types/session-log").StudySessionNoShow[]> {
+  return backendGet<import("../types/session-log").StudySessionNoShow[]>("/api/session-logs/study/no-shows");
+}
+
+export async function getFrontDeskNoShows(): Promise<import("../types/session-log").ScholarNoShow[]> {
+  return backendGet<import("../types/session-log").ScholarNoShow[]>("/api/session-logs/front-desk/no-shows");
+}

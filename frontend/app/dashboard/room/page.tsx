@@ -2,12 +2,15 @@ import { requireTeamLeaderOrAbove } from "@/lib/supabase/server"
 import {
   getStudySessionScholarsInRoom,
   getFrontDeskScholarsInRoom,
+  getStudySessionNoShows,
+  getFrontDeskNoShows,
 } from "@/lib/server/data"
 import { getStartOfDayEastern } from "@/lib/format/time"
 import type { ScholarInRoom } from "@/lib/types/session-log"
 import { RoomPageToolbar } from "./_components/room-page-toolbar"
 import { RoomSummaryCards } from "./_components/room-summary-cards"
 import { RoomSessionPanel } from "./_components/room-session-panel"
+import { RoomNoShowsHeading } from "./_components/room-no-shows-heading"
 import { formatSnapshotLabel } from "./_lib/room-format"
 
 export const dynamic = "force-dynamic"
@@ -25,6 +28,17 @@ export default async function RoomMonitoringPage() {
   const [studySessionRaw, frontDeskRaw] = await Promise.all([
     getStudySessionScholarsInRoom(dateRangeOpts),
     getFrontDeskScholarsInRoom(dateRangeOpts),
+  ])
+
+  const [noShowsResult, frontDeskNoShowsResult] = await Promise.all([
+    getStudySessionNoShows().then(
+      (scholars) => ({ scholars, error: null }),
+      () => ({ scholars: [], error: "Unable to load study session no-shows. Try Refresh." }),
+    ),
+    getFrontDeskNoShows().then(
+      (scholars) => ({ scholars, error: null }),
+      () => ({ scholars: [], error: "Unable to load front desk no-shows. Try Refresh." }),
+    ),
   ])
 
   // Pass only serializable fields to client components (omit entryTicket).
@@ -75,6 +89,13 @@ export default async function RoomMonitoringPage() {
           emptyMessage="No scholars at front desk at this time"
         />
       </div>
+
+      <RoomNoShowsHeading
+        studyNoShows={noShowsResult.scholars}
+        studyNoShowsError={noShowsResult.error}
+        frontDeskNoShows={frontDeskNoShowsResult.scholars}
+        frontDeskNoShowsError={frontDeskNoShowsResult.error}
+      />
     </div>
   )
 }

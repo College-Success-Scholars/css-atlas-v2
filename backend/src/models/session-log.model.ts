@@ -169,3 +169,12 @@ export interface ScholarShiftCompliance {
   fdCompliance: ShiftComplianceByKind;
   ssCompliance: ShiftComplianceByKind;
 }
+
+export interface ScholarNoShow {
+  scholarId: string;
+  scholarName: string;
+  phoneNumber: string | null;
+}
+
+/** Compatibility alias for existing Study Session callers. */
+export type StudySessionNoShow = ScholarNoShow;
