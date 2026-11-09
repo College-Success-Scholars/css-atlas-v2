@@ -135,6 +135,28 @@ async function fetchExcusesForWeekStart(
   return { front_desk, study_session };
 }
 
+/** All FD/SS excuses for one scholar (semester-wide mentee review). */
+export async function fetchScholarWeekExcuses(
+  scholarUid: string
+): Promise<ScholarWeekExcuseRow[]> {
+  const uid = String(scholarUid ?? "").trim();
+  if (!uid) return [];
+
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("scholar_week_excuses")
+    .select("*")
+    .eq("scholar_uid", uid);
+  if (error) throw error;
+
+  const rows: ScholarWeekExcuseRow[] = [];
+  for (const row of data ?? []) {
+    const mapped = mapExcuseRow(row);
+    if (mapped) rows.push(mapped);
+  }
+  return rows;
+}
+
 const ZERO_TOTALS: CampusWeekAttendanceTotals = {
   minutes: EMPTY_WEEKLY_MINUTES,
   loggedMin: 0,

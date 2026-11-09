@@ -18,6 +18,9 @@ describe("directory state", () => {
 
   it("opens a detail page only for a mentee with a UID", () => {
     expect(directoryMenteePath("123/456", true)).toBe("/dashboard/directory/123%2F456");
+    expect(directoryMenteePath("123456789", true, 2025)).toBe(
+      "/dashboard/directory/123456789?cohort=2025",
+    );
     expect(directoryMenteePath("123456789", false)).toBeNull();
     expect(directoryMenteePath(null, true)).toBeNull();
   });

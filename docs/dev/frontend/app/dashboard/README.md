@@ -7,7 +7,7 @@
 
 [← Root](../../../README.md) › [Frontend](../../README.md) › [app](../README.md) › dashboard
 
-Children: [memo/](memo/README.md)
+Children: [memo/](memo/README.md), [hours-benchmark/](hours-benchmark/README.md)
 
 ---
 
@@ -27,6 +27,7 @@ The main authenticated application. All routes here require a valid Supabase ses
 | `events/page.tsx` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/dashboard/events/page.tsx) | `/dashboard/events` | Program events |
 | `internship-board/page.tsx` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/dashboard/internship-board/page.tsx) | `/dashboard/internship-board` | Internship opportunities board |
 | `memo/page.tsx` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/dashboard/memo/page.tsx) | `/dashboard/memo` | Weekly memo view (complex, see memo/ docs) |
+| `hours-benchmark/page.tsx` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/dashboard/hours-benchmark/page.tsx) | `/dashboard/hours-benchmark` | Multi-week FD/SS hours benchmark (≤50% heatmap + PDF; developer only) |
 | `memo-legacy/page.tsx` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/dashboard/memo-legacy/page.tsx) | `/dashboard/memo-legacy` | Legacy memo view — kept for reference |
 | `personal/page.tsx` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/dashboard/personal/page.tsx) | `/dashboard/personal` | Own weekly WAHF/WPL/MCF status; MCF is one form per mentee (some-but-not-all is incomplete) |
 | `mentee/page.tsx` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/dashboard/mentee/page.tsx) | `/dashboard/mentee` | Mentee monitoring (team leaders only). FD/SS hours are campus-week tickets + `scholar_week_excuses` (`?week=`), same calendar as Weekly Memo. |
@@ -42,6 +43,7 @@ The main authenticated application. All routes here require a valid Supabase ses
 | Directory | Docs | Description |
 |-----------|------|-------------|
 | `memo/` | [memo/README.md](memo/README.md) | Memo page components, utilities, and assembler logic |
+| `hours-benchmark/` | [hours-benchmark/README.md](hours-benchmark/README.md) | Hours Benchmark Report page and PDF export |
 
 ---
 

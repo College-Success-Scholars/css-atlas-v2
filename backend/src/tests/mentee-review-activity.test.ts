@@ -165,6 +165,18 @@ describe("expandShiftOccurrences", () => {
       })
     ).toEqual([]);
   });
+
+  it("matches numeric semester_id from the DB against the calendar string id", () => {
+    const shifts = expandShiftOccurrences({
+      scholarUid: "1001",
+      semesterId: "1",
+      semesterStart: WEEK_1.startDate,
+      semesterEnd: WEEK_1.endDate,
+      assignments: [assignment({ semester_id: 1 })],
+    });
+    expect(shifts).toHaveLength(1);
+    expect(shifts[0]!.startTime).toBe("10:00");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -198,6 +210,41 @@ describe("buildAttendanceEvidence", () => {
     const completed = evidence.logs.find((l) => l.sourceId === "fd-complete-in");
     expect(completed).toBeDefined();
     expect(completed!.end.getTime() - completed!.start.getTime()).toBe(60 * 60_000);
+  });
+
+  it("defaults excuses to [] and maps scholar_week_excuses into week evidence", () => {
+    expect(evidence.excuses).toEqual([]);
+    const withExcuse = buildAttendanceEvidence({
+      scholarUid: "1001",
+      semesterId: "1",
+      semesterStart: WEEK_1.startDate,
+      semesterEnd: WEEK_2.endDate,
+      assignments: [],
+      frontDeskRows: [],
+      studyRows: [],
+      asOf,
+      excuseRows: [
+        {
+          scholar_uid: "1001",
+          week_start: "2026-08-31",
+          week_num: 1,
+          kind: "front_desk",
+          excuse_min: 45,
+          description: "Doctor",
+          updated_by: "tl",
+          updated_at: asOf.toISOString(),
+        },
+      ],
+    });
+    expect(withExcuse.excuses).toEqual([
+      {
+        weekNum: 1,
+        weekStart: "2026-08-31",
+        kind: "front_desk",
+        minutes: 45,
+        description: "Doctor",
+      },
+    ]);
   });
 
   it("keeps an open entry bounded to its own local day and marks the date non-terminal", () => {
@@ -384,6 +431,7 @@ describe("composeMenteeReview", () => {
         { sourceId: "l1", kind: "front_desk", start: at(WEEK_1.startDate, "10:00"), end: at(WEEK_1.startDate, "11:00") },
       ],
       nonTerminalDates: [],
+      excuses: [],
     },
     loadedAt: asOf.toISOString(),
   };
@@ -418,6 +466,29 @@ describe("composeMenteeReview", () => {
     expect(review.semesterGrid.ok).toBe(false);
     expect(review.selectedWeekReview.ok).toBe(false);
     expect(review.latestGrades.ok).toBe(true);
+  });
+
+  it("anchors all recent grades to asOf, not the selected historical week", () => {
+    const now = new Date("2026-09-17T16:00:00Z");
+    const gradeCalendar = buildSemesterCalendar({
+      semester: { id: 1, start_date: "2026-08-31", end_date: "2026-12-12" },
+      asOf: now,
+    });
+    const rows = [
+      wahf("old", new Date("2026-08-31T16:00:00Z"), { C: { Old: "70" } }),
+      wahf("previous", new Date("2026-09-08T16:00:00Z"), { C: { Previous: "80" } }),
+      wahf("current", new Date("2026-09-16T16:00:00Z"), { C: { Current: "90" } }),
+      wahf("future", new Date("2026-09-18T16:00:00Z"), { C: { Future: "95" } }),
+    ];
+    const options = { asOf: now, calendar: gradeCalendar, wahf: { ok: true as const, data: rows, loadedAt: now.toISOString() } };
+    const historical = compose({ ...options, selectedWeek: 1 });
+    const current = compose({ ...options, selectedWeek: 3 });
+
+    expect(historical.latestGrades.ok).toBe(true);
+    if (!historical.latestGrades.ok || !current.latestGrades.ok) throw new Error("Expected grades to be available");
+    expect(historical.latestGrades.data).toEqual(current.latestGrades.data);
+    expect(historical.latestGrades.data.entries.map((entry) => entry.submissionId)).toEqual(["current", "previous"]);
+    expect(historical.latestGrades.data.entries[1]!.comparison?.priorPercent).toBe(70);
   });
 
   it("marks WAHF/tutoring unknown (never missing/none) when their reads fail", () => {

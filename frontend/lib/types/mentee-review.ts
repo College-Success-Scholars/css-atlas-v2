@@ -17,6 +17,8 @@ export type ShiftStatus =
   /** Would be a no-show but the day has open/unmatched evidence; never a confirmed miss. */
   | "unconfirmed";
 export type WeekPhase = "current" | "past" | "future";
+/** Display-only completion tier earned independently by an hourly requirement. */
+export type WeekTier = "rare" | "epic" | "legendary";
 export type WahfStatus = "pending" | "submitted" | "missing" | "unknown";
 export type TutoringStatus = "recorded" | "none" | "unknown";
 export type GradesStatus = "grades" | "empty" | "error";
@@ -51,9 +53,15 @@ export interface OffShiftLogEvidence {
 
 export interface HourWeekSummary {
   kind: ShiftSessionKind;
+  /** Derived from this requirement's logged minutes by `applyWeekTiers`; not an API field. */
+  tier?: WeekTier | null;
   assignmentAvailable: boolean;
   loggedMinutes: number;
+  /** TL excuse minutes; count toward percent/band, not tiers. */
+  excuseMinutes: number;
+  excuseDescription: string | null;
   targetMinutes: number | null;
+  /** Unrounded percent using logged + excuse. */
   percent: number | null;
   band: HourBand | null;
   displayHours: number;
@@ -106,6 +114,9 @@ export interface GradeComparison {
 }
 
 export interface LatestGradeEntry {
+  /** Always emitted by the evaluator; optional for legacy single-submission DTOs. */
+  submissionId?: string;
+  submittedAt?: string;
   course: string;
   assessment: string;
   rawGrade: string;
@@ -117,8 +128,10 @@ export interface LatestGradeEntry {
 
 export interface LatestGradesSummary {
   status: GradesStatus;
+  /** Latest submission within the recent window, including one with no grades. */
   submissionId: string | null;
   submittedAt: string | null;
+  /** All recent entries, newest submission first and observed order within each. */
   entries: LatestGradeEntry[];
 }
 
@@ -147,6 +160,11 @@ export interface MenteeReviewIdentity {
   fullName: string;
   /** Roster contact for follow-up drafts; null disables launch. */
   email: string | null;
+  /**
+   * Entering cohort year from the roster. Optional for older API responses;
+   * those retain the freshman-cutoff fallback.
+   */
+  cohort?: number | null;
 }
 
 /** Output DTO for the meeting preference (normalized HH:MM). */

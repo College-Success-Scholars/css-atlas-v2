@@ -164,6 +164,7 @@ export type ScholarFollowUpRow = {
   isMentee?: boolean
   scholarName: string
   scholarYear: string
+  cohort?: number | null
   teamLeader: string
   flags: string[]
   issues: ScholarFollowUpIssue[]
@@ -192,6 +193,7 @@ export type AttendanceDetailRow = {
   isMentee?: boolean
   scholarName: string
   scholarYear: string
+  cohort?: number | null
   completedMinutes: number
   excuseMinutes: number
   requiredMinutes: number
@@ -221,6 +223,7 @@ export type TutoringLogRow = {
   scholarId?: string | null
   isMentee?: boolean
   scholarName: string
+  cohort?: number | null
   dayOfWeek: string
   tutorName: string
   courses: string[]

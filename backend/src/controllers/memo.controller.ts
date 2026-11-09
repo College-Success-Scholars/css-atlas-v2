@@ -7,7 +7,7 @@
  * form submissions, traffic counts, and performance metrics.
  *
  * ## Responsibilities
- * - Handle memo sync (light/heavy modes), weekly memo fetch, stats refresh
+ * - Handle memo sync (light/heavy modes), page-data, PDF, and traffic counts
  * - Delegate to memo.service.ts, memo-page.service.ts, and traffic.service.ts
  * - Return { data } or { error } JSON
  *
@@ -19,7 +19,7 @@
  */
 import type { Response } from "express";
 import type { AuthenticatedRequest } from "../middleware/auth.middleware.js";
-import { syncMemo, getWeeklyMemo, triggerRefreshStats } from "../services/memo.service.js";
+import { syncMemo } from "../services/memo.service.js";
 import { getTrafficEntryCountForWeek } from "../services/traffic.service.js";
 import { getMemoPageData } from "../services/memo-page.service.js";
 import { resolveMemoDefaultWeek } from "../services/memo-default-week.js";
@@ -49,47 +49,6 @@ export async function sync(req: AuthenticatedRequest, res: Response) {
     res.json({ data });
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : "Sync failed" });
-  }
-}
-
-// GET /api/memo/weekly?semesterId=X&weekNumber=Y
-export async function weeklyMemo(req: AuthenticatedRequest, res: Response) {
-  const semesterId = parseInt(req.query.semesterId as string, 10);
-  const weekParam = (req.query.weekNumber ?? req.query.weekNum) as string;
-  const weekNumber = parseInt(weekParam, 10);
-  if (Number.isNaN(semesterId) || Number.isNaN(weekNumber) || weekNumber < 1) {
-    res.status(400).json({ error: "semesterId and weekNumber are required" });
-    return;
-  }
-  try {
-    const data = await getWeeklyMemo(semesterId, weekNumber);
-    res.json({ data });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: e instanceof Error ? e.message : "Failed to fetch weekly memo" });
-  }
-}
-
-// POST /api/memo/refresh-stats
-export async function refreshStats(req: AuthenticatedRequest, res: Response) {
-  const body = req.body as {
-    weekNumber?: number;
-    weekNum?: number;
-    week_num?: number;
-    semesterId?: number;
-    semester_id?: number;
-  };
-  const weekNumber = body.weekNumber ?? body.weekNum ?? body.week_num;
-  const semesterId = body.semesterId ?? body.semester_id;
-  if (!weekNumber || !semesterId) {
-    res.status(400).json({ error: "weekNumber and semesterId are required" });
-    return;
-  }
-  try {
-    triggerRefreshStats(weekNumber, semesterId);
-    res.json({ data: { ok: true } });
-  } catch (e) {
-    res.status(500).json({ error: e instanceof Error ? e.message : "Failed to trigger refresh" });
   }
 }
 

@@ -29,7 +29,9 @@ import {
 } from "./tutor-report-log.service.js";
 import { getActiveSemesterRow } from "./semester.service.js";
 import { getMeetingPreference } from "./mentee-meeting-preference.service.js";
+import { campusWeekStartDate } from "./attendance-week.service.js";
 import {
+  excusesForWeek,
   fetchMenteeAttendanceEvidence,
   type AttendanceEvidence,
 } from "./mentee-review-attendance.adapter.js";
@@ -193,6 +195,7 @@ function evaluateInstructionalWeeks(input: ComposeMenteeReviewInput): WeekReview
     if (week.isBreak || week.isFuture) continue;
     const range = campusWeekToDateRange(week.weekNumber);
     if (!range) continue;
+    const weekStartYmd = campusWeekStartDate(week.weekNumber);
     summaries.push(
       evaluateWeek({
         weekNumber: week.weekNumber,
@@ -203,6 +206,9 @@ function evaluateInstructionalWeeks(input: ComposeMenteeReviewInput): WeekReview
         logs: attendance.data.logs,
         nonTerminalDates: attendance.data.nonTerminalDates,
         targets,
+        excuses: weekStartYmd
+          ? excusesForWeek(attendance.data.excuses, weekStartYmd)
+          : {},
         wahf: buildWahfEvidenceForWeek(wahf.ok ? wahf.data : [], week.weekNumber, wahf.ok),
         tutoring: buildTutoringEvidenceForWeek(
           tutoring.ok ? tutoring.data : [],
@@ -233,7 +239,7 @@ export function composeMenteeReview(input: ComposeMenteeReviewInput): MenteeRevi
   const latestGrades: SectionResult<ReturnType<typeof deriveLatestGrades>> = input.wahf.ok
     ? {
         ok: true,
-        data: deriveLatestGrades(buildGradesEvidence(input.wahf.data, true)),
+        data: deriveLatestGrades(buildGradesEvidence(input.wahf.data, true), asOf),
         loadedAt,
       }
     : { ok: false, error: input.wahf.error };
@@ -288,6 +294,7 @@ async function composeReviewForMentee(params: {
     uid: menteeUid,
     fullName: [mentee.first_name, mentee.last_name].filter(Boolean).join(" ").trim(),
     email: mentee.email ?? null,
+    cohort: mentee.cohort ?? null,
   };
   const targets: Partial<Record<ShiftSessionKind, number | null>> = {
     front_desk: mentee.fd_required,
@@ -302,7 +309,11 @@ async function composeReviewForMentee(params: {
       calendar,
       selectedWeek,
       targets,
-      attendance: { ok: true, data: { shifts: [], logs: [], nonTerminalDates: [] }, loadedAt: asOf.toISOString() },
+      attendance: {
+        ok: true,
+        data: { shifts: [], logs: [], nonTerminalDates: [], excuses: [] },
+        loadedAt: asOf.toISOString(),
+      },
       wahf: { ok: true, data: [], loadedAt: asOf.toISOString() },
       tutoring: { ok: true, data: [], loadedAt: asOf.toISOString() },
       meetingPreference,

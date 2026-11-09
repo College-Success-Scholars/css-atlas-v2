@@ -15,6 +15,16 @@ describe("ScholarNameLink", () => {
     expect(html).toContain("Alice Scholar")
   })
 
+  it("carries the cohort into the directory link", () => {
+    const html = renderToStaticMarkup(
+      <ScholarNameLink scholarId="uid-1" isMentee cohort={2025}>
+        Alice Scholar
+      </ScholarNameLink>
+    )
+
+    expect(html).toContain('href="/dashboard/directory/uid-1?cohort=2025"')
+  })
+
   it("keeps non-mentees as plain text", () => {
     const html = renderToStaticMarkup(
       <ScholarNameLink scholarId="uid-1" isMentee={false}>

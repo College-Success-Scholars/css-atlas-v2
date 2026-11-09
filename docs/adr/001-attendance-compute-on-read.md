@@ -21,6 +21,6 @@ Stage 3 originally called for `MEMO_ATTENDANCE_SOURCE=records|tickets`. Stages 4
 ## Consequences
 
 - Memo GET `/api/memo/page-data` uses `getCampusWeekAttendance`.
-- Mentee monitoring FD/SS hours use `POST /api/attendance/week/:weekNum/by-uids` (same tickets + `scholar_week_excuses` math).
+- Mentee monitoring FD/SS hours use the mentee-review pipeline (tickets + `scholar_week_excuses`; same effective = logged + excuse math as Memo).
 - Product excuse writes go to `PATCH /api/attendance/excuse` only.
 - Historical `*_records.excuse_min` is not backfilled; only `scholar_week_excuses` counts.

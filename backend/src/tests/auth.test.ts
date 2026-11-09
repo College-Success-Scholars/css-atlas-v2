@@ -17,7 +17,6 @@ const AUTH_PROTECTED_ROUTES = [
 ] as const;
 
 const TEAM_LEADER_ROUTES = [
-  "/api/memo/weekly",
   "/api/memo/page-data",
   "/api/memo/traffic-count",
   "/api/tutor-reports",
@@ -45,6 +44,11 @@ describe("Auth gating — unauthenticated requests", () => {
       student_id: "123",
       cohort: 2025,
     });
+    expect(res.status).toBe(401);
+  });
+
+  it("GET /api/hours-benchmark returns 401 without token", async () => {
+    const res = await request(app).get("/api/hours-benchmark");
     expect(res.status).toBe(401);
   });
 

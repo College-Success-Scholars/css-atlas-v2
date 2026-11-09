@@ -67,7 +67,7 @@ export function AppSidebar({
   const userRole = resolveUserRole(roleFields);
   const showMemo = canAccessWeeklyMemo(roleFields);
   const showMentees = canAccessMenteeMonitoring(profile);
-  const roleNavMain = getRoleBasedNav(userRole, showMemo, showMentees)
+  const roleNavMain = getRoleBasedNav(userRole, showMemo, showMentees, isDeveloper)
   const roleNavTeams = getRoleBasedTeams(userRole)
 
   return (

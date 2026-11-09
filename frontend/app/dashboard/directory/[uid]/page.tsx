@@ -11,12 +11,19 @@ import type { MenteeReview } from "@/lib/types/mentee-review";
 
 type PageProps = {
   params: Promise<{ uid: string }>;
-  searchParams: Promise<{ week?: string }>;
+  searchParams: Promise<{ week?: string; cohort?: string }>;
 };
 
-function scholarHref(uid: string, week: number | null) {
+function parseCohortParam(value: string | undefined): number | null {
+  if (!value?.trim()) return null;
+  const cohort = Number(value);
+  return Number.isFinite(cohort) ? cohort : null;
+}
+
+function scholarHref(uid: string, week: number | null, cohort: number | null = null) {
   const params = new URLSearchParams();
   if (week != null && week > 0) params.set("week", String(week));
+  if (cohort != null) params.set("cohort", String(cohort));
   const query = params.toString();
   const path = `/dashboard/directory/${encodeURIComponent(uid)}`;
   return query ? `${path}?${query}` : path;
@@ -33,7 +40,8 @@ export default async function DirectoryScholarPage({ params, searchParams }: Pag
   const uid = rawUid?.trim();
   if (!uid) notFound();
 
-  const { week: weekParam } = await searchParams;
+  const { week: weekParam, cohort: cohortParam } = await searchParams;
+  const cohort = parseCohortParam(cohortParam);
   const currentCampusWeek = dateToCampusWeek(new Date());
   const requestedWeek = parseWeekParam(weekParam);
 
@@ -46,11 +54,12 @@ export default async function DirectoryScholarPage({ params, searchParams }: Pag
         : Math.min(requestedWeek, currentCampusWeek);
 
   if (selectedWeek != null && selectedWeek !== requestedWeek) {
-    redirect(scholarHref(uid, selectedWeek));
+    redirect(scholarHref(uid, selectedWeek, cohort));
   }
 
   let review: MenteeReview;
   try {
+    // Tiers are temporarily disabled; keep the standard completion bands.
     review = await fetchDirectoryMenteeReview(uid, selectedWeek);
   } catch (error) {
     // Not a mentee (or not visible under RLS): the directory keeps its modal.
@@ -67,7 +76,7 @@ export default async function DirectoryScholarPage({ params, searchParams }: Pag
           mentees={[review.mentee]}
           review={review}
           selectedWeek={selectedWeek}
-          detailPath={scholarHref(uid, null)}
+          detailPath={scholarHref(uid, null, cohort)}
         />
       </div>
     </div>

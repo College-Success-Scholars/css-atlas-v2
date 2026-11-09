@@ -33,7 +33,7 @@ When `req.isActingAsTestProfile` is true, this middleware runs inside `requireAu
 | Blocked when acting | Method |
 |---------------------|--------|
 | `/api/auth/profile` | POST |
-| `/api/memo/sync`, `/api/memo/refresh-stats` | POST |
+| `/api/memo/sync` | POST |
 | Any route | PATCH, PUT, DELETE |
 
 **Allowed when acting:** GET; POST read endpoints (form logs, session logs, users, traffic); `/api/dev/*` GET and non-mutation POST (persona switch).

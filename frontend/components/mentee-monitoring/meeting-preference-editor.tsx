@@ -1,8 +1,20 @@
 "use client"
 
-import { useRef, useState, useTransition } from "react"
+import { useId, useRef, useState, useTransition } from "react"
+
+import { Pencil } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -28,7 +40,7 @@ interface MeetingPreferenceEditorProps {
 
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7] as const
 
-/** Small per-pair weekday + time editor; keeps the previous value on failure. */
+/** Compact per-pair trigger; editing stays outside the check-in banner's flow. */
 export function MeetingPreferenceEditor({
   menteeUid,
   preference,
@@ -39,37 +51,43 @@ export function MeetingPreferenceEditor({
   const [weekday, setWeekday] = useState<number>(preference?.weekday ?? 3)
   const [time, setTime] = useState<string>(preference?.meetingTime ?? "15:00")
   const [error, setError] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
   const [isPending, startTransition] = useTransition()
-  const toggleRef = useRef<HTMLButtonElement>(null)
+  const saveInFlight = useRef(false)
+  const id = useId()
 
-  function openEditor() {
-    setWeekday(preference?.weekday ?? 3)
-    setTime(preference?.meetingTime ?? "15:00")
+  function handleOpenChange(open: boolean) {
+    if (saveInFlight.current) return
+    if (open) {
+      setWeekday(preference?.weekday ?? 3)
+      setTime(preference?.meetingTime ?? "15:00")
+    }
     setError(null)
-    setEditing(true)
-  }
-
-  function closeEditor() {
-    setEditing(false)
-    setError(null)
-    toggleRef.current?.focus()
+    setEditing(open)
   }
 
   async function save() {
+    if (saveInFlight.current) return
+    saveInFlight.current = true
+    setIsSaving(true)
     setError(null)
-    const result = await backendPut<MeetingPreferenceOutput>(
-      `/api/auth/mentees/${encodeURIComponent(menteeUid)}/meeting-preference`,
-      { weekday, meetingTime: time },
-    )
-    if (!result.ok) {
-      setError(result.error)
-      return
+    try {
+      const result = await backendPut<MeetingPreferenceOutput>(
+        `/api/auth/mentees/${encodeURIComponent(menteeUid)}/meeting-preference`,
+        { weekday, meetingTime: time },
+      )
+      if (!result.ok) {
+        setError(result.error)
+        return
+      }
+      setEditing(false)
+      startTransition(() => {
+        onSaved()
+      })
+    } finally {
+      saveInFlight.current = false
+      setIsSaving(false)
     }
-    setEditing(false)
-    startTransition(() => {
-      onSaved()
-    })
-    toggleRef.current?.focus()
   }
 
   const summary = preference
@@ -78,75 +96,79 @@ export function MeetingPreferenceEditor({
       ? "Your meeting: unavailable"
       : "Your meeting: not set"
 
-  if (!editing) {
-    return (
+  return (
+    <Dialog open={editing} onOpenChange={handleOpenChange}>
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm text-muted-foreground">{summary}</span>
-        <Button
-          ref={toggleRef}
-          type="button"
-          variant="link"
-          size="sm"
-          className="h-auto min-h-0 px-0 py-1 text-[13px]"
-          disabled={isPending}
-          onClick={openEditor}
+        <DialogTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-6 min-h-0 gap-1 rounded-full border-border/70 bg-background/70 px-2 py-0 text-xs text-muted-foreground shadow-none hover:text-foreground has-[>svg]:px-2"
+            aria-label="Change meeting time"
+            disabled={isSaving || isPending}
+          >
+            <Pencil className="size-3" aria-hidden />
+            {preference ? "Change" : "Set"}
+          </Button>
+        </DialogTrigger>
+      </div>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Change meeting time</DialogTitle>
+          <DialogDescription>
+            Choose your usual meeting day and time to prefill the check-in form.
+          </DialogDescription>
+        </DialogHeader>
+        <form
+          className="space-y-5"
+          aria-busy={isSaving}
+          onSubmit={(event) => {
+            event.preventDefault()
+            void save()
+          }}
         >
-          {preference ? "Change" : "Set"}
-        </Button>
-      </div>
-    )
-  }
-
-  return (
-    <form
-      className="flex flex-wrap items-end gap-2"
-      onSubmit={(event) => {
-        event.preventDefault()
-        void save()
-      }}
-    >
-      <div className="space-y-1">
-        <Label htmlFor="meeting-weekday" className="text-xs">
-          Weekday
-        </Label>
-        <Select value={String(weekday)} onValueChange={(value) => setWeekday(Number(value))}>
-          <SelectTrigger id="meeting-weekday" size="sm" className="min-h-11 w-36" aria-label="Meeting weekday">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {WEEKDAYS.map((day) => (
-              <SelectItem key={day} value={String(day)}>
-                {formatWeekdayName(day)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-1">
-        <Label htmlFor="meeting-time" className="text-xs">
-          Time
-        </Label>
-        <Input
-          id="meeting-time"
-          type="time"
-          value={time}
-          onChange={(event) => setTime(event.target.value)}
-          className="min-h-11 w-32"
-          required
-        />
-      </div>
-
-      <Button type="submit" variant="outline" className="min-h-11" disabled={isPending}>
-        Save
-      </Button>
-      <Button type="button" variant="outline" className="min-h-11" onClick={closeEditor}>
-        Cancel
-      </Button>
-
-      <p role="alert" className="w-full text-sm text-destructive">
-        {error}
-      </p>
-    </form>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor={`${id}-weekday`}>Weekday</Label>
+              <Select value={String(weekday)} onValueChange={(value) => setWeekday(Number(value))} disabled={isSaving}>
+                <SelectTrigger id={`${id}-weekday`} className="min-h-11 w-full" aria-label="Meeting weekday">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {WEEKDAYS.map((day) => (
+                    <SelectItem key={day} value={String(day)}>
+                      {formatWeekdayName(day)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor={`${id}-time`}>Time</Label>
+              <Input
+                id={`${id}-time`}
+                type="time"
+                value={time}
+                onChange={(event) => setTime(event.target.value)}
+                className="min-h-11"
+                disabled={isSaving}
+                required
+              />
+            </div>
+          </div>
+          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline" className="min-h-11" disabled={isSaving}>Cancel</Button>
+            </DialogClose>
+            <Button type="submit" className="min-h-11" disabled={isSaving || isPending}>
+              {isSaving ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }

@@ -10,7 +10,7 @@ import {
   dateToCampusWeek,
   parseEasternDate,
 } from "@/lib/format/time"
-import type { GradeBand, HourBand, ShiftSessionKind } from "@/lib/types/mentee-review"
+import type { GradeBand, HourBand, ShiftSessionKind, ShiftStatus } from "@/lib/types/mentee-review"
 import type {
   ShiftComplianceByKind,
   WahfRow,
@@ -342,8 +342,32 @@ export function formatPercent(percent: number): string {
   return `${(Math.round(percent * 10) / 10).toFixed(1)}%`
 }
 
+/** Compact session duration: 2h, 1.1h. */
+export function formatCompactHours(minutes: number): string {
+  const hours = hoursFromMinutes(minutes)
+  return `${Number.isInteger(hours) ? hours.toFixed(0) : hours.toFixed(1)}h`
+}
+
 export function hourCardTitle(kind: ShiftSessionKind): string {
   return kind === "front_desk" ? "Front desk" : "Study sessions"
+}
+
+/** Short status copy for a scheduled shift row on the hour card. */
+export function shiftStatusLabel(status: ShiftStatus): string {
+  switch (status) {
+    case "attended":
+      return "Attended"
+    case "short":
+      return "Short"
+    case "no_show":
+      return "No-show"
+    case "active":
+      return "In progress"
+    case "upcoming":
+      return "Upcoming"
+    case "unconfirmed":
+      return "Unconfirmed"
+  }
 }
 
 /** Program-local clock, e.g. "3:00pm". */
@@ -359,11 +383,19 @@ export function formatClock(iso: string): string {
   return formatted.replace(/\s?([AP])M$/, (_match, meridiem: string) => `${meridiem.toLowerCase()}m`)
 }
 
+/** Program-local range with explicit meridiems, including noon crossings. */
+export function formatClockRange(startIso: string, endIso: string): string {
+  const start = formatClock(startIso)
+  const end = formatClock(endIso)
+  return start && end ? `${start}–${end}` : ""
+}
+
 /** Program-local shift day, e.g. "Tuesday, Sep 8". */
 export function formatShiftDay(date: string): string {
   let parsed: Date
   try {
-    parsed = parseEasternDate(date)
+    parsed = /^\d{4}-\d{2}-\d{2}$/.test(date) ? parseEasternDate(date) : new Date(date)
+    if (Number.isNaN(parsed.getTime())) return ""
   } catch {
     return date
   }

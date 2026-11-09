@@ -126,7 +126,7 @@ export interface GradeSubmissionInput {
 }
 
 export interface GradesEvidenceInput {
-  /** False when the latest-submission read failed; status becomes "error". */
+  /** False when the submission-history read failed; status becomes "error". */
   available: boolean;
   submissions: GradeSubmissionInput[];
 }
@@ -172,14 +172,21 @@ export interface HourWeekSummary {
   assignmentAvailable: boolean;
   /** Exact logged minutes (unrounded). */
   loggedMinutes: number;
+  /**
+   * TL-entered excuse minutes for this campus week (`scholar_week_excuses`).
+   * Count toward percent/band/overage; tiers still use logged only.
+   */
+  excuseMinutes: number;
+  /** Free-text reason from scholar_week_excuses; null when unset. */
+  excuseDescription: string | null;
   /** Null when no positive target is configured. */
   targetMinutes: number | null;
-  /** Unrounded percent of target; null when no positive target. */
+  /** Unrounded percent of target using logged + excuse; null when no positive target. */
   percent: number | null;
   band: HourBand | null;
   /** One-decimal display value of logged hours. */
   displayHours: number;
-  /** Whole minutes above target; 0 when at or below target (nearest-minute rounding). */
+  /** Whole minutes above target (logged + excuse); 0 when at or below. */
   overageMinutes: number;
   /** True only for an unfinished current week that is not yet green. */
   pending: boolean;
@@ -231,6 +238,9 @@ export interface GradeComparison {
 }
 
 export interface LatestGradeEntry {
+  /** Always emitted by the evaluator; optional for legacy single-submission DTOs. */
+  submissionId?: string;
+  submittedAt?: Date;
   course: string;
   assessment: string;
   rawGrade: string;
@@ -244,9 +254,17 @@ export interface LatestGradeEntry {
 
 export interface LatestGradesSummary {
   status: GradesStatus;
+  /** Latest submission within the recent window, including one with no grades. */
   submissionId: string | null;
   submittedAt: Date | null;
+  /** All recent entries, newest submission first and observed order within each. */
   entries: LatestGradeEntry[];
+}
+
+/** Per-kind campus-week excuse from `scholar_week_excuses`. */
+export interface WeekExcuseInput {
+  minutes: number;
+  description: string | null;
 }
 
 export interface EvaluateWeekInput {
@@ -266,6 +284,8 @@ export interface EvaluateWeekInput {
   nonTerminalDates?: string[];
   /** Required minutes per session kind (roster `fd_required` / `ss_required`). */
   targets: Partial<Record<ShiftSessionKind, number | null>>;
+  /** Excuse minutes + note per kind for this campus week (missing → 0 / null). */
+  excuses?: Partial<Record<ShiftSessionKind, WeekExcuseInput>>;
   wahf: WahfEvidence;
   tutoring: TutoringEvidenceInput;
 }
@@ -303,6 +323,8 @@ export interface MenteeReviewIdentity {
   fullName: string;
   /** Roster contact for follow-up drafts; null disables launch. */
   email: string | null;
+  /** Entering cohort year for class-year-specific tier thresholds. */
+  cohort?: number | null;
 }
 
 /** Authorized selected-week review DTO, including the caller's own meeting preference. */
@@ -316,7 +338,7 @@ export interface MenteeReview {
   semesterGrid: SectionResult<WeekReviewSummary[]>;
   /** The selected week's shared summary consumed by the four cards. */
   selectedWeekReview: SectionResult<WeekReviewSummary | null>;
-  /** Independently scoped latest grades (not tied to the selected week). */
+  /** This and last Eastern calendar week's grades, independent of the selected week. */
   latestGrades: SectionResult<LatestGradesSummary>;
   /** The signed-in TL's own weekday/time for this pair (independent of the selected week). */
   meetingPreference: SectionResult<MeetingPreferenceOutput | null>;

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "watch": "tsc -p tsconfig.json --watch --preserveWatchOutput",
     "test": "npx --prefix ../backend vitest run --environment node time.test.ts"
   },
   "devDependencies": {

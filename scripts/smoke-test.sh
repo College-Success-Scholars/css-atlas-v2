@@ -43,7 +43,6 @@ check "GET / health check" "200" "$STATUS"
 # Auth gating — all protected routes must return 401 without a token
 for ROUTE in \
   "/api/auth/me" \
-  "/api/memo/weekly" \
   "/api/memo/page-data" \
   "/api/users" \
   "/api/session-logs" \

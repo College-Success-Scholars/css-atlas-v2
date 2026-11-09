@@ -438,7 +438,7 @@ export function DirectoryDashboard() {
   const toggleGroup = (team: string) => setExpandedGroup((current) => (current === team ? null : team));
 
   const openPerson = (person: DirectoryPerson) => {
-    const menteePath = directoryMenteePath(person.uid, person.isMentee);
+    const menteePath = directoryMenteePath(person.uid, person.isMentee, person.cohort);
     if (menteePath) {
       router.push(menteePath);
       return;

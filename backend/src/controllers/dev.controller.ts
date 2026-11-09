@@ -9,6 +9,7 @@
  * ## Responsibilities
  * - Provide diagnostic endpoints: test, me, form log lookups, test profiles
  * - Developer roster get/update for /dev/profiles
+ * - Temporary freshman and sophomore FD/SS/WAHF completion for /dev/freshman-grades
  *
  * ## What belongs here
  * - Handler functions for /api/dev/* routes
@@ -23,6 +24,7 @@ import type { AuthenticatedRequest } from "../middleware/auth.middleware.js";
 import { isDeveloperProfile } from "../../../shared/dist/auth.js";
 import { listTestProfiles, getTestProfileById } from "../services/dev-profile.service.js";
 import { getMcfFormLogById, getWplFormLogById } from "../services/form-log.service.js";
+import { getFreshmanGradesReport } from "../services/freshman-grades.service.js";
 import { getRosterByUid, updateRosterByUid } from "../services/user.service.js";
 import type { RosterPatch } from "../models/user.model.js";
 
@@ -213,6 +215,16 @@ function parseRosterPatch(body: unknown): RosterPatch {
   if ("teams" in raw) patch.teams = optionalStringArray(raw.teams);
   if ("mentee_uids" in raw) patch.mentee_uids = optionalStringArray(raw.mentee_uids);
   return patch;
+}
+
+// GET /api/dev/freshman-grades
+export async function getFreshmanGrades(_req: AuthenticatedRequest, res: Response) {
+  try {
+    const data = await getFreshmanGradesReport();
+    res.json({ data });
+  } catch (e) {
+    res.status(500).json({ error: caughtErrorMessage(e, "Failed to load freshman and sophomore grades") });
+  }
 }
 
 // GET /api/dev/roster/:uid

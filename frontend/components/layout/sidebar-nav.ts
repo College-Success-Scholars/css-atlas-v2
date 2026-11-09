@@ -1,9 +1,14 @@
-import { ChartColumn, ClipboardCheck, DoorOpen, GraduationCap, Handshake, Home, SquareTerminal, BookUser, type LucideIcon } from "lucide-react";
+import { ChartColumn, ClipboardCheck, DoorOpen, Gauge, GraduationCap, Handshake, Home, SquareTerminal, BookUser, type LucideIcon } from "lucide-react";
 import type { UserRole } from "@/lib/auth";
 
 export type SidebarNavItem = { title: string; url: string; icon: LucideIcon; isActive?: boolean };
 
-export function getRoleBasedNav(role: UserRole, showMemo: boolean, showMentees: boolean): SidebarNavItem[] {
+export function getRoleBasedNav(
+  role: UserRole,
+  showMemo: boolean,
+  showMentees: boolean,
+  showHoursBenchmark = false,
+): SidebarNavItem[] {
   switch (role) {
     case "default":
     case "scholar":
@@ -20,6 +25,9 @@ export function getRoleBasedNav(role: UserRole, showMemo: boolean, showMentees: 
         { title: "Room", url: "/dashboard/room", icon: DoorOpen },
         ...(showMentees ? [{ title: "Mentees", url: "/dashboard/mentee", icon: Handshake }] : []),
         ...(showMemo ? [{ title: "Memo", url: "/dashboard/memo", icon: ChartColumn }] : []),
+        ...(showHoursBenchmark
+          ? [{ title: "Hours Benchmark", url: "/dashboard/hours-benchmark", icon: Gauge }]
+          : []),
       ];
     default:
       return [{ title: "Playground", url: "#", icon: SquareTerminal, isActive: true }];

@@ -58,11 +58,15 @@ const buildTeamLeaderRows = (data: MemoLivePageData): TeamLeaderPerformanceRow[]
     }
   })
 
-const mapTutoringLogRow = (report: MemoTutorReportRow): TutoringLogRow => ({
+const mapTutoringLogRow = (
+  report: MemoTutorReportRow,
+  cohortById: Map<string, number | null>,
+): TutoringLogRow => ({
   id: report.id,
   scholarId: report.scholarId,
   isMentee: report.isMentee ?? false,
   scholarName: report.scholarName,
+  cohort: report.scholarId ? cohortById.get(report.scholarId) ?? null : null,
   dayOfWeek: report.dayOfWeek,
   tutorName: report.tutorName,
   courses: report.courses,
@@ -83,11 +87,18 @@ const byGradePercentDesc = (left: GradeEntry, right: GradeEntry) => {
   return left.course.localeCompare(right.course)
 }
 
-const buildRecognitionBoard = (breakdown: GradeBreakdown): RecognitionBoardSectionData => {
+const buildRecognitionBoard = (
+  breakdown: GradeBreakdown,
+  cohortById: Map<string, number | null>,
+): RecognitionBoardSectionData => {
+  const withCohort = (entry: GradeEntry): GradeEntry => ({
+    ...entry,
+    cohort: entry.scholarId ? cohortById.get(entry.scholarId) ?? null : null,
+  })
   const bands = RECOGNITION_BANDS.map((band) => ({
     id: band.id,
     label: band.label,
-    entries: [...breakdown[band.key]].sort(byGradePercentDesc),
+    entries: [...breakdown[band.key]].sort(byGradePercentDesc).map(withCohort),
   }))
   const total = bands.reduce((sum, band) => sum + band.entries.length, 0)
   return {
@@ -97,13 +108,16 @@ const buildRecognitionBoard = (breakdown: GradeBreakdown): RecognitionBoardSecti
   }
 }
 
-const buildTutoringLog = (tutorReports: MemoTutorReportRow[]) => {
+const buildTutoringLog = (
+  tutorReports: MemoTutorReportRow[],
+  cohortById: Map<string, number | null>,
+) => {
   const sessions = tutorReports
     .filter((report) => report.scholarName !== "EMPTY SESSION")
-    .map(mapTutoringLogRow)
+    .map((report) => mapTutoringLogRow(report, cohortById))
   const emptySessions = tutorReports
     .filter((report) => report.scholarName === "EMPTY SESSION")
-    .map(mapTutoringLogRow)
+    .map((report) => mapTutoringLogRow(report, cohortById))
 
   return {
     badgeText: `${sessions.length} session${sessions.length === 1 ? "" : "s"}`,
@@ -198,7 +212,8 @@ export const assembleWeeklyMemo = (data: MemoLivePageData): WeeklyMemoViewData =
 
   const teamLeaderRows = buildTeamLeaderRows(data)
   const scholarRows = classifyScholarFollowUpRisk(data)
-  const tutoringLog = buildTutoringLog(data.tutorReports)
+  const cohortById = new Map(data.scholars.map((scholar) => [scholar.scholarId, scholar.cohort]))
+  const tutoringLog = buildTutoringLog(data.tutorReports, cohortById)
   const noShowCount = tutoringLog.tabs.find((tab) => tab.id === "empty-sessions")?.rows.length ?? 0
   const sessionsLogged = data.tutorReports.length - noShowCount
 
@@ -221,6 +236,7 @@ export const assembleWeeklyMemo = (data: MemoLivePageData): WeeklyMemoViewData =
           isMentee: scholar.isMentee,
           scholarName: scholar.scholarName,
           scholarYear: scholarYearLabel(scholar.cohort) ?? "—",
+          cohort: scholar.cohort,
           completedMinutes,
           excuseMinutes,
           requiredMinutes,
@@ -265,7 +281,7 @@ export const assembleWeeklyMemo = (data: MemoLivePageData): WeeklyMemoViewData =
     teamLeaderRows,
     scholarRows,
     tutoringLog,
-    recognitionBoard: buildRecognitionBoard(data.gradeBreakdown),
+    recognitionBoard: buildRecognitionBoard(data.gradeBreakdown, cohortById),
     fullAttendanceDetail: {
       rightLabel: "Front desk · Study sessions · WAHF",
       wahfCensus: {

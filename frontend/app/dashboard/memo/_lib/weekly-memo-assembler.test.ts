@@ -230,17 +230,17 @@ describe("weekly-memo-assembler", () => {
         {
           id: "high",
           label: "90 – 100%",
-          entries: [{ scholarName: "Alice Scholar", scholarId: "2024-001", isMentee: true, course: "CMSC131", assessment: "Quiz", grade: "95%", percent: 95 }],
+          entries: [{ scholarName: "Alice Scholar", scholarId: "2024-001", cohort: freshman, isMentee: true, course: "CMSC131", assessment: "Quiz", grade: "95%", percent: 95 }],
         },
         {
           id: "mid",
           label: "70 – 89%",
-          entries: [{ scholarName: "Alice Scholar", scholarId: "2024-001", isMentee: true, course: "MATH140", assessment: "HW 4", grade: "82%", percent: 82 }],
+          entries: [{ scholarName: "Alice Scholar", scholarId: "2024-001", cohort: freshman, isMentee: true, course: "MATH140", assessment: "HW 4", grade: "82%", percent: 82 }],
         },
         {
           id: "low",
           label: "Below 70%",
-          entries: [{ scholarName: "Bob Scholar", scholarId: "2023-010", isMentee: false, course: "X", assessment: "Y", grade: "60", percent: 60 }],
+          entries: [{ scholarName: "Bob Scholar", scholarId: "2023-010", cohort: sophomore, isMentee: false, course: "X", assessment: "Y", grade: "60", percent: 60 }],
         },
       ],
     })

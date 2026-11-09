@@ -71,12 +71,86 @@ All routes under `/api/auth` require **requireAuth**.
 ### `GET /api/auth/mentees`
 
 **Auth:** requireAuth
-**Description:** Calls the `get_my_mentees` RPC to return the current user's assigned mentees.
+**Description:** Returns the current user's assigned mentees from `mentor_mentee` + `user_roster` table queries (not the obsolete `get_my_mentees` RPC).
 **Request:** None
 **Response:**
 ```json
 { "data": [ /* mentee rows */ ] }
 ```
+
+---
+
+### `GET /api/auth/mentees/:uid/review?week=<n>`
+
+**Auth:** requireAuth (assigned team leader, plus existing higher-role mentee-page access; assignment and role are rechecked in the service and by RLS)
+**Description:** Composes the full weekly review for one mentee from real records: semester calendar, semester week grid, selected-week requirement summaries, grades from all WAHF submissions in the current and previous Eastern Monday–Sunday calendar weeks through `asOf`, and the caller's own meeting preference. Recent grades are independent of the selected review week; older submissions are used only for grade comparisons. The current campus week is the default. Future weeks are rejected. Sections are independently recoverable: a failed source returns a section error instead of empty data, while the rest of the review still renders. Authorization is never downgraded to a partial success.
+**Query:**
+- `week` (integer, optional) — actual campus week number to review; must be `<=` the current campus week.
+**Response:** `200`
+```json
+{
+  "data": {
+    "asOf": "ISO instant",
+    "mentee": { "uid": "string", "fullName": "string", "email": "string | null", "cohort": "number | null" },
+    "calendar": { "semesterId": "string | null", "semesterStart": "ISO | null", "semesterEnd": "ISO | null", "currentWeek": 3, "weeks": [ /* WeekDescriptor */ ], "noActiveWeek": false },
+    "currentWeek": 3,
+    "selectedWeek": 3,
+    "semesterGrid": { "ok": true, "data": [ /* WeekReviewSummary */ ], "loadedAt": "ISO instant" },
+    "selectedWeekReview": { "ok": true, "data": { /* WeekReviewSummary */ }, "loadedAt": "ISO instant" },
+    "latestGrades": { "ok": true, "data": { /* LatestGradesSummary */ }, "loadedAt": "ISO instant" },
+    "meetingPreference": { "ok": true, "data": { "weekday": 3, "meetingTime": "15:00" }, "loadedAt": "ISO instant" }
+  }
+}
+```
+Each `${section}` uses `{ ok: true, data, loadedAt }` or `{ ok: false, error: { code, message, retriable } }`. `meetingPreference.data` is `null` when the caller has not set one for this pair.
+
+**Week/time semantics:** weeks are program-local Monday 00:00 through the next Monday 00:00 (Eastern), displayed Monday–Sunday. Percent bands are green `>=90%`, orange `60–<90%`, red `<60%`, computed from unrounded minutes. `•` on a grid hour cell means at least one independent no-show, not a low-hours state. Tutoring reflects recorded attendance only; request/upcoming/missed states are deferred.
+
+**Errors:** `400` invalid or future `week`; `404` mentee not found or not visible to the caller (non-enumerating); `401` no auth.
+
+---
+
+### `GET /api/auth/mentees/:uid/directory-review?week=<n>`
+
+**Auth:** requireTeamLeaderRole
+**Description:** Team-leader+ read used by the directory scholar detail page. Returns the same review DTO for any scholar with a `mentor_mentee` assignment, not only the caller's own mentees. Read-only: it never grants another TL's preference write access. Current-week default, future-week rejection, and section envelopes match `/review`.
+**Errors:** `400` invalid or future `week`; `404` mentee not found; `401` no auth.
+
+---
+
+### `PUT /api/auth/mentees/:uid/meeting-preference`
+
+**Auth:** requireAuth; requires an active `mentor_mentee` pairing and team-leader-or-above role. The owner is the authenticated profile id, never a request-body id, so an administrator cannot overwrite another TL's setting.
+**Description:** Atomically upserts the caller's optional weekday/time for this TL–mentee pair. Both fields are required; a failed save preserves the previous value. The setting affects no other pairing and does not attest that a meeting occurred.
+**Request Body:**
+```json
+{ "weekday": 3, "meetingTime": "15:00" }
+```
+`weekday` is ISO 1–7; `meetingTime` is program-local 24-hour `HH:MM` (minute precision).
+**Response:** `200`
+```json
+{ "data": { "weekday": 3, "meetingTime": "15:00" } }
+```
+**Errors:** `400` invalid weekday/time; `403` not assigned to this mentee; `500` save failure; `401` no auth.
+
+---
+
+### `GET /api/auth/mentees/:uid/mcf-prefill`
+
+**Auth:** requireAuth (assigned pair)
+**Description:** Builds a fresh, click-time prefill URL for the **current** program-local week, using newly read attendance, WAHF, and tutoring evidence plus the caller's saved meeting preference. The page never submits the form and never accepts a browser-supplied form host or entry map. If a required source read fails, prefill is blocked rather than turned into a fabricated `No`. Response is private and must not be cached.
+**Response headers:** `Cache-Control: private, no-store`
+**Response:** `200`
+```json
+{
+  "data": {
+    "url": "https://docs.google.com/forms/.../viewform?usp=pp_url&entry....",
+    "weekStart": "YYYY-MM-DD",
+    "generatedAt": "ISO instant"
+  }
+}
+```
+**Errors:** `404` mentee not found; `409` caller's roster UID is unavailable; `503` required source read failed; `401` no auth. Do not log the generated URL; it contains personal data.
 
 ---
 
@@ -959,6 +1033,45 @@ All routes under `/api/dev` require **requireDeveloper**.
 
 ---
 
+### `GET /api/dev/freshman-grades`
+
+**Auth:** requireDeveloper
+**Description:** Temporary FD, SS, and WAHF completion for enrolled freshmen and sophomores who owe hours (`cohort` = current freshman or sophomore year, `user_roster.status` = enrolled, `fd_required` or `ss_required` > 0). Both classes use the same weekly cap. Scholars are ordered freshman cohort first, then sophomore, and by name within a cohort. Scored weeks run from campus week 2 through the previous week: when the current week is 6, `scoredWeeks` is `{ fromWeek: 2, throughWeek: 5 }`. Campus week 1 and the current week are ignored, so current week 2 has `scoredWeeks` null. Each week’s hours percent is logged plus excuse minutes versus that requirement, capped at 100% before averaging (0% one week and 200% the next is 50%, not 100%). A week with null or non-positive required minutes is omitted from that component. WAHF is the latest form log that week: missing = 0%, on-time or late = 100%. Each scholar includes `scholarId` (roster uid), `mentor` (name from `mentor_mentee`, or `Unassigned`), `cohort`, and `weeks` (each scored week: logged, excuse, effective, required, raw percent, capped percent, and WAHF status). `weights` labels the 10/10/10 in-app slices and the 70% out-of-app placeholder. The payload has no semester total. Minutes use the same ticket plus `scholar_week_excuses` path as Memo, not `daily_scholar_activity` or `*_records_legacy`.
+**Request:** None
+**Response:**
+```json
+{
+  "data": {
+    "throughWeek": 6,
+    "scoredWeeks": { "fromWeek": 2, "throughWeek": 5 },
+    "weights": { "fd": 10, "ss": 10, "wahf": 10, "outOfApp": 70 },
+    "scholars": [
+      {
+        "scholarId": "12345",
+        "scholarName": "Ada Lovelace",
+        "mentor": "Jordan Kim",
+        "cohort": 2026,
+        "fdPct": 50,
+        "ssPct": 100,
+        "wahfPct": 80,
+        "weeks": [
+          {
+            "weekNum": 5,
+            "fd": { "loggedMinutes": 0, "excuseMinutes": 0, "effectiveMinutes": 0, "requiredMinutes": 100, "rawPct": 0, "cappedPct": 0 },
+            "ss": { "loggedMinutes": 120, "excuseMinutes": 0, "effectiveMinutes": 120, "requiredMinutes": 120, "rawPct": 100, "cappedPct": 100 },
+            "wahfStatus": "on-time",
+            "wahfPct": 100
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+`fdPct`, `ssPct`, and `wahfPct` are `null` when that component has no scored weeks.
+
+---
+
 ### `GET /api/dev/roster/:uid`
 
 **Auth:** requireDeveloper
@@ -988,39 +1101,6 @@ All routes under `/api/dev` require **requireDeveloper**.
 
 Routes under `/api/memo` require **requireTeamLeaderOrAbove** unless noted otherwise.
 
-### `GET /api/memo/weekly`
-
-**Auth:** requireTeamLeaderOrAbove
-**Description:** Returns the weekly memo data by calling the `get_weekly_memo` Supabase RPC.
-**Query Params:**
-- `semesterId` (integer, required) -- The semester ID
-- `weekNum` (integer >= 1, required) -- The week number
-
-**Response:**
-```json
-{ "data": { /* weekly memo result from RPC */ } }
-```
-
----
-
-### `POST /api/memo/refresh-stats`
-
-**Auth:** requireTeamLeaderOrAbove
-**Description:** Triggers a fire-and-forget call to the `refresh_weekly_stats` Supabase Edge Function. Returns immediately.
-**Request Body:**
-```json
-{
-  "weekNumber": 1,     // required; legacy week_num / weekNum accepted
-  "semesterId": 1      // required; legacy semester_id accepted
-}
-```
-**Response:**
-```json
-{ "data": { "ok": true } }
-```
-
----
-
 ### `GET /api/memo/page-data`
 
 **Auth:** requireTeamLeaderOrAbove
@@ -1042,6 +1122,52 @@ Routes under `/api/memo` require **requireTeamLeaderOrAbove** unless noted other
 **Query Params:**
 - `weekNumber` (integer >= 1; legacy `weekNum` accepted; defaults to current campus week if omitted)
 
+**Response:** PDF binary (`Content-Type: application/pdf`)
+
+---
+
+## Hours Benchmark
+
+All routes under `/api/hours-benchmark` require **requireDeveloper**.
+
+### `GET /api/hours-benchmark`
+
+**Auth:** requireDeveloper
+**Description:** Multi-week CSS Hours Benchmark Report for enrolled hour-eligible scholars. Scored weeks run from campus week 2 through the previous week (current week and week 1 are ignored). Completion uses logged minutes plus `scholar_week_excuses` (`effective / required`, rounded). `heatmapScholars` are those with at least one front-desk or study-session week at 50% or lower; `allHeatmapScholars` is every enrolled hour-eligible scholar (name-sorted). Cells at 80% or more are treated as met. Response has `Cache-Control: no-store`.
+**Request:** None
+**Response:**
+```json
+{
+  "data": {
+    "currentCampusWeek": 9,
+    "scoredWeeks": { "fromWeek": 2, "throughWeek": 8 },
+    "weekNumbers": [2, 3, 4, 5, 6, 7, 8],
+    "weekRangeLabel": "Weeks 2–8",
+    "dateRangeLabel": "Sep 7 – Oct 25, 2026",
+    "preparedAtLabel": "Oct 27, 2026",
+    "printedAtSlug": "2026-10-27-1200",
+    "summary": {
+      "studentsAtOrBelow50AtLeastOnce": 32,
+      "atOrBelow50Events": 85,
+      "zeroPercentEvents": 43,
+      "studentsMissed80AtLeastOnce": 48
+    },
+    "heatmapScholars": [ /* ≤50% scholar rows with frontDeskByWeek / studySessionByWeek cells */ ],
+    "allHeatmapScholars": [ /* every eligible scholar row */ ],
+    "byTeamLeader": [ /* teamLeader, atOrBelow50Events, studentCount */ ],
+    "lowEvents": [ /* every ≤50% week×area event */ ]
+  }
+}
+```
+
+---
+
+### `GET /api/hours-benchmark/pdf`
+
+**Auth:** requireDeveloper
+**Description:** Renders the Hours Benchmark Report as a landscape PDF (KPIs, heatmap, team-leader rollup, detail list). `scope=low` (default) prints the ≤50% heatmap; `scope=all` prints every hour-eligible scholar. `Content-Disposition` uses `hours-benchmark-weeks-{from}-{through}[-all]-{YYYY-MM-DD-HHmm}.pdf` in America/New_York. Response has `Cache-Control: no-store`. Returns `503` if Chromium/PDF rendering fails.
+**Query Params:**
+- `scope` (`low` | `all`, optional; default `low`)
 **Response:** PDF binary (`Content-Type: application/pdf`)
 
 ---

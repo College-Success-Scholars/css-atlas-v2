@@ -30,6 +30,8 @@ function hours(kind: ShiftSessionKind, over: Partial<HourWeekSummary> = {}): Hou
     kind,
     assignmentAvailable: true,
     loggedMinutes: 120,
+    excuseMinutes: 0,
+    excuseDescription: null,
     targetMinutes: 120,
     percent: 100,
     band: "green",

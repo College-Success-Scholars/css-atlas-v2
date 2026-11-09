@@ -54,7 +54,8 @@ export function meetingDateForWeekday(weekStartMonday: Date, weekday: number): s
  */
 export function isMcfTaskComplete(hours: HourWeekSummary | undefined): boolean {
   if (!hours || hours.targetMinutes == null || hours.targetMinutes <= 0) return false;
-  return (hours.loggedMinutes / hours.targetMinutes) * 100 >= MCF_TASK_MIN_PERCENT;
+  const effective = hours.loggedMinutes + (hours.excuseMinutes ?? 0);
+  return (effective / hours.targetMinutes) * 100 >= MCF_TASK_MIN_PERCENT;
 }
 
 export interface BuildMcfPrefillInput {

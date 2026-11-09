@@ -21,32 +21,34 @@ function comparisonText(comparison: GradeComparison): string {
   return `${arrow} from ${formatPercent(comparison.priorPercent)}${prior}`
 }
 
-/** Latest WAHF grades — independent of the selected week. */
+/** This and last calendar week's WAHF grades — independent of the selected week. */
 export function RecentGradesSummaryCard({ summary }: RecentGradesSummaryCardProps) {
-  const submittedLabel = summary.submittedAt
-    ? `${formatDayMonth(summary.submittedAt)} at ${formatClock(summary.submittedAt)}`
-    : null
-
   return (
     <Card className="min-w-0 gap-0 py-0 shadow-none">
       <CardContent className="space-y-3 px-[18px] py-4">
         <div className="space-y-1">
           <h2 className="text-[17px] font-semibold">Recent grades</h2>
           <p className="text-[13px] text-muted-foreground">
-            {submittedLabel
-              ? `From WAHF submitted ${submittedLabel}`
-              : "From the most recent WAHF submission."}
+            This week and last week · WAHF submissions
           </p>
         </div>
 
         {summary.status === "grades" && summary.entries.length > 0 && (
-          <ul aria-label="Grades from the latest WAHF submission">
-              {summary.entries.map((entry, index) => (
-                <li key={`${entry.course}-${entry.assessment}-${index}`} className="flex items-center justify-between gap-2.5 border-t border-border/50 py-2.5">
+          <ul aria-label="Grades from this week and last week">
+            {summary.entries.map((entry, index) => {
+              // Legacy single-submission payloads/fixtures have summary provenance only.
+              const submittedAt = entry.submittedAt ?? summary.submittedAt
+              return (
+                <li key={`${entry.submissionId ?? summary.submissionId}-${index}`} className="flex items-center justify-between gap-2.5 border-t border-border/50 py-2.5">
                   <div className="min-w-0 break-words">
                     <p className="text-sm font-semibold">{entry.course} <span className="font-normal text-muted-foreground">{entry.assessment}</span></p>
+                    {submittedAt && (
+                      <p className="text-[13px] text-muted-foreground">
+                        Submitted <time dateTime={submittedAt}>{formatDayMonth(submittedAt)} at {formatClock(submittedAt)} ET</time>
+                      </p>
+                    )}
                     {entry.comparison ? (
-                       <p className="text-[13px] text-muted-foreground">
+                      <p className="text-[13px] text-muted-foreground">
                         {comparisonText(entry.comparison)}
                       </p>
                     ) : entry.firstGrade ? (
@@ -57,12 +59,13 @@ export function RecentGradesSummaryCard({ summary }: RecentGradesSummaryCardProp
                     {entry.rawGrade}
                   </Badge>
                 </li>
-              ))}
+              )
+            })}
           </ul>
         )}
 
         {summary.status === "empty" && (
-          <p className="text-sm text-muted-foreground">No grades reported yet.</p>
+          <p className="text-sm text-muted-foreground">No grades reported this week or last week.</p>
         )}
 
         {summary.status === "error" && (

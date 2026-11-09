@@ -5,11 +5,11 @@ import type { ShiftComplianceByKind } from "./session-log.model.js";
  * @module backend/models
  *
  * TypeScript types for mentee relationship data.
- * MenteeRow represents the shape returned by the get_my_mentees Supabase RPC,
- * which returns scholars assigned to the calling team leader.
+ * MenteeRow is the shape mapped from `mentor_mentee` + `user_roster` joins
+ * in mentee.service (not the obsolete `get_my_mentees` RPC).
  *
  * ## What belongs here
- * - MenteeRow type (shape from get_my_mentees RPC)
+ * - MenteeRow type (table-query shape from mentor_mentee / user_roster)
  * - MenteeTeamLeaderRow type (mentee_uid → team-leader display name)
  *
  * ## What does NOT belong here
@@ -21,6 +21,8 @@ export interface MenteeRow {
   last_name: string | null;
   /** Roster contact for follow-up drafts; null disables launch. */
   email: string | null;
+  /** Entering cohort year for class-year-specific tier thresholds. */
+  cohort?: number | null;
   fd_required: number | null;
   ss_required: number | null;
 }
@@ -33,9 +35,9 @@ export type MenteeTeamLeaderRow = {
 
 /**
  * Mentee roster row enriched only by the compliance read operation. Contact
- * fields are deliberately excluded to keep the compliance response unchanged.
+ * and cohort fields are excluded to keep the compliance response unchanged.
  */
-export interface MenteeWithCompliance extends Omit<MenteeRow, "email"> {
+export interface MenteeWithCompliance extends Omit<MenteeRow, "email" | "cohort"> {
   fdCompliance: ShiftComplianceByKind | null;
   ssCompliance: ShiftComplianceByKind | null;
 }

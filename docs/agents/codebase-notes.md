@@ -48,6 +48,13 @@ Important backend domains:
 - `form-log.*`: MCF/WHAF/WPL and related aggregation endpoints.
 - `memo.*`: memo aggregation endpoints, sync/refresh, and weekly PDF export (`weekly-memo-pdf.service` via Puppeteer; print snapshot SVG in `weekly-memo-pdf-charts.ts`). Local Chrome: `npm run install:chrome --prefix backend`, or the system Chrome app. Docker uses Alpine `chromium` with `--disable-dev-shm-usage`. The memo Export PDF button hits Next `GET /api/memo/pdf`, which proxies Express with `BACKEND_URL` (not `NEXT_PUBLIC_BACKEND_URL`).
 - `traffic.*`: weekly traffic counts and session entries.
+- `mentee-review.*`: the mentee page uses a pure evaluator at `backend/src/services/mentee-review-evaluator.ts` (normalized evidence plus one injected `asOf`), composed by `mentee-review-activity.service.ts` with `mentee-review-attendance.adapter.ts`. The page and click-time MCF prefill use **program-local Monday–Sunday** weeks; Memo and notification consumers keep their existing Mon–Fri/grace contracts. `mentee-meeting-preference.service.ts` owns the only new persistent write path (`mentee_meeting_preferences`, keyed by natural TL–mentee identities); `mentee-mcf-prefill.service.ts` rebuilds the current-week form URL at click time and never submits it.
+
+### Source evidence limitations
+
+- `tutor_report_logs` has recorded attendance reports but no authoritative tutoring request/session schedule. The review page shows recorded attendance only; not-requested/upcoming/missed states and tutoring follow-ups are deferred to a separate change.
+- `assignment_grades` is a course → assessment → raw-string map. Numeric percent parsing is best-effort and supported formats only; observed iteration order is preserved because original form-entry order is not stored. Recent grades include all WAHF submissions from the current and previous Eastern Monday–Sunday calendar weeks through `asOf`, independent of the selected review week. Older grades remain available for comparison but are not displayed.
+- The WAHF follow-up has no CC recipient until the program configures one. Front desk uses `cssfd@umd.edu`; study sessions use `css_ss@umd.edu`.
 
 ## Frontend how it works
 

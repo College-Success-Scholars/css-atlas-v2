@@ -24,6 +24,7 @@ For production features, build in `app/dashboard/` and shared components in `com
 | `layout.tsx` | `/dev/*` | Dev section layout — enforces `requireDeveloper` guard |
 | `page.tsx` | `/dev` | Dev tools home / index |
 | `form-logs/page.tsx` | `/dev/form-logs` | Browse raw MCF/WHAF/WPL form submissions |
+| `freshman-grades/page.tsx` | `/dev/freshman-grades` | Temporary FD/SS/WAHF completion for enrolled freshmen and sophomores through the previous campus week (current week 6 scores weeks 2–5; week 1 is not scored) (`GET /api/dev/freshman-grades`). Freshmen and sophomores are separate tables with the same columns. Shows roster uid and mentor. Selecting a scholar opens the weekly minutes. Each table's Download CSV offers Overall (the on-screen averages) or In-depth (one row per scholar-week, with that week's capped FD/SS/WAHF percent plus recorded, excused, total, and expected minutes). The first cell is the week numbers covered, such as 2-5. Repeated name and UID cells are left blank. A mentor cell is blank only on a later week for the same scholar. Grade cells are always written. Sophomore files are named `sophomore-grades-…`. |
 | `profiles/page.tsx` | `/dev/profiles` | Roster list with enrollment status and an active-members filter |
 | `profiles/[uid]/page.tsx` | `/dev/profiles/:uid` | Edit roster (including enrollment) plus attendance, logs, and form submissions |
 | `profiles/roster-edit-form.tsx` | — | Client form that PATCHes `/api/dev/roster/:uid` (`app_role` is read-only) |

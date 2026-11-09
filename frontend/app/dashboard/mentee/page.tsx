@@ -52,6 +52,7 @@ export default async function MenteePage({ searchParams }: PageProps) {
 
   let review: MenteeReview | null = null;
   if (selectedUid) {
+    // Tiers are temporarily disabled; keep the standard completion bands.
     review = await fetchMenteeReview(selectedUid, selectedWeek);
   }
 

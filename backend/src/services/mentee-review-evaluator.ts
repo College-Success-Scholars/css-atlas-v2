@@ -10,9 +10,9 @@
  * ## Responsibilities
  * - Program-local week bounds with [Monday 00:00, next Monday 00:00) containment
  * - Interval normalization (clip, merge overlaps, preserve source IDs)
- * - Hour totals, nullable targets, unrounded percent, 60/90 bands
+ * - Hour totals, nullable targets, unrounded percent (logged + excuse), 60/90 bands
  * - Scheduled-shift classification (attended/short/no-show/active/upcoming)
- * - WAHF, recorded-tutoring, and latest-grade derivation
+ * - WAHF, recorded-tutoring, and recent-grade derivation
  *
  * ## What belongs here
  * - evaluateWeek, deriveLatestGrades, and their pure helpers
@@ -26,6 +26,8 @@ import {
   addEasternCalendarDays,
   campusWeekToDateRange,
   dateToCampusWeek,
+  getEasternDateParts,
+  getEasternDayOfWeek,
   parseEasternDate,
   WINTER_BREAK_CAMPUS_WEEK_NUMBER,
 } from "./time.service.js";
@@ -217,6 +219,9 @@ export function evaluateHours(params: {
   asOfMs: number;
   phase: WeekPhase;
   nonTerminalDates: ReadonlySet<string>;
+  /** Campus-week excuse minutes + note (`scholar_week_excuses`). */
+  excuseMinutes?: number;
+  excuseDescription?: string | null;
 }): HourWeekSummary {
   const {
     kind,
@@ -233,21 +238,44 @@ export function evaluateHours(params: {
   const normalized = normalizeWeekIntervals(logs, weekStartMs, weekEndExclusiveMs);
   const loggedMs = normalized.reduce((sum, iv) => sum + (iv.end.getTime() - iv.start.getTime()), 0);
   const loggedMinutes = loggedMs / MS_PER_MINUTE;
+  const excuseMinutes =
+    params.excuseMinutes != null && Number.isFinite(params.excuseMinutes) && params.excuseMinutes > 0
+      ? params.excuseMinutes
+      : 0;
+  const excuseDescription =
+    params.excuseDescription != null && String(params.excuseDescription).trim()
+      ? String(params.excuseDescription).trim()
+      : null;
+  // Same effective = logged + excuse math as Weekly Memo / teams boards.
+  const effectiveMinutes = loggedMinutes + excuseMinutes;
 
   const validTargetMinutes =
     targetMinutes != null && Number.isFinite(targetMinutes) && targetMinutes > 0
       ? targetMinutes
       : null;
   const percent =
-    validTargetMinutes != null ? (loggedMinutes / validTargetMinutes) * 100 : null;
+    validTargetMinutes != null ? (effectiveMinutes / validTargetMinutes) * 100 : null;
   const band = percent == null ? null : hourBandForPercent(percent);
   const overageMinutes =
-    validTargetMinutes != null && loggedMinutes > validTargetMinutes
-      ? Math.round(loggedMinutes - validTargetMinutes)
+    validTargetMinutes != null && effectiveMinutes > validTargetMinutes
+      ? Math.round(effectiveMinutes - validTargetMinutes)
       : 0;
   const pending = phase === "current" && band !== null && band !== "green";
 
-  const shiftEvidence: ShiftEvidence[] = shifts
+  // Callers pass semester-wide occurrences; keep only this campus week's shifts.
+  const weekStartKey = (() => {
+    const { year, month, day } = getEasternDateParts(new Date(weekStartMs));
+    return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  })();
+  const weekEndKey = (() => {
+    const { year, month, day } = getEasternDateParts(new Date(weekEndExclusiveMs - 1));
+    return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  })();
+  const weekShifts = shifts.filter(
+    (shift) => shift.date >= weekStartKey && shift.date <= weekEndKey
+  );
+
+  const shiftEvidence: ShiftEvidence[] = weekShifts
     .map((shift): ShiftEvidence => {
       const c = classifyShift(shift, normalized, asOfMs, nonTerminalDates);
       return {
@@ -292,8 +320,10 @@ export function evaluateHours(params: {
 
   return {
     kind,
-    assignmentAvailable: shifts.length > 0,
+    assignmentAvailable: weekShifts.length > 0,
     loggedMinutes,
+    excuseMinutes,
+    excuseDescription,
     targetMinutes: validTargetMinutes,
     percent,
     band,
@@ -301,7 +331,7 @@ export function evaluateHours(params: {
     overageMinutes,
     pending,
     noShowCount: shiftEvidence.filter((s) => s.status === "no_show").length,
-    hasActivity: normalized.length > 0 || shifts.length > 0,
+    hasActivity: normalized.length > 0 || weekShifts.length > 0 || excuseMinutes > 0,
     shifts: shiftEvidence,
     offShiftLogs,
   };
@@ -373,7 +403,7 @@ export function evaluateTutoring(evidence: TutoringEvidenceInput): TutoringWeekS
 }
 
 // ---------------------------------------------------------------------------
-// Latest grades (task 2.8)
+// Recent grades (latestGrades API field)
 // ---------------------------------------------------------------------------
 
 const PERCENT_PATTERN = /^(\d+(?:\.\d+)?)\s*%$/;
@@ -401,41 +431,41 @@ export function parseGradePercent(raw: string | null | undefined): number | null
 }
 
 interface OrderedGradeEntry {
+  submission: GradeSubmissionInput;
   submissionIndex: number;
   entryIndex: number;
   submittedAtMs: number;
   course: string;
   assessment: string;
+  rawGrade: string;
   percent: number | null;
 }
 
 /**
- * Latest grades come from the latest WAHF submission only (by submittedAt),
- * even when it has no grades. Comparison uses the most recent earlier
- * same-course entry; ordering across submissions is by submittedAt and within
- * a submission by observed scholar-entry order (no source order metadata).
+ * All grades submitted this and last Eastern Monday–Sunday calendar week,
+ * capped at asOf, independent of the selected/campus week (including break).
+ * Earlier history remains available for same-course comparisons. Display is
+ * newest submission first, preserving observed entry order and repeated grades.
  */
-export function deriveLatestGrades(evidence: GradesEvidenceInput): LatestGradesSummary {
+export function deriveLatestGrades(evidence: GradesEvidenceInput, asOf: Date): LatestGradesSummary {
   if (!evidence.available) {
     return { status: "error", submissionId: null, submittedAt: null, entries: [] };
   }
-  if (evidence.submissions.length === 0) {
+  // Derive the Monday as a calendar date first: converting a DST-transition
+  // Sunday to midnight before subtracting days can change its local date.
+  const { year, month, day } = getEasternDateParts(asOf);
+  const daysSinceMonday = (getEasternDayOfWeek(asOf) + 6) % 7;
+  const mondayDate = new Date(Date.UTC(year, month, day - daysSinceMonday));
+  const currentMonday = parseEasternDate(mondayDate.toISOString().slice(0, 10));
+  const windowStartMs = addEasternCalendarDays(currentMonday, -7).getTime();
+  const asOfMs = asOf.getTime();
+
+  const sorted: GradeSubmissionInput[] = evidence.submissions
+    .filter((submission) => submission.submittedAt.getTime() <= asOfMs)
+    .sort((a, b) => a.submittedAt.getTime() - b.submittedAt.getTime());
+  const latest = sorted[sorted.length - 1];
+  if (!latest || latest.submittedAt.getTime() < windowStartMs) {
     return { status: "empty", submissionId: null, submittedAt: null, entries: [] };
-  }
-
-  const sorted: GradeSubmissionInput[] = [...evidence.submissions].sort(
-    (a, b) => a.submittedAt.getTime() - b.submittedAt.getTime()
-  );
-  const latest = sorted[sorted.length - 1]!;
-  const latestIndex = sorted.length - 1;
-
-  if (latest.entries.length === 0) {
-    return {
-      status: "empty",
-      submissionId: latest.sourceId,
-      submittedAt: latest.submittedAt,
-      entries: [],
-    };
   }
 
   // Flatten every entry with a stable global order for comparison lookups.
@@ -443,71 +473,82 @@ export function deriveLatestGrades(evidence: GradesEvidenceInput): LatestGradesS
   sorted.forEach((submission, submissionIndex) => {
     submission.entries.forEach((entry, entryIndex) => {
       ordered.push({
+        submission,
         submissionIndex,
         entryIndex,
         submittedAtMs: submission.submittedAt.getTime(),
         course: entry.course,
         assessment: entry.assessment,
+        rawGrade: entry.rawGrade,
         percent: parseGradePercent(entry.rawGrade),
       });
     });
   });
 
-  const entries: LatestGradeEntry[] = latest.entries.map((entry, entryIndex) => {
-    const percent = parseGradePercent(entry.rawGrade);
-    const band = percent == null ? null : gradeBandForPercent(percent);
-    const selfId = { submissionIndex: latestIndex, entryIndex };
+  const entries: LatestGradeEntry[] = ordered
+    .filter((entry) => entry.submittedAtMs >= windowStartMs)
+    .sort((a, b) =>
+      b.submittedAtMs - a.submittedAtMs ||
+      a.submissionIndex - b.submissionIndex ||
+      a.entryIndex - b.entryIndex
+    )
+    .map((entry) => {
+      const percent = entry.percent;
+      const band = percent == null ? null : gradeBandForPercent(percent);
+      const selfId = { submissionIndex: entry.submissionIndex, entryIndex: entry.entryIndex };
 
-    const priors = ordered.filter(
-      (o) =>
-        o.course === entry.course &&
-        !(o.submissionIndex === selfId.submissionIndex && o.entryIndex === selfId.entryIndex) &&
-        (o.submissionIndex < selfId.submissionIndex ||
-          (o.submissionIndex === selfId.submissionIndex && o.entryIndex < selfId.entryIndex))
-    );
+      const priors = ordered.filter(
+        (o) =>
+          o.course === entry.course &&
+          !(o.submissionIndex === selfId.submissionIndex && o.entryIndex === selfId.entryIndex) &&
+          (o.submissionIndex < selfId.submissionIndex ||
+            (o.submissionIndex === selfId.submissionIndex && o.entryIndex < selfId.entryIndex))
+      );
 
-    let comparison: LatestGradeEntry["comparison"] = null;
-    let firstGrade = false;
-    if (percent == null) {
-      // Unsupported score: keep raw text only, no speculative comparison.
-      firstGrade = false;
-    } else if (priors.length === 0) {
-      firstGrade = true;
-    } else {
-      const mostRecentPrior = priors
-        .filter((o) => o.percent != null)
-        .sort(
-          (a, b) =>
-            a.submittedAtMs - b.submittedAtMs ||
-            a.submissionIndex - b.submissionIndex ||
-            a.entryIndex - b.entryIndex
-        )
-        .pop();
-      if (mostRecentPrior && mostRecentPrior.percent != null) {
-        const priorPercent = mostRecentPrior.percent;
-        comparison = {
-          direction:
-            percent > priorPercent ? "up" : percent < priorPercent ? "down" : "equal",
-          priorPercent,
-          priorAssessment: mostRecentPrior.assessment || null,
-        };
+      let comparison: LatestGradeEntry["comparison"] = null;
+      let firstGrade = false;
+      if (percent == null) {
+        // Unsupported score: keep raw text only, no speculative comparison.
+        firstGrade = false;
+      } else if (priors.length === 0) {
+        firstGrade = true;
+      } else {
+        const mostRecentPrior = priors
+          .filter((o) => o.percent != null)
+          .sort(
+            (a, b) =>
+              a.submittedAtMs - b.submittedAtMs ||
+              a.submissionIndex - b.submissionIndex ||
+              a.entryIndex - b.entryIndex
+          )
+          .pop();
+        if (mostRecentPrior && mostRecentPrior.percent != null) {
+          const priorPercent = mostRecentPrior.percent;
+          comparison = {
+            direction:
+              percent > priorPercent ? "up" : percent < priorPercent ? "down" : "equal",
+            priorPercent,
+            priorAssessment: mostRecentPrior.assessment || null,
+          };
+        }
+        // A prior same-course grade exists but is unsupported: no fake direction.
       }
-      // A prior same-course grade exists but is unsupported: no fake direction.
-    }
 
-    return {
-      course: entry.course,
-      assessment: entry.assessment,
-      rawGrade: entry.rawGrade,
-      percent,
-      band,
-      comparison,
-      firstGrade,
-    };
-  });
+      return {
+        submissionId: entry.submission.sourceId,
+        submittedAt: entry.submission.submittedAt,
+        course: entry.course,
+        assessment: entry.assessment,
+        rawGrade: entry.rawGrade,
+        percent,
+        band,
+        comparison,
+        firstGrade,
+      };
+    });
 
   return {
-    status: "grades",
+    status: entries.length > 0 ? "grades" : "empty",
     submissionId: latest.sourceId,
     submittedAt: latest.submittedAt,
     entries,
@@ -529,8 +570,9 @@ export function evaluateWeek(input: EvaluateWeekInput): WeekReviewSummary {
 
   const nonTerminalDates = new Set(input.nonTerminalDates ?? []);
 
-  const hours = HOUR_KINDS.map((kind) =>
-    evaluateHours({
+  const hours = HOUR_KINDS.map((kind) => {
+    const excuse = input.excuses?.[kind];
+    return evaluateHours({
       kind,
       targetMinutes: input.targets[kind] ?? null,
       shifts: input.shifts.filter((s) => s.kind === kind),
@@ -540,8 +582,10 @@ export function evaluateWeek(input: EvaluateWeekInput): WeekReviewSummary {
       asOfMs,
       phase,
       nonTerminalDates,
-    })
-  );
+      excuseMinutes: excuse?.minutes ?? 0,
+      excuseDescription: excuse?.description ?? null,
+    });
+  });
 
   return {
     weekNumber: input.weekNumber,

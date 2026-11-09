@@ -127,7 +127,8 @@ export type ShiftSessionKind = "front_desk" | "study_session";
 export interface ScholarShiftAssignment {
   id?: string;
   scholar_id: string;
-  semester_id: string;
+  /** DB column is integer; JSON may arrive as number or string. */
+  semester_id: string | number;
   session_kind: ShiftSessionKind;
   day_of_week: number;
   start_time: string;

@@ -32,6 +32,7 @@ import type {
   ScholarsInRoomOptions,
   ScholarWithCompletedSession,
 } from "@/lib/types/session-log";
+import type { HoursBenchmarkReport } from "@/app/dashboard/hours-benchmark/types";
 import type {
   AttendanceKind,
   AttendanceWeekBoard,
@@ -405,4 +406,11 @@ export async function getStudySessionNoShows(): Promise<import("../types/session
 
 export async function getFrontDeskNoShows(): Promise<import("../types/session-log").ScholarNoShow[]> {
   return backendGet<import("../types/session-log").ScholarNoShow[]>("/api/session-logs/front-desk/no-shows");
+export async function getHoursBenchmarkReport() {
+  return backendGet<HoursBenchmarkReport>("/api/hours-benchmark");
+}
+
+export async function getHoursBenchmarkPdf(scope: "low" | "all" = "low"): Promise<Response> {
+  const query = new URLSearchParams({ scope });
+  return backendDownload(`/api/hours-benchmark/pdf?${query}`);
 }

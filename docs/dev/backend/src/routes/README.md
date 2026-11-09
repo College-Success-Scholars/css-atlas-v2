@@ -24,6 +24,7 @@ Express Router definitions. Each route file declares HTTP method + path combinat
 | `session-log.routes.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/backend/src/routes/session-log.routes.ts) | `/api/session-logs` | `requireTeamLeaderOrAbove` |
 | `form-log.routes.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/backend/src/routes/form-log.routes.ts) | `/api/form-logs` | mixed (`requireAuth` / `requireTeamLeaderOrAbove`) |
 | `memo.routes.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/backend/src/routes/memo.routes.ts) | `/api/memo` | `requireTeamLeaderOrAbove` |
+| `hours-benchmark.routes.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/backend/src/routes/hours-benchmark.routes.ts) | `/api/hours-benchmark` | `requireDeveloper` |
 | `traffic.routes.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/backend/src/routes/traffic.routes.ts) | `/api/traffic` | `requireTeamLeaderOrAbove` |
 | `activity.routes.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/backend/src/routes/activity.routes.ts) | `/api/daily-activity` | `requireAuth` |
 | `tutor-report-log.routes.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/backend/src/routes/tutor-report-log.routes.ts) | `/api/tutor-reports` | `requireTeamLeaderOrAbove` |
