@@ -30,6 +30,7 @@ import type {
   CleanedAndErroredOptions,
   ScholarInRoom,
   ScholarsInRoomOptions,
+  ScholarNoShow,
   ScholarWithCompletedSession,
 } from "@/lib/types/session-log";
 import type { HoursBenchmarkReport } from "@/app/dashboard/hours-benchmark/types";
@@ -277,6 +278,14 @@ export async function getStudySessionCompletedSessions(options?: {
   return backendPost<ScholarWithCompletedSession[]>("/api/session-logs/study/completed", dateOpts(options));
 }
 
+export async function getStudySessionNoShows(): Promise<ScholarNoShow[]> {
+  return backendGet<ScholarNoShow[]>("/api/session-logs/study/no-shows");
+}
+
+export async function getFrontDeskNoShows(): Promise<ScholarNoShow[]> {
+  return backendGet<ScholarNoShow[]>("/api/session-logs/front-desk/no-shows");
+}
+
 // ---------------------------------------------------------------------------
 // Attendance (campus week — tickets + scholar_week_excuses)
 // ---------------------------------------------------------------------------
@@ -400,12 +409,6 @@ export async function getWeeklyMemoPdf(weekNumber: number): Promise<Response> {
   return backendDownload(`/api/memo/pdf?weekNumber=${weekNumber}`);
 }
 
-export async function getStudySessionNoShows(): Promise<import("../types/session-log").StudySessionNoShow[]> {
-  return backendGet<import("../types/session-log").StudySessionNoShow[]>("/api/session-logs/study/no-shows");
-}
-
-export async function getFrontDeskNoShows(): Promise<import("../types/session-log").ScholarNoShow[]> {
-  return backendGet<import("../types/session-log").ScholarNoShow[]>("/api/session-logs/front-desk/no-shows");
 export async function getHoursBenchmarkReport() {
   return backendGet<HoursBenchmarkReport>("/api/hours-benchmark");
 }

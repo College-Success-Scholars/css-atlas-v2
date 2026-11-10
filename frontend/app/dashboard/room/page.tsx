@@ -10,7 +10,7 @@ import type { ScholarInRoom } from "@/lib/types/session-log"
 import { RoomPageToolbar } from "./_components/room-page-toolbar"
 import { RoomSummaryCards } from "./_components/room-summary-cards"
 import { RoomSessionPanel } from "./_components/room-session-panel"
-import { RoomNoShowsHeading } from "./_components/room-no-shows-heading"
+import { RoomNoShowsSection } from "./_components/room-no-shows-section"
 import { formatSnapshotLabel } from "./_lib/room-format"
 
 export const dynamic = "force-dynamic"
@@ -25,21 +25,25 @@ export default async function RoomMonitoringPage() {
     asOf: now,
   }
 
-  const [studySessionRaw, frontDeskRaw] = await Promise.all([
-    getStudySessionScholarsInRoom(dateRangeOpts),
-    getFrontDeskScholarsInRoom(dateRangeOpts),
-  ])
-
-  const [noShowsResult, frontDeskNoShowsResult] = await Promise.all([
-    getStudySessionNoShows().then(
-      (scholars) => ({ scholars, error: null }),
-      () => ({ scholars: [], error: "Unable to load study session no-shows. Try Refresh." }),
-    ),
-    getFrontDeskNoShows().then(
-      (scholars) => ({ scholars, error: null }),
-      () => ({ scholars: [], error: "Unable to load front desk no-shows. Try Refresh." }),
-    ),
-  ])
+  const [studySessionRaw, frontDeskRaw, noShowsResult, frontDeskNoShowsResult] =
+    await Promise.all([
+      getStudySessionScholarsInRoom(dateRangeOpts),
+      getFrontDeskScholarsInRoom(dateRangeOpts),
+      getStudySessionNoShows().then(
+        (scholars) => ({ scholars, error: null as string | null }),
+        () => ({
+          scholars: [],
+          error: "Unable to load study session no-shows. Try Refresh.",
+        }),
+      ),
+      getFrontDeskNoShows().then(
+        (scholars) => ({ scholars, error: null as string | null }),
+        () => ({
+          scholars: [],
+          error: "Unable to load front desk no-shows. Try Refresh.",
+        }),
+      ),
+    ])
 
   // Pass only serializable fields to client components (omit entryTicket).
   const toRow = (s: ScholarInRoom) => ({
@@ -90,7 +94,7 @@ export default async function RoomMonitoringPage() {
         />
       </div>
 
-      <RoomNoShowsHeading
+      <RoomNoShowsSection
         studyNoShows={noShowsResult.scholars}
         studyNoShowsError={noShowsResult.error}
         frontDeskNoShows={frontDeskNoShowsResult.scholars}

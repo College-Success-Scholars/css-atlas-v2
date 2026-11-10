@@ -1,21 +1,53 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { BookOpen, Search, UserCheck } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import type { ScholarNoShow } from "@/lib/types/session-log"
+import { filterRoomScholarsByName } from "../_lib/filter-room-scholars"
+import { formatMissedShiftRange } from "../_lib/room-format"
 
-export function RoomNoShowsPanel({ scholars, error, variant = "study" }: {
+const PANEL_ICONS = {
+  study: BookOpen,
+  "front-desk": UserCheck,
+} as const
+
+export type RoomNoShowsPanelVariant = keyof typeof PANEL_ICONS
+
+export function RoomNoShowsPanel({
+  title,
+  variant,
+  scholars,
+  error,
+  emptyMessage,
+}: {
+  title: string
+  variant: RoomNoShowsPanelVariant
   scholars: ScholarNoShow[]
   error: string | null
-  variant?: "study" | "front-desk"
+  emptyMessage: string
 }) {
-  const title = variant === "study" ? "Study Session No-Shows" : "Front Desk No-Shows"
-  const Icon = variant === "study" ? BookOpen : UserCheck
+  const Icon = PANEL_ICONS[variant]
   const [query, setQuery] = useState("")
-  const filtered = scholars.filter((scholar) => scholar.scholarName.toLowerCase().includes(query.trim().toLowerCase()))
+
+  const filtered = useMemo(
+    () => filterRoomScholarsByName(scholars, query),
+    [scholars, query],
+  )
+
+  const noRowsMessage =
+    scholars.length === 0
+      ? emptyMessage
+      : `No scholars matching “${query.trim()}”`
 
   return (
     <Card>
@@ -25,25 +57,52 @@ export function RoomNoShowsPanel({ scholars, error, variant = "study" }: {
           {title}
         </CardTitle>
         <div className="relative w-full max-w-xs sm:w-56">
-          <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-          <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search scholars..." className="pl-8 h-9" aria-label={`Search ${title.toLowerCase()}`} />
+          <Search
+            className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
+          />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search scholars..."
+            className="pl-8 h-9"
+            aria-label={`Search ${title}`}
+          />
         </div>
       </CardHeader>
       <CardContent>
         {error ? (
-          <p role="alert" className="py-6 text-center text-sm text-destructive">{error}</p>
+          <p role="alert" className="py-6 text-center text-sm text-destructive">
+            {error}
+          </p>
         ) : filtered.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
-            {scholars.length ? "No scholars match your search" : `No ${variant === "study" ? "study session" : "front desk"} no-shows at this time`}
+            {noRowsMessage}
           </p>
         ) : (
           <Table>
-            <TableHeader><TableRow><TableHead>Scholar</TableHead><TableHead>Phone</TableHead></TableRow></TableHeader>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Scholar</TableHead>
+                <TableHead>Missed shift</TableHead>
+                <TableHead>Phone</TableHead>
+              </TableRow>
+            </TableHeader>
             <TableBody>
               {filtered.map((scholar) => (
-                <TableRow key={scholar.scholarId}>
-                  <TableCell className="font-medium">{scholar.scholarName}</TableCell>
-                  <TableCell className="tabular-nums">{scholar.phoneNumber ?? "Not provided"}</TableCell>
+                <TableRow key={`${scholar.scholarId}-${scholar.scheduledStart}`}>
+                  <TableCell className="font-medium">
+                    {scholar.scholarName}
+                  </TableCell>
+                  <TableCell className="tabular-nums text-muted-foreground">
+                    {formatMissedShiftRange(
+                      scholar.scheduledStart,
+                      scholar.scheduledEnd,
+                    )}
+                  </TableCell>
+                  <TableCell className="tabular-nums">
+                    {scholar.phoneNumber ?? "Not provided"}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

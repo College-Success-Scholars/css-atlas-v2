@@ -12,7 +12,12 @@ const clockFormatter = new Intl.DateTimeFormat("en-US", {
   timeZoneName: "short",
 })
 
-export function RoomNoShowsHeading({ studyNoShows, studyNoShowsError, frontDeskNoShows, frontDeskNoShowsError }: {
+export function RoomNoShowsSection({
+  studyNoShows,
+  studyNoShowsError,
+  frontDeskNoShows,
+  frontDeskNoShowsError,
+}: {
   studyNoShows: ScholarNoShow[]
   studyNoShowsError: string | null
   frontDeskNoShows: ScholarNoShow[]
@@ -34,14 +39,30 @@ export function RoomNoShowsHeading({ studyNoShows, studyNoShowsError, frontDeskN
         </h2>
         <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
           <Clock className="size-4" aria-hidden />
-          <time dateTime={now?.toISOString()} className="tabular-nums" aria-label="Current time in Eastern Time">
+          <time
+            dateTime={now?.toISOString()}
+            className="tabular-nums"
+            aria-label="Current time in Eastern Time"
+          >
             {now ? clockFormatter.format(now) : "Loading time…"}
           </time>
         </div>
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
-        <RoomNoShowsPanel scholars={studyNoShows} error={studyNoShowsError} />
-        <RoomNoShowsPanel variant="front-desk" scholars={frontDeskNoShows} error={frontDeskNoShowsError} />
+        <RoomNoShowsPanel
+          title="Study Session No-Shows"
+          variant="study"
+          scholars={studyNoShows}
+          error={studyNoShowsError}
+          emptyMessage="No study session no-shows at this time"
+        />
+        <RoomNoShowsPanel
+          title="Front Desk No-Shows"
+          variant="front-desk"
+          scholars={frontDeskNoShows}
+          error={frontDeskNoShowsError}
+          emptyMessage="No front desk no-shows at this time"
+        />
       </div>
     </section>
   )
