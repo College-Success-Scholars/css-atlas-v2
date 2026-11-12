@@ -19,6 +19,7 @@
  * - Supabase queries
  */
 import type { Response } from "express";
+import { getStudySessionNoShows, getFrontDeskNoShows } from "../services/session-no-shows.service.js";
 import type { AuthenticatedRequest } from "../middleware/auth.middleware.js";
 import {
   fetchFrontDeskLogs,
@@ -228,5 +229,25 @@ export async function studyCompleted(req: AuthenticatedRequest, res: Response) {
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: e instanceof Error ? e.message : "Failed to fetch completed study sessions" });
+  }
+}
+
+// GET /api/session-logs/study/no-shows (team leaders and above).
+export async function studyNoShows(_req: AuthenticatedRequest, res: Response) {
+  try {
+    res.json({ data: await getStudySessionNoShows() });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Unable to load study session no-shows" });
+  }
+}
+
+// GET /api/session-logs/front-desk/no-shows (team leaders and above).
+export async function frontDeskNoShows(_req: AuthenticatedRequest, res: Response) {
+  try {
+    res.json({ data: await getFrontDeskNoShows() });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Unable to load front desk no-shows" });
   }
 }

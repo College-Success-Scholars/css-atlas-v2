@@ -30,6 +30,7 @@ import type {
   CleanedAndErroredOptions,
   ScholarInRoom,
   ScholarsInRoomOptions,
+  ScholarNoShow,
   ScholarWithCompletedSession,
 } from "@/lib/types/session-log";
 import type { HoursBenchmarkReport } from "@/app/dashboard/hours-benchmark/types";
@@ -275,6 +276,14 @@ export async function getStudySessionCompletedSessions(options?: {
   startDate?: Date; endDate?: Date; scholarUids?: string[]; sessionType?: string;
 }): Promise<ScholarWithCompletedSession[]> {
   return backendPost<ScholarWithCompletedSession[]>("/api/session-logs/study/completed", dateOpts(options));
+}
+
+export async function getStudySessionNoShows(): Promise<ScholarNoShow[]> {
+  return backendGet<ScholarNoShow[]>("/api/session-logs/study/no-shows");
+}
+
+export async function getFrontDeskNoShows(): Promise<ScholarNoShow[]> {
+  return backendGet<ScholarNoShow[]>("/api/session-logs/front-desk/no-shows");
 }
 
 // ---------------------------------------------------------------------------

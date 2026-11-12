@@ -170,3 +170,13 @@ export interface ScholarShiftCompliance {
   fdCompliance: ShiftComplianceByKind;
   ssCompliance: ShiftComplianceByKind;
 }
+
+export interface ScholarNoShow {
+  scholarId: string;
+  scholarName: string;
+  phoneNumber: string | null;
+  /** ISO start of the missed shift occurrence (Eastern wall clock). */
+  scheduledStart: string;
+  /** ISO end of the missed shift occurrence (Eastern wall clock). */
+  scheduledEnd: string;
+}

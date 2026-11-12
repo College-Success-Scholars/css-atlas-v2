@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
   formatDurationShort,
   formatEnteredTime,
+  formatMissedShiftRange,
   formatSnapshotLabel,
 } from "./room-format"
 
@@ -10,6 +11,17 @@ describe("formatEnteredTime", () => {
   it("formats an Eastern wall-clock time", () => {
     // 16:30 UTC on 2026-09-06 is 12:30 PM EDT.
     expect(formatEnteredTime("2026-09-06T16:30:00.000Z")).toBe("12:30 PM")
+  })
+})
+
+describe("formatMissedShiftRange", () => {
+  it("joins Eastern start and end times", () => {
+    expect(
+      formatMissedShiftRange(
+        "2026-10-26T18:00:00.000Z",
+        "2026-10-26T19:00:00.000Z",
+      ),
+    ).toBe("2:00 PM – 3:00 PM")
   })
 })
 
