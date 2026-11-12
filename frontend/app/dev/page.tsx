@@ -74,6 +74,12 @@ export default function DevPage() {
         >
           Freshman and sophomore grades (FD / SS / WAHF) →
         </Link>
+        <Link
+          href="/dev/schedule-views"
+          className="text-primary hover:underline text-sm font-medium"
+        >
+          FD/SS Schedule Views →
+        </Link>
       </div>
 
       <DevTestClient />

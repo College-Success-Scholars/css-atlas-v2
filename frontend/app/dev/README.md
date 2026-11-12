@@ -36,6 +36,9 @@ Use `getCurrentUser()` / `getCurrentProfile()` for the effective profile, or `ef
 ## Routes
 
 - `/dev` — Dev tools page with client-side test UI
+- `/dev/schedule-views` — FD/SS weekly + daily schedule boards (live roster + standing shifts; manage modal Save and Day Publish write via API)
+- `GET /api/dev/schedule-board` — eligible scholars + active `scholar_shift_assignments` for schedule views
+- `PUT /api/dev/schedule-board/:uid` — replace one scholar’s active standing FD/SS shifts for the active semester
 - `/api/dev/*` — Dev API routes (also protected by developer check)
 - `GET /api/dev/test-profiles` — list personas
 - `POST /api/dev/active-profile` — validate a persona id (cookie set via server action)

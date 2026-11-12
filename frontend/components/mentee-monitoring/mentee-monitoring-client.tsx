@@ -70,12 +70,17 @@ export function MenteeMonitoringClient({
   review,
   selectedWeek,
   detailPath,
+  onNavigateWeek,
 }: MenteeReviewClientProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
   function navigate(week: number | null, uid: string) {
     if (week === selectedWeek && uid === review?.mentee.uid) return
+    if (onNavigateWeek) {
+      startTransition(() => onNavigateWeek(week, uid))
+      return
+    }
     // The directory detail path already names the scholar, so week navigation
     // stays on it and does not append the uid query param.
     startTransition(() =>
@@ -88,6 +93,10 @@ export function MenteeMonitoringClient({
   }
 
   function refresh() {
+    if (onNavigateWeek && review) {
+      startTransition(() => onNavigateWeek(selectedWeek, review.mentee.uid))
+      return
+    }
     startTransition(() => router.refresh())
   }
 

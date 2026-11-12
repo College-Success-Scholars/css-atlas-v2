@@ -1033,6 +1033,79 @@ All routes under `/api/dev` require **requireDeveloper**.
 
 ---
 
+### `GET /api/dev/schedule-board`
+
+**Auth:** requireDeveloper
+**Description:** Schedule board payload for `/dev/schedule-views`. Returns hour-eligible enrolled scholars (current freshman/sophomore cohorts with `fd_required` or `ss_required` > 0) plus their active standing rows from `scholar_shift_assignments` (`front_desk` / `study_session`, day of week, start/end as `HH:MM`).
+**Request:** None
+**Response:**
+```json
+{
+  "data": {
+    "scholars": [
+      {
+        "uid": "string",
+        "name": "string",
+        "cohort": 2026,
+        "classYearLabel": "Freshman",
+        "fd_required": 180,
+        "ss_required": 300,
+        "shifts": [
+          {
+            "id": "string",
+            "kind": "front_desk",
+            "dayOfWeek": 1,
+            "startTime": "09:00",
+            "endTime": "12:00"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+---
+
+### `PUT /api/dev/schedule-board/:uid`
+
+**Auth:** requireDeveloper
+**Description:** Replace every active standing FD/SS assignment for one scholar in the active semester. Soft-deactivates current active rows (`is_active = false`), then inserts the replacement set — same pattern as `scripts/update-scholar-schedule.py`. An empty `shifts` array clears the scholar’s active schedule. Returns the new active rows with database ids.
+**Request:**
+```json
+{
+  "shifts": [
+    {
+      "kind": "front_desk",
+      "dayOfWeek": 1,
+      "startTime": "09:00",
+      "endTime": "12:00"
+    }
+  ]
+}
+```
+`kind` is `front_desk` or `study_session`. `dayOfWeek` is 0=Sun … 6=Sat. Times are `HH:MM` (seconds optional).
+**Response:**
+```json
+{
+  "data": {
+    "uid": "string",
+    "shifts": [
+      {
+        "id": "string",
+        "kind": "front_desk",
+        "dayOfWeek": 1,
+        "startTime": "09:00",
+        "endTime": "12:00"
+      }
+    ]
+  }
+}
+```
+**Errors:** `400` validation; `409` when there is no active semester; `500` on write/rollback failure.
+
+---
+
 ### `GET /api/dev/freshman-grades`
 
 **Auth:** requireDeveloper

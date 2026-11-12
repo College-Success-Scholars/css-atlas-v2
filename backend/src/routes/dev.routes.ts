@@ -32,6 +32,8 @@ router.post("/active-profile", devController.setActiveProfile);
 router.get("/form-logs/:formType/:formId", devController.getFormLog);
 
 router.get("/freshman-grades", devController.getFreshmanGrades);
+router.get("/schedule-board", devController.getScheduleBoardHandler);
+router.put("/schedule-board/:uid", devController.putScheduleBoardScholar);
 router.get("/roster/:uid", devController.getRoster);
 router.patch("/roster/:uid", devController.patchRoster);
 

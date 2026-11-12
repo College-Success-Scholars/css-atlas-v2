@@ -219,4 +219,9 @@ export interface MenteeReviewClientProps {
    * MCF bar and keeps week navigation on that path.
    */
   detailPath?: string;
+  /**
+   * Optional in-place week navigation (e.g. modal hosts). When set, used
+   * instead of router.push for semester-grid / mentee switches.
+   */
+  onNavigateWeek?: (week: number | null, uid: string) => void;
 }

@@ -31,6 +31,7 @@ For production features, build in `app/dashboard/` and shared components in `com
 | `session-logs/page.tsx` | `/dev/session-logs` | Raw session check-in/out logs with heat map |
 | `session-records/page.tsx` | `/dev/session-records` | Retired notice — use `/dashboard/teams/*` and `/api/attendance` |
 | `traffic/page.tsx` | `/dev/traffic` | Traffic count analytics |
+| `schedule-views/page.tsx` | `/dev/schedule-views` | Weekly + daily FD/SS schedule boards for eligible freshmen/sophomores (`GET /api/dev/schedule-board`). Manage-shifts Save and Day Publish call `PUT /api/dev/schedule-board/:uid` (soft-deactivate + insert, active semester). |
 
 ---
 

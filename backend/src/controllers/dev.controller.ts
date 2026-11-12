@@ -10,6 +10,7 @@
  * - Provide diagnostic endpoints: test, me, form log lookups, test profiles
  * - Developer roster get/update for /dev/profiles
  * - Temporary freshman and sophomore FD/SS/WAHF completion for /dev/freshman-grades
+ * - Schedule board read/replace for /dev/schedule-views (eligible scholars + standing shifts)
  *
  * ## What belongs here
  * - Handler functions for /api/dev/* routes
@@ -25,6 +26,11 @@ import { isDeveloperProfile } from "../../../shared/dist/auth.js";
 import { listTestProfiles, getTestProfileById } from "../services/dev-profile.service.js";
 import { getMcfFormLogById, getWplFormLogById } from "../services/form-log.service.js";
 import { getFreshmanGradesReport } from "../services/freshman-grades.service.js";
+import {
+  getScheduleBoard,
+  replaceScholarStandingShifts,
+  type StandingShiftInput,
+} from "../services/schedule-board.service.js";
 import { getRosterByUid, updateRosterByUid } from "../services/user.service.js";
 import type { RosterPatch } from "../models/user.model.js";
 
@@ -225,6 +231,70 @@ export async function getFreshmanGrades(_req: AuthenticatedRequest, res: Respons
   } catch (e) {
     res.status(500).json({ error: caughtErrorMessage(e, "Failed to load freshman and sophomore grades") });
   }
+}
+
+// GET /api/dev/schedule-board
+export async function getScheduleBoardHandler(_req: AuthenticatedRequest, res: Response) {
+  try {
+    const data = await getScheduleBoard();
+    res.json({ data });
+  } catch (e) {
+    res.status(500).json({
+      error: caughtErrorMessage(e, "Failed to load schedule board"),
+    });
+  }
+}
+
+// PUT /api/dev/schedule-board/:uid
+export async function putScheduleBoardScholar(
+  req: AuthenticatedRequest,
+  res: Response,
+) {
+  const uid = Array.isArray(req.params.uid) ? req.params.uid[0] : req.params.uid;
+  if (!uid) {
+    res.status(400).json({ error: "Missing uid parameter" });
+    return;
+  }
+  try {
+    const shifts = parseStandingShiftsBody(req.body);
+    const data = await replaceScholarStandingShifts(uid, shifts);
+    res.json({ data });
+  } catch (e) {
+    const message = caughtErrorMessage(e, "Failed to replace scholar shifts");
+    const isValidation =
+      message.startsWith("Missing") ||
+      message.startsWith("shifts") ||
+      message.startsWith("Invalid") ||
+      message.includes("must be") ||
+      message.includes("endTime must");
+    if (message === "No active semester") {
+      res.status(409).json({ error: message });
+      return;
+    }
+    res.status(isValidation ? 400 : 500).json({ error: message });
+  }
+}
+
+function parseStandingShiftsBody(body: unknown): StandingShiftInput[] {
+  if (body == null || typeof body !== "object" || Array.isArray(body)) {
+    throw new Error("Body must be an object");
+  }
+  const raw = (body as { shifts?: unknown }).shifts;
+  if (!Array.isArray(raw)) {
+    throw new Error("shifts must be an array");
+  }
+  return raw.map((item, index) => {
+    if (item == null || typeof item !== "object" || Array.isArray(item)) {
+      throw new Error(`shifts[${index}] must be an object`);
+    }
+    const row = item as Record<string, unknown>;
+    return {
+      kind: row.kind as StandingShiftInput["kind"],
+      dayOfWeek: Number(row.dayOfWeek),
+      startTime: String(row.startTime ?? ""),
+      endTime: String(row.endTime ?? ""),
+    };
+  });
 }
 
 // GET /api/dev/roster/:uid
