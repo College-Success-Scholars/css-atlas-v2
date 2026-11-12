@@ -14,7 +14,7 @@
  * - Business logic (that's controllers/session-log.controller.ts)
  */
 import { Router } from "express";
-import { requireAuth } from "../middleware/auth.middleware.js";
+import { requireAuth, requireTeamLeaderRole } from "../middleware/auth.middleware.js";
 import * as sessionLogController from "../controllers/session-log.controller.js";
 
 const router = Router();
@@ -22,12 +22,14 @@ const router = Router();
 router.use(requireAuth);
 
 // Front desk
+router.get("/front-desk/no-shows", requireTeamLeaderRole, sessionLogController.frontDeskNoShows);
 router.post("/front-desk", sessionLogController.fetchFrontDesk);
 router.post("/front-desk/cleaned", sessionLogController.frontDeskCleaned);
 router.post("/front-desk/in-room", sessionLogController.frontDeskInRoom);
 router.post("/front-desk/completed", sessionLogController.frontDeskCompleted);
 
 // Study session
+router.get("/study/no-shows", requireTeamLeaderRole, sessionLogController.studyNoShows);
 router.post("/study", sessionLogController.fetchStudy);
 router.post("/study/cleaned", sessionLogController.studyCleaned);
 router.post("/study/in-room", sessionLogController.studyInRoom);

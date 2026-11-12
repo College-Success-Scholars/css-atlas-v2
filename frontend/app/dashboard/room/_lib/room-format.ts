@@ -9,6 +9,13 @@ export function formatEnteredTime(iso: string): string {
   })
 }
 
+/** Eastern clock range for a missed shift, e.g. "2:00 PM – 3:00 PM". */
+export function formatMissedShiftRange(scheduledStart: string, scheduledEnd: string): string {
+  const start = formatEnteredTime(scheduledStart)
+  const end = formatEnteredTime(scheduledEnd)
+  return start && end ? `${start} – ${end}` : start || end
+}
+
 export function formatDurationShort(ms: number): string {
   const totalMinutes = Math.max(0, Math.floor(ms / 60_000))
   const hours = Math.floor(totalMinutes / 60)
