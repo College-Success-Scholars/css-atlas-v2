@@ -1,6 +1,19 @@
 export type DirectoryView = "flat" | "grouped";
 export type DirectorySort = "asc" | "desc";
 
+export type DirectoryPerson = {
+  id: string;
+  name: string;
+  uid: string | null;
+  cohort: number | null;
+  email: string | null;
+  phoneNumber: string | null;
+  teams: string[];
+  programRole: string | null;
+  /** Team-leader viewers see this; RLS returns false for everyone else. */
+  isMentee: boolean;
+};
+
 export type DirectoryFilters = {
   team: string;
   programRole: string;
@@ -35,6 +48,26 @@ export function directoryMenteePath(
   if (!uid || !isMentee) return null;
   const path = `/dashboard/directory/${encodeURIComponent(uid)}`;
   return cohort != null && Number.isFinite(cohort) ? `${path}?cohort=${cohort}` : path;
+}
+
+/** A row from GET /api/users/team-leaders, trimmed to what the Directory reads. */
+export type DirectoryTeamLeader = {
+  uid: string;
+  mentee_count: number | null;
+  mentee_uids: string[] | null;
+};
+
+/** Indexes team leaders by UID; Directory rows carry no team leader flag of their own. */
+export function teamLeadersByUid(rows: DirectoryTeamLeader[]): Map<string, DirectoryTeamLeader> {
+  return new Map(rows.map((row) => [row.uid, row]));
+}
+
+/** The team leader behind a Directory row; null keeps the row's existing open behavior. */
+export function directoryTeamLeaderFor(
+  uid: string | null,
+  teamLeaders: ReadonlyMap<string, DirectoryTeamLeader>,
+): DirectoryTeamLeader | null {
+  return uid ? teamLeaders.get(uid) ?? null : null;
 }
 
 export function directoryPath(state: DirectoryState, cursor?: string | null, group?: string, limit?: number) {

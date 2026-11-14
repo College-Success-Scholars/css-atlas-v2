@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Filter, Search } from "lucide-react";
+import { ChevronRight, Filter, Pin, Search } from "lucide-react";
 import { backendGet } from "@/lib/client/api-client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,27 +14,21 @@ import {
   activeFilterCount,
   directoryMenteePath,
   directoryPath,
+  directoryTeamLeaderFor,
   initialDirectoryState,
+  teamLeadersByUid,
   type DirectoryFilters,
+  type DirectoryPerson,
   type DirectoryState,
+  type DirectoryTeamLeader,
 } from "./directory-state";
+import { Avatar, teamBadgeClassName } from "./directory-person-badges";
+import { sortPins, useDirectoryPins } from "./directory-pins";
 import { directoryTeamFilterOptions, directoryTeamPresentationFor } from "./directory-team-presentation";
+import { TeamLeaderFormsPopup, type TeamLeaderSelection } from "./team-leader-forms-popup";
 
 const PAGE_SIZE = 10;
 const ALL_VALUE = "all";
-
-type DirectoryPerson = {
-  id: string;
-  name: string;
-  uid: string | null;
-  cohort: number | null;
-  email: string | null;
-  phoneNumber: string | null;
-  teams: string[];
-  programRole: string | null;
-  /** Team-leader viewers see this; RLS returns false for everyone else. */
-  isMentee: boolean;
-};
 
 type Pagination = {
   total: number;
@@ -55,70 +49,11 @@ const LARGE_GROUP_THRESHOLD = 50;
 
 /** Shared column template so the header row and every person row line up. */
 const DIRECTORY_GRID_COLS = "grid-cols-[minmax(11rem,1.4fr)_4.5rem_minmax(13rem,1.2fr)_minmax(11rem,1fr)_1.5rem]";
-
-/** Deterministic pastel palette so the same team or name always gets the same color. */
-function paletteIndex(value: string, size: number): number {
-  let hash = 0;
-  for (let i = 0; i < value.length; i++) hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
-  return hash % size;
-}
-
-const TEAM_BADGE_STYLES = [
-    "border-blue-400/40 bg-blue-500/10 text-blue-700 dark:text-blue-300",
-    "border-cyan-400/40 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300",
-    "border-teal-400/40 bg-teal-500/10 text-teal-700 dark:text-teal-300",
-    "border-emerald-400/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-    "border-green-400/40 bg-green-500/10 text-green-700 dark:text-green-300",
-    "border-lime-400/40 bg-lime-500/10 text-lime-700 dark:text-lime-300",
-    "border-yellow-400/40 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300",
-    "border-amber-400/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-    "border-orange-400/40 bg-orange-500/10 text-orange-700 dark:text-orange-300",
-    "border-red-400/40 bg-red-500/10 text-red-700 dark:text-red-300",
-    "border-rose-400/40 bg-rose-500/10 text-rose-700 dark:text-rose-300",
-    "border-pink-400/40 bg-pink-500/10 text-pink-700 dark:text-pink-300",
-    "border-fuchsia-400/40 bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300",
-    "border-purple-400/40 bg-purple-500/10 text-purple-700 dark:text-purple-300",
-    "border-violet-400/40 bg-violet-500/10 text-violet-700 dark:text-violet-300",
-    "border-indigo-400/40 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
-    "border-sky-400/40 bg-sky-500/10 text-sky-700 dark:text-sky-300",
-    "border-fuchsia-300/40 bg-fuchsia-400/10 text-fuchsia-700 dark:text-fuchsia-300",
-    "border-purple-300/40 bg-purple-400/10 text-purple-700 dark:text-purple-300",
-    "border-rose-300/40 bg-rose-400/10 text-rose-700 dark:text-rose-300",
-  ];
-
-function teamBadgeClassName(team: string): string {
-  return TEAM_BADGE_STYLES[paletteIndex(team, TEAM_BADGE_STYLES.length)]!;
-}
-
-const AVATAR_STYLES = [
-  "bg-rose-500/15 text-rose-700 dark:text-rose-300",
-  "bg-sky-500/15 text-sky-700 dark:text-sky-300",
-  "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
-  "bg-amber-500/15 text-amber-700 dark:text-amber-300",
-  "bg-violet-500/15 text-violet-700 dark:text-violet-300",
-];
-
-function avatarClassName(name: string): string {
-  return AVATAR_STYLES[paletteIndex(name, AVATAR_STYLES.length)]!;
-}
-
-function initialsFor(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  const first = parts[0]?.[0] ?? "";
-  const last = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? "" : "";
-  return (first + last).toUpperCase() || "?";
-}
-
-function Avatar({ name }: { name: string }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${avatarClassName(name)}`}
-    >
-      {initialsFor(name)}
-    </span>
-  );
-}
+/** Fits the 44px pin button beside every row and its header. */
+const PIN_COLUMN = "w-14 shrink-0";
+/** Grid columns plus the pin column; narrower viewports scroll sideways. */
+const DIRECTORY_MIN_WIDTH = "min-w-[50rem]";
+const PINNED_ACCENT = "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300";
 
 /** Long enough that a double-click can select a UID before the row opens the profile. */
 const ROW_OPEN_DELAY_MS = 300;
@@ -245,7 +180,48 @@ function DirectoryFiltersForm({
   return <div className="grid gap-3 sm:grid-cols-3">{fields}</div>;
 }
 
-function DirectoryRow({ person, onOpen }: { person: DirectoryPerson; onOpen: (person: DirectoryPerson) => void }) {
+function directoryMembers(response: DirectoryResponse): DirectoryPerson[] {
+  return response.view === "flat" ? response.members : response.groups.flatMap((group) => group.members);
+}
+
+function PinButton({ person, pinned, onToggle }: { person: DirectoryPerson; pinned: boolean; onToggle: (person: DirectoryPerson) => void }) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="icon"
+      aria-pressed={pinned}
+      aria-label={`${pinned ? "Unpin" : "Pin"} ${person.name}`}
+      onClick={() => onToggle(person)}
+      className={`size-11 cursor-pointer ${pinned ? PINNED_ACCENT : "text-muted-foreground"}`}
+    >
+      <Pin className={pinned ? "fill-current" : undefined} aria-hidden="true" />
+    </Button>
+  );
+}
+
+function DirectoryHeaderRow() {
+  return (
+    <div className="flex items-center border-b">
+      <div className={`grid min-w-0 flex-1 items-center gap-4 px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground ${DIRECTORY_GRID_COLS}`}>
+        <span>Name</span><span>Cohort</span><span>Contact</span><span>Team &amp; role</span><span />
+      </div>
+      <span className={PIN_COLUMN}><span className="sr-only">Pin</span></span>
+    </div>
+  );
+}
+
+function DirectoryRow({
+  person,
+  onOpen,
+  pinned,
+  onTogglePin,
+}: {
+  person: DirectoryPerson;
+  onOpen: (person: DirectoryPerson) => void;
+  pinned: boolean;
+  onTogglePin: (person: DirectoryPerson) => void;
+}) {
   const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => {
@@ -253,39 +229,44 @@ function DirectoryRow({ person, onOpen }: { person: DirectoryPerson; onOpen: (pe
   }, []);
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      className={`group grid min-h-11 w-full cursor-pointer select-text items-center gap-4 border-b border-l-4 border-l-transparent px-3 py-3 text-left transition-colors hover:border-l-primary hover:bg-muted/60 focus-visible:border-l-primary focus-visible:bg-muted/60 focus-visible:outline-none ${DIRECTORY_GRID_COLS}`}
-      onClick={(event) => {
-        if (openTimer.current) clearTimeout(openTimer.current);
-        if (!rowClickOpensProfile(event)) return;
-        openTimer.current = setTimeout(() => {
-          openTimer.current = null;
-          if (!textIsSelected()) onOpen(person);
-        }, ROW_OPEN_DELAY_MS);
-      }}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onOpen(person);
-        }
-      }}
-    >
-      <span className="flex min-w-0 items-center gap-3">
-        <Avatar name={person.name} />
-        <span className="min-w-0 cursor-text">
-          <span className="block truncate font-medium">{person.name}</span>
-          <span className="block truncate text-xs text-muted-foreground">{person.uid ?? "—"}</span>
+    <div className="flex items-center border-b">
+      <div
+        role="button"
+        tabIndex={0}
+        className={`group grid min-h-11 min-w-0 flex-1 cursor-pointer select-text items-center gap-4 border-l-4 border-l-transparent px-3 py-3 text-left transition-colors hover:border-l-primary hover:bg-muted/60 focus-visible:border-l-primary focus-visible:bg-muted/60 focus-visible:outline-none ${DIRECTORY_GRID_COLS}`}
+        onClick={(event) => {
+          if (openTimer.current) clearTimeout(openTimer.current);
+          if (!rowClickOpensProfile(event)) return;
+          openTimer.current = setTimeout(() => {
+            openTimer.current = null;
+            if (!textIsSelected()) onOpen(person);
+          }, ROW_OPEN_DELAY_MS);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onOpen(person);
+          }
+        }}
+      >
+        <span className="flex min-w-0 items-center gap-3">
+          <Avatar name={person.name} />
+          <span className="min-w-0 cursor-text">
+            <span className="block truncate font-medium">{person.name}</span>
+            <span className="block truncate text-xs text-muted-foreground">{person.uid ?? "—"}</span>
+          </span>
         </span>
+        <span className="cursor-text text-sm text-muted-foreground">{person.cohort ?? "—"}</span>
+        <span className="min-w-0 cursor-text">
+          <span className="block truncate text-sm text-muted-foreground">{person.email ?? "No contact listed"}</span>
+          {person.phoneNumber && <span className="block truncate text-xs text-muted-foreground">{person.phoneNumber}</span>}
+        </span>
+        <TeamAndRole person={person} />
+        <ChevronRight className="size-4 shrink-0 justify-self-end text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
+      </div>
+      <span className={`${PIN_COLUMN} flex justify-center`}>
+        <PinButton person={person} pinned={pinned} onToggle={onTogglePin} />
       </span>
-      <span className="cursor-text text-sm text-muted-foreground">{person.cohort ?? "—"}</span>
-      <span className="min-w-0 cursor-text">
-        <span className="block truncate text-sm text-muted-foreground">{person.email ?? "No contact listed"}</span>
-        {person.phoneNumber && <span className="block truncate text-xs text-muted-foreground">{person.phoneNumber}</span>}
-      </span>
-      <TeamAndRole person={person} />
-      <ChevronRight className="size-4 shrink-0 justify-self-end text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
     </div>
   );
 }
@@ -365,7 +346,14 @@ function useGroupCursorPagination() {
   return { currentCursor, currentPage, goNext, goPrevious, reset };
 }
 
-export function DirectoryDashboard() {
+type DirectoryDashboardProps = {
+  /** Server-checked team_leader+ gate; viewers below it never get the team leader forms popup. */
+  canViewTeamLeaderForms?: boolean;
+  /** Signed-in user whose pins this browser keeps; null leaves pins unsaved. */
+  viewerId?: string | null;
+};
+
+export function DirectoryDashboard({ canViewTeamLeaderForms = false, viewerId = null }: DirectoryDashboardProps) {
   const router = useRouter();
   const [state, setState] = useState<DirectoryState>(initialDirectoryState);
   const [searchInput, setSearchInput] = useState(initialDirectoryState.search);
@@ -376,8 +364,12 @@ export function DirectoryDashboard() {
   const groupPages = useGroupCursorPagination();
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [selectedPerson, setSelectedPerson] = useState<DirectoryPerson | null>(null);
+  const [selectedTeamLeader, setSelectedTeamLeader] = useState<TeamLeaderSelection | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [teamLeaders, setTeamLeaders] = useState<ReadonlyMap<string, DirectoryTeamLeader>>(() => new Map());
+  const pins = useDirectoryPins(viewerId);
+  const [onlyPinned, setOnlyPinned] = useState(false);
   const filters = { team: state.team, programRole: state.programRole, cohort: state.cohort };
   const effectiveState = { ...state, search: debouncedSearch };
 
@@ -388,6 +380,14 @@ export function DirectoryDashboard() {
   }, []);
 
   useEffect(() => {
+    // Only team_leader+ viewers get the team leader popup, so nobody else loads the lookup.
+    if (!canViewTeamLeaderForms) return;
+    backendGet<DirectoryTeamLeader[]>("/api/users/team-leaders").then((result) => {
+      if (result.ok) setTeamLeaders(teamLeadersByUid(result.data));
+    });
+  }, [canViewTeamLeaderForms]);
+
+  useEffect(() => {
     let cancelled = false;
     const run = async () => {
       setLoading(true);
@@ -395,6 +395,7 @@ export function DirectoryDashboard() {
       if (cancelled) return;
       if (result.ok) {
         setResponse(result.data);
+        pins.refresh(directoryMembers(result.data));
         setError(null);
       } else setError(result.error);
       setLoading(false);
@@ -423,6 +424,7 @@ export function DirectoryDashboard() {
     const result = await backendGet<DirectoryResponse>(directoryPath(effectiveState, cursor, team, PAGE_SIZE));
     if (result.ok && result.data.view === "grouped") {
       const nextGroup = result.data.groups[0];
+      pins.refresh(directoryMembers(result.data));
       setResponse((current) =>
         current && current.view === "grouped"
           ? { ...current, groups: current.groups.map((group) => (group.team === team && nextGroup ? nextGroup : group)) }
@@ -438,6 +440,11 @@ export function DirectoryDashboard() {
   const toggleGroup = (team: string) => setExpandedGroup((current) => (current === team ? null : team));
 
   const openPerson = (person: DirectoryPerson) => {
+    const teamLeader = canViewTeamLeaderForms ? directoryTeamLeaderFor(person.uid, teamLeaders) : null;
+    if (teamLeader) {
+      setSelectedTeamLeader({ person, teamLeader });
+      return;
+    }
     const menteePath = directoryMenteePath(person.uid, person.isMentee, person.cohort);
     if (menteePath) {
       router.push(menteePath);
@@ -512,20 +519,56 @@ export function DirectoryDashboard() {
                 <SelectItem value="desc">Name Z–A</SelectItem>
                 </SelectContent>
             </Select>
+            <Button
+              type="button"
+              variant="outline"
+              aria-pressed={onlyPinned}
+              onClick={() => setOnlyPinned((value) => !value)}
+              className={`h-11 shrink-0 cursor-pointer px-2 text-xs sm:px-3 sm:text-sm ${onlyPinned ? PINNED_ACCENT : ""}`}
+            >
+              <Pin className={onlyPinned ? "fill-current" : undefined} aria-hidden="true" />
+              <span className="sr-only sm:not-sr-only">Pinned only ·</span> {pins.pinned.length}
+            </Button>
           </div>
       </div>
 
-      {error && <p className="rounded-md border border-destructive/50 p-3 text-sm text-destructive">{error}</p>}
-      {loading && !response ? <p className="py-8 text-sm text-muted-foreground">Loading directory...</p> : null}
+      <section aria-labelledby="directory-pinned-heading" className="overflow-hidden rounded-lg border border-amber-500/30 bg-amber-500/5">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3">
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            <Pin className="size-4 fill-current text-amber-600 dark:text-amber-400" aria-hidden="true" />
+            <h2 id="directory-pinned-heading" className="text-xs font-semibold uppercase tracking-wider">Pinned</h2>
+            <span className="text-xs text-muted-foreground">{pins.pinned.length} · only you can see your pins</span>
+          </div>
+          <span className="text-xs text-muted-foreground">Pinned people stay here across filters, search, and visits on this device.</span>
+        </div>
+        {pins.pinned.length === 0 ? (
+          <p className="border-t px-4 py-4 text-sm text-muted-foreground">No one pinned yet. Use the pin button on any row to keep someone here.</p>
+        ) : (
+          <div className="overflow-x-auto border-t">
+            <div className={DIRECTORY_MIN_WIDTH}>
+              {sortPins(pins.pinned, state.sort).map((person) => (
+                <DirectoryRow key={person.id} person={person} onOpen={openPerson} pinned onTogglePin={pins.toggle} />
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
 
-      {response?.view === "flat" && pagination && (
+      {error && <p className="rounded-md border border-destructive/50 p-3 text-sm text-destructive">{error}</p>}
+      {!onlyPinned && loading && !response ? <p className="py-8 text-sm text-muted-foreground">Loading directory...</p> : null}
+
+      {!onlyPinned && response && (
+        <h2 className="-mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">All members</h2>
+      )}
+
+      {!onlyPinned && response?.view === "flat" && pagination && (
         <section aria-label="Directory results">
           <div className="overflow-x-auto">
-            <div className="min-w-[46rem]">
-              <div className={`grid items-center gap-4 border-b px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground ${DIRECTORY_GRID_COLS}`}>
-                <span>Name</span><span>Cohort</span><span>Contact</span><span>Team &amp; role</span><span />
-              </div>
-              {response.members.map((person) => <DirectoryRow key={person.id} person={person} onOpen={openPerson} />)}
+            <div className={DIRECTORY_MIN_WIDTH}>
+              <DirectoryHeaderRow />
+              {response.members.map((person) => (
+                <DirectoryRow key={person.id} person={person} onOpen={openPerson} pinned={pins.pinnedIds.has(person.id)} onTogglePin={pins.toggle} />
+              ))}
               {!response.members.length && <p className="py-8 text-center text-muted-foreground">No matching people.</p>}
             </div>
           </div>
@@ -538,7 +581,7 @@ export function DirectoryDashboard() {
         </section>
       )}
 
-      {response?.view === "grouped" && (
+      {!onlyPinned && response?.view === "grouped" && (
         <section className="space-y-3" aria-label="Directory results by team">
           {response.groups.map((group) => {
             const isExpanded = expandedGroup === group.team;
@@ -565,8 +608,10 @@ export function DirectoryDashboard() {
                 {isExpanded && (
                   <div className="border-t">
                     <div className="overflow-x-auto">
-                      <div className="min-w-[46rem]">
-                        {group.members.map((person) => <DirectoryRow key={person.id} person={person} onOpen={openPerson} />)}
+                      <div className={DIRECTORY_MIN_WIDTH}>
+                        {group.members.map((person) => (
+                          <DirectoryRow key={person.id} person={person} onOpen={openPerson} pinned={pins.pinnedIds.has(person.id)} onTogglePin={pins.toggle} />
+                        ))}
                         {!group.members.length && <p className="py-6 text-center text-muted-foreground">No matching people.</p>}
                       </div>
                     </div>
@@ -586,6 +631,8 @@ export function DirectoryDashboard() {
           {!response.groups.length && <p className="py-8 text-center text-muted-foreground">No matching teams.</p>}
         </section>
       )}
+
+      <TeamLeaderFormsPopup selection={selectedTeamLeader} onClose={() => setSelectedTeamLeader(null)} />
 
       <Dialog open={selectedPerson !== null} onOpenChange={(open) => { if (!open) setSelectedPerson(null); }}>
         <DialogContent>
