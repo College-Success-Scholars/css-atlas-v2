@@ -117,7 +117,7 @@ export async function runReconciliationDetector(now = new Date()): Promise<void>
   });
 }
 
-  if (/reconciliation-detector\.(js|ts)$/.test(process.argv[1] ?? "")) {
+if (/reconciliation-detector\.(js|ts)$/.test(process.argv[1] ?? "")) {
   runReconciliationDetector().catch((error) => {
     console.error("[reconciliation-detector] failed", { error });
     process.exitCode = 1;
