@@ -15,7 +15,7 @@ jobs:
     name: Backend Test & Build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Respository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Set up Node.js
@@ -42,7 +42,7 @@ jobs:
     name: Frontend Test & Build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Respository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Set up Node.js
@@ -75,7 +75,7 @@ jobs:
     needs: [backend-test, frontend-test]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Respository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
@@ -97,7 +97,7 @@ jobs:
     needs: docker-build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Respository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Start Stack
