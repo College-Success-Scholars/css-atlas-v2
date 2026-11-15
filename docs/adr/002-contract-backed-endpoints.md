@@ -20,7 +20,7 @@ Alternatives considered:
 
 - **tRPC** — removes the REST surface that `backend/API.md`, the smoke test and the cron containers rely on.
 - **OpenAPI + codegen** — adds a generation step and generated files to keep in sync; the contract module gives the same guarantee with plain imports.
-- **Effect Schema / HttpApi** — viable later; adopting Effect is a separate decision being piloted in `domains/notifications`. The contract's shape (schemas per endpoint, handlers as input → data) does not block it.
+- **Effect Schema / HttpApi** — viable later; adopting Effect is a separate, undecided question. The contract's shape (schemas per endpoint, handlers as input → data) does not block it.
 
 ## Consequences
 
