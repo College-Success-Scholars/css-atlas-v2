@@ -9,7 +9,11 @@
     "lint": "eslint",
     "test": "TZ=America/New_York vitest run",
     "test:watch": "TZ=America/New_York vitest",
-    "check:theme-safety": "node ../scripts/check-theme-safety.mjs"
+    "check:theme-safety": "node ../scripts/check-theme-safety.mjs",
+    "lint:baseline": "node ../tools/lint-baseline.mjs --check",
+    "deps": "depcruise app components lib hooks --config .dependency-cruiser.cjs --ignore-known",
+    "deps:baseline": "depcruise-baseline app components lib hooks --config .dependency-cruiser.cjs",
+    "guardrails": "npm run lint && npm run lint:baseline && npm run deps"
   },
   "dependencies": {
     "@date-fns/utc": "^2.1.1",
@@ -48,6 +52,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.3",
+    "dependency-cruiser": "^17.4.3",
     "eslint": "^9",
     "eslint-config-next": "15.5.0",
     "jsdom": "^30.0.1",

@@ -13,7 +13,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "install:chrome": "puppeteer browsers install chrome",
-    "db:types": "cd .. && supabase gen types typescript --linked --schema public > backend/src/supabase/database.types.ts && node -e \"const fs=require('fs');const f='backend/src/supabase/database.types.ts';const h='/**\\n * Generated Postgres types for public schema. Do not edit by hand.\\n * Regen: npm run db:types --prefix backend\\n */\\n\\n';const t=fs.readFileSync(f,'utf8');if(!t.startsWith('/**'))fs.writeFileSync(f,h+t);\""
+    "db:types": "cd .. && supabase gen types typescript --linked --schema public > backend/src/supabase/database.types.ts && node -e \"const fs=require('fs');const f='backend/src/supabase/database.types.ts';const h='/**\\n * Generated Postgres types for public schema. Do not edit by hand.\\n * Regen: npm run db:types --prefix backend\\n */\\n\\n';const t=fs.readFileSync(f,'utf8');if(!t.startsWith('/**'))fs.writeFileSync(f,h+t);\"",
+    "lint": "eslint",
+    "lint:baseline": "node ../tools/lint-baseline.mjs --check",
+    "deps": "depcruise src --config .dependency-cruiser.cjs --ignore-known",
+    "deps:baseline": "depcruise-baseline src --config .dependency-cruiser.cjs",
+    "guardrails": "npm run lint && npm run lint:baseline && npm run deps"
   },
   "keywords": [],
   "author": "",
@@ -33,9 +38,12 @@
     "@types/express": "^5.0.6",
     "@types/node": "^25.6.0",
     "@types/supertest": "^6.0.2",
+    "dependency-cruiser": "^17.4.3",
+    "eslint": "^9.39.5",
     "supertest": "^7.0.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.2",
     "vitest": "^2.0.0"
   }
 }

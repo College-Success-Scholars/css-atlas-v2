@@ -11,6 +11,7 @@
 | [Backend](backend/README.md) | [`backend/`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/backend) | Express + TypeScript API |
 | [Shared](shared/README.md) | [`shared/`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/shared) | Shared TypeScript utilities |
 | [Frontend](frontend/README.md) | [`frontend/`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend) | Next.js 16 web app |
+| [Guardrails](guardrails.md) | [`tools/`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/tools) | Lint bans, import-direction rules, baselines |
 | [Deployment](deployment/README.md) | Docker / Railway / Vercel / CI | Hosted topology, env wiring, smoke |
 | [IT review](it-review.md) | Current-state briefing | Product state, stack, vendors, UMD SRM proposal |
 | [Scripts](scripts/README.md) | [`scripts/`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts) | Dev/ops shell scripts |

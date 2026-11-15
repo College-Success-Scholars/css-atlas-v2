@@ -28,6 +28,19 @@ Domain docs use a single-context layout (root `CONTEXT.md` + `docs/adr/` when pr
 
 The codebase has a specfic structure to follow and to generally maintain. See `docs/agents/codebase-notes.md`
 
+## Guardrails
+
+Patterns that need judgement are banned outright and enforced by lint and a dependency checker. Read `docs/dev/guardrails.md` before writing code. After every change run, in the app you touched:
+
+```bash
+npm --prefix backend run guardrails
+npm --prefix frontend run guardrails
+```
+
+- Never add a file to `eslint-baseline.json` or `.dependency-cruiser-known-violations.json`, and never add an `eslint-disable` comment, to get green. Those lists only shrink.
+- Do not copy a pattern from a grandfathered file. If a file is in a baseline, it is an example of what not to write.
+- When you fix a grandfathered file, delete its baseline entry in the same change (`npm run lint:baseline` tells you which).
+
 ## graphify
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
