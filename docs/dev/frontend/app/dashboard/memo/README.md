@@ -58,7 +58,6 @@ Export PDF (`weekly-memo-report.service` + `weekly-memo-pdf.service`) is a staff
 | File | Source Link | Description |
 |------|-------------|-------------|
 | `weekly-memo-header-shell.tsx` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/dashboard/memo/_components/weekly-memo-header-shell.tsx) | Persistent header: week range, section blurb, week nav |
-| `weekly-memo-header.tsx` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/dashboard/memo/_components/weekly-memo-header.tsx) | Header used by memo-legacy |
 | `weekly-memo-async-content.tsx` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/dashboard/memo/_components/weekly-memo-async-content.tsx) | Fetches page-data and renders sections |
 | `weekly-memo-export-button.tsx` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/dashboard/memo/_components/weekly-memo-export-button.tsx) | Export PDF — same-origin `/api/memo/pdf` download |
 | `weekly-kpi-cards.tsx` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/dashboard/memo/_components/weekly-kpi-cards.tsx) | Weekly KPI summary cards; hours cards use Progress tracks (`bg-front-desk` orange, `bg-study` blue) |

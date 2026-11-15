@@ -25,7 +25,7 @@ CI runs both. A red guardrail is fixed by changing the code, never by widening a
 | `atlas/no-dynamic-import` | backend | Import at the top of the file |
 | `atlas/no-enum` | both apps | String-literal union |
 | `no-explicit-any`, `ban-ts-comment` | both apps | Type it |
-| imports from `frontend/legacy/` or `backend/src` | frontend | `legacy/` is dead code; share through `shared/` |
+| imports from `backend/src` | frontend | Share through `shared/` |
 
 Tests are exempt from the clock, env, cast and fetch rules.
 

@@ -7,7 +7,7 @@
 
 [← Root](../README.md) › Frontend
 
-Children: [app/](app/README.md) · [components/](components/README.md) · [lib/](lib/README.md) · [legacy/](legacy/README.md)
+Children: [app/](app/README.md) · [components/](components/README.md) · [lib/](lib/README.md)
 
 ---
 
@@ -46,7 +46,6 @@ The Next.js App Router web application. Provides the UI for scholars, team leade
 | `hooks/` | _(hub)_ | Client-only React hooks — `use-<behavior>.ts`; no data-fetch or domain-logic hooks |
 | `public/` | _(hub)_ | Static assets served at `/` |
 | `scripts/` | _(hub)_ | Standalone Node scripts for testing/ops |
-| `legacy/` | [legacy/README.md](legacy/README.md) | Deprecated API routes and utilities (do not add to) |
 
 ---
 

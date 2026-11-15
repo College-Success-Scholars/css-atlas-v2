@@ -28,7 +28,6 @@ Shared utilities, types, and the server-side data layer for the frontend.
 - **Supabase in `lib/supabase/` is for auth only** (session, profile, role guards).
 - **`import "server-only"`** in `lib/server/*` and `lib/supabase/server.ts`.
 - **Campus week / time utilities** live in `shared/` (`shared/dist/time.js`), not in `frontend/lib/`.
-- **Legacy modules** (`session-logs`, `session-records`, `time`, etc.) are in `frontend/legacy/lib/` — do not add to them.
 
 ## Import paths
 

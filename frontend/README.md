@@ -35,4 +35,3 @@ NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
 - **Auth:** Supabase via `lib/supabase/`; session refresh in `middleware.ts`
 - **Domain data:** Express backend at `/api/*` via `lib/server/data.ts` (server) or `lib/client/api-client.ts` (client)
 - **Shared utilities:** `shared/dist/` (campus weeks, role hierarchy)
-- **Legacy:** `frontend/legacy/` — deprecated Next.js API routes; do not extend

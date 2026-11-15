@@ -27,7 +27,6 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
-      "legacy/**",
     ],
   },
   {
@@ -45,7 +44,6 @@ const eslintConfig = [
       "atlas/no-enum": "error",
       "no-restricted-imports": ["error", {
         patterns: [
-          { group: ["**/legacy/**", "@/legacy/**"], message: "frontend/legacy is dead code. Do not import from it." },
           { group: ["**/backend/src/**"], message: "The frontend never imports backend source. Share code through shared/." },
         ],
       }],

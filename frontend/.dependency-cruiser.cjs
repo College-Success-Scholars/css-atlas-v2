@@ -36,7 +36,6 @@ module.exports = {
       { path: "^app/", pathNot: "^app/dev/" },
       { path: "^app/dev/" },
     ),
-    rule("no-legacy", "frontend/legacy is dead code.", { pathNot: "^legacy/" }, { path: "^legacy/" }),
     rule("no-backend-source", "The frontend never imports backend source.", {}, { path: "backend/src/" }),
     rule(
       "no-test-imports-in-source",
@@ -47,7 +46,7 @@ module.exports = {
   ],
   options: {
     doNotFollow: { path: "node_modules" },
-    exclude: { path: "(^\\.next/|^legacy/|^\\.\\./shared/)" },
+    exclude: { path: "(^\\.next/|^\\.\\./shared/)" },
     tsPreCompilationDeps: true,
     tsConfig: { fileName: "tsconfig.json" },
   },

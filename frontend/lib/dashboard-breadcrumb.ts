@@ -9,7 +9,6 @@ const DASHBOARD_PAGE_TITLES: Record<string, string> = {
   "/dashboard/personal": "Personal",
   "/dashboard/mentee": "Mentees",
   "/dashboard/memo": "Memo",
-  "/dashboard/memo-legacy": "Memo (Legacy)",
   "/dashboard/hours-benchmark": "Hours Benchmark",
   "/dashboard/internship-board": "Internship Board",
   "/dashboard/events": "Events",
