@@ -5,7 +5,7 @@
  * Schedule board for /dev/schedule-views: eligible scholars + standing shifts,
  * plus developer replace of one scholar's active FD/SS assignments.
  */
-import { scholarYearLabel } from "../../../shared/dist/time.js";
+import { scholarYearLabel } from "@css-atlas/shared/time";
 import type { ShiftSessionKind, ScholarShiftAssignment } from "../models/session-log.model.js";
 import { getSupabaseClient } from "../supabase/client.js";
 import { getActiveSemesterRow } from "./semester.service.js";

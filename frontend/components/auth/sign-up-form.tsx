@@ -16,7 +16,7 @@
 
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
-import { isUmdEmail } from "../../../shared/dist/auth.js";
+import { isUmdEmail } from "@css-atlas/shared/auth";
 import { Button } from "@/components/ui/button";
 import {
   Card,

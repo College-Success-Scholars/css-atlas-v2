@@ -19,7 +19,7 @@
  */
 import type { RequestHandler, Response } from "express";
 import { getSupabaseClient } from "../supabase/client.js";
-import { isDeveloperProfile, isUmdEmail } from "../../../shared/dist/auth.js";
+import { isDeveloperProfile, isUmdEmail } from "@css-atlas/shared/auth";
 import { createScholarProfile } from "../services/user.service.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { parseCreateProfileBody } from "../utils/request-validation.js";

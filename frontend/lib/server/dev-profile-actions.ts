@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { getDeveloperUser } from "@/lib/supabase/server";
-import { DEV_ACTIVE_PROFILE_COOKIE } from "../../../shared/dist/auth.js";
+import { DEV_ACTIVE_PROFILE_COOKIE } from "@css-atlas/shared/auth";
 import { backendPost } from "./api-client";
 
 /**

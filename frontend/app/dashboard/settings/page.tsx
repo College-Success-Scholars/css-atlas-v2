@@ -3,7 +3,7 @@ import { getCurrentProfile, getMyMentees } from "@/lib/server/queries";
 import { fetchAllUsersForMemo } from "@/lib/server/data";
 import SettingsClient, { type MenteeCandidate } from "@/components/settings/settings-client";
 import type { ProfileRow, MenteeRow } from "@/lib/types/supabase";
-import { DEV_ACTIVE_PROFILE_COOKIE, hasRoleAtLeast } from "../../../../shared/dist/auth.js";
+import { DEV_ACTIVE_PROFILE_COOKIE, hasRoleAtLeast } from "@css-atlas/shared/auth";
 
 export default async function SettingsPage() {
   const [profile, mentees, users, cookieStore] = await Promise.all([

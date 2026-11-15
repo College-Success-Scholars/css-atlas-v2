@@ -9,6 +9,8 @@ RUN npm install --include=dev --prefix ./shared
 
 COPY shared/ ./shared/
 RUN npm run --prefix ./shared build
+# Runtime images copy shared/ (package.json, dist, production node_modules).
+RUN npm prune --omit=dev --prefix ./shared
 
 # 2. Install ALL backend deps (devDeps needed for tsc)
 COPY backend/package.json backend/package-lock.json ./backend/
@@ -32,9 +34,12 @@ ENV CORS_ORIGIN=$CORS_ORIGIN
 
 WORKDIR /app
 
-# shared/dist must be accessible at runtime — backend imports via relative path
-# e.g. backend/dist/services/time.service.js -> ../../../shared/dist/time.js
+# @css-atlas/shared is a file: dependency — node_modules/@css-atlas/shared is a
+# symlink to /app/shared, so the package (manifest, dist, its own production
+# deps) must exist at that path at runtime.
+COPY --from=builder /app/shared/package.json ./shared/package.json
 COPY --from=builder /app/shared/dist/ ./shared/dist/
+COPY --from=builder /app/shared/node_modules/ ./shared/node_modules/
 
 # Compiled backend
 COPY --from=builder /app/backend/dist/ ./backend/dist/

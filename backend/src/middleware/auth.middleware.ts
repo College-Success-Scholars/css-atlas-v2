@@ -24,7 +24,7 @@ import {
   isDeveloperProfile,
   mergeProfileWithRoster,
   parseRequestedScholarId,
-} from "../../../shared/dist/auth.js";
+} from "@css-atlas/shared/auth";
 import type { ProfilesRow } from "../models/user.model.js";
 import { getSupabaseAuthClient, getSupabaseClient, runWithToken } from "../supabase/client.js";
 import { resolveEffectiveProfile } from "../services/dev-profile.service.js";

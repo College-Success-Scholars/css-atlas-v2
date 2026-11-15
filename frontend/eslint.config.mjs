@@ -45,6 +45,7 @@ const eslintConfig = [
       "no-restricted-imports": ["error", {
         patterns: [
           { group: ["**/backend/src/**"], message: "The frontend never imports backend source. Share code through shared/." },
+          { group: ["**/shared/dist/**", "../**/shared/*"], message: "Import shared code by package name: @css-atlas/shared/<module>." },
         ],
       }],
     },

@@ -37,7 +37,7 @@ import {
 import {
   DEV_ACTIVE_PROFILE_COOKIE,
   DEV_ACTIVE_PROFILE_HEADER,
-} from "../../../shared/dist/auth.js";
+} from "@css-atlas/shared/auth";
 
 const BACKEND_URL = resolveBackendBaseUrl(
   process.env.BACKEND_URL,

@@ -22,7 +22,7 @@
  */
 import "server-only";
 import { backendGet, backendPost, backendPut, backendPatch, backendDelete, backendDownload } from "./api-client";
-import { getEffectiveScholarId } from "../../../shared/dist/auth.js";
+import { getEffectiveScholarId } from "@css-atlas/shared/auth";
 import type {
   SessionLogRow,
   SessionType,

@@ -16,6 +16,7 @@
     "guardrails": "npm run lint && npm run lint:baseline && npm run deps"
   },
   "dependencies": {
+    "@css-atlas/shared": "file:../shared",
     "@date-fns/utc": "^2.1.1",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-checkbox": "^1.3.3",

@@ -61,7 +61,7 @@ WEEKS_IGNORE_SESSIONS: number[]
 
 ## Standards
 
-- **`time.ts` is the only public import target** — consumers import from `shared/dist/time.js`, not from sub-files.
+- **`time.ts` is the only public import target** — consumers import from `@css-atlas/shared/time`, not from sub-files.
 - **Update `time.ts` barrel** when adding a new export to any other file.
 - **`time-config.ts` is the only place to change calendar dates** — do not hardcode academic year dates anywhere else.
 - **No side effects** — all source files are pure declarations and function definitions.

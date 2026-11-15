@@ -30,7 +30,7 @@ export type ProfilesRow = {
   [key: string]: unknown;
 };
 
-export { APP_ROLE_ORDER, type AppRole } from "../../../shared/dist/auth.js";
+export { APP_ROLE_ORDER, type AppRole } from "@css-atlas/shared/auth";
 
 export type MemoUserRow = {
   uid: string;

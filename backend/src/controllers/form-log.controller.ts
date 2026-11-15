@@ -21,7 +21,7 @@
  */
 import type { Response } from "express";
 import type { AuthenticatedRequest } from "../middleware/auth.middleware.js";
-import { hasRoleAtLeast, parseRequestedScholarId } from "../../../shared/dist/auth.js";
+import { hasRoleAtLeast, parseRequestedScholarId } from "@css-atlas/shared/auth";
 import {
   getMcfFormLogsForWeek,
   getMcfFormLogsByUid,

@@ -22,7 +22,7 @@
  */
 import type { Response } from "express";
 import type { AuthenticatedRequest } from "../middleware/auth.middleware.js";
-import { isDeveloperProfile } from "../../../shared/dist/auth.js";
+import { isDeveloperProfile } from "@css-atlas/shared/auth";
 import { listTestProfiles, getTestProfileById } from "../services/dev-profile.service.js";
 import { getMcfFormLogById, getWplFormLogById } from "../services/form-log.service.js";
 import { getFreshmanGradesReport } from "../services/freshman-grades.service.js";

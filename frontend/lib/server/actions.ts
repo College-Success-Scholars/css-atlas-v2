@@ -29,7 +29,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { backendPost } from "@/lib/server/api-client"
 import { deleteTutorReport, upsertAttendanceExcuse } from "@/lib/server/data"
-import { DEV_ACTIVE_PROFILE_COOKIE, hasRoleAtLeast } from "../../../shared/dist/auth.js"
+import { DEV_ACTIVE_PROFILE_COOKIE, hasRoleAtLeast } from "@css-atlas/shared/auth"
 import { revalidatePath } from "next/cache"
 import { cookies } from "next/headers"
 import { z } from "zod"

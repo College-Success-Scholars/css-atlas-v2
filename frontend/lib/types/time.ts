@@ -1,1 +1,1 @@
-export type { CampusWeekDateRange, WeekDateRange } from "../../../shared/dist/time-types.js";
+export type { CampusWeekDateRange, WeekDateRange } from "@css-atlas/shared/time-types";

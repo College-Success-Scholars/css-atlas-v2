@@ -23,6 +23,11 @@ export default [
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/ban-ts-comment": "error",
       "atlas/no-enum": "error",
+      "no-restricted-imports": ["error", {
+        patterns: [
+          { group: ["**/shared/dist/**", "../**/shared/*"], message: "Import shared code by package name: @css-atlas/shared/<module>." },
+        ],
+      }],
     },
   },
   {

@@ -27,7 +27,7 @@ Shared utilities, types, and the server-side data layer for the frontend.
 - **Domain data comes from the Express backend** via `lib/server/api-client.ts` or `lib/client/api-client.ts` — not from Supabase queries.
 - **Supabase in `lib/supabase/` is for auth only** (session, profile, role guards).
 - **`import "server-only"`** in `lib/server/*` and `lib/supabase/server.ts`.
-- **Campus week / time utilities** live in `shared/` (`shared/dist/time.js`), not in `frontend/lib/`.
+- **Campus week / time utilities** live in `shared/` (import `@css-atlas/shared/time`), not in `frontend/lib/`.
 
 ## Import paths
 

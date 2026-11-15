@@ -9,10 +9,10 @@
  * a consistent backend-local path.
  *
  * ## What belongs here
- * - Re-exports from shared/dist/time.js only
+ * - Re-exports from @css-atlas/shared/time only
  *
  * ## What does NOT belong here
  * - Any time logic that is not in the shared library (add it to shared/src/ instead)
  * - Any Supabase or HTTP logic
  */
-export * from "../../../shared/dist/time.js";
+export * from "@css-atlas/shared/time";

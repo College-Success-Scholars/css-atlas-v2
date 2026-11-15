@@ -34,7 +34,7 @@ import { redirect } from "next/navigation";
 import { canAccessWeeklyMemo } from "@/lib/auth";
 import { getCurrentUser as getAuthMe } from "@/lib/server/queries";
 import { getSupabasePublicKey } from "./public-key";
-import { mergeProfileWithRoster } from "../../../shared/dist/auth.js";
+import { mergeProfileWithRoster } from "@css-atlas/shared/auth";
 
 /** Merged profile API shape (profiles + optional user_roster). `student_id` is Postgres text. */
 export type ProfilesRow = {
