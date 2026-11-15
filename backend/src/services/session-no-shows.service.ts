@@ -15,17 +15,12 @@
 import { getSupabaseClient } from "../supabase/client.js";
 import type {
   ScholarNoShow,
-  ScholarShiftAssignment,
   SessionLogRow,
   ShiftSessionKind,
 } from "../models/session-log.model.js";
 import { findFrontDeskNoShows, findStudyNoShows } from "./session-no-shows.logic.js";
-import { getEasternDateParts, getEasternDayOfWeek, getStartOfDayEastern } from "./time.service.js";
-
-function easternDateKey(date: Date): string {
-  const { year, month, day } = getEasternDateParts(date);
-  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
+import { easternDateKey, fetchEffectiveAssignments, findSemesterForDate } from "./shift-assignment.service.js";
+import { getEasternDayOfWeek, getStartOfDayEastern } from "./time.service.js";
 
 function lateThresholdMinutes(): number {
   const configured = Number.parseInt(process.env.SIGNIN_NOTIFICATION_LATE_THRESHOLD_MINUTES ?? "", 10);
@@ -36,16 +31,8 @@ async function getSessionNoShows(kind: ShiftSessionKind, now: Date): Promise<Sch
   const supabase = getSupabaseClient();
   const dateKey = easternDateKey(now);
 
-  const { data: semesterRows, error: semesterError } = await supabase
-    .from("semesters")
-    .select("id, start_date, end_date")
-    .eq("is_active", true)
-    .order("start_date", { ascending: false })
-    .limit(1);
-  if (semesterError) throw semesterError;
-
-  const semester = semesterRows?.[0] ?? null;
-  if (!semester || dateKey < semester.start_date || dateKey > semester.end_date) return [];
+  const semester = await findSemesterForDate(supabase, dateKey);
+  if (!semester) return [];
 
   const { data: breaks, error: breakError } = await supabase
     .from("semester_breaks")
@@ -57,16 +44,13 @@ async function getSessionNoShows(kind: ShiftSessionKind, now: Date): Promise<Sch
   if (breakError) throw breakError;
   if ((breaks?.length ?? 0) > 0) return [];
 
-  const { data: assignmentRows, error: assignmentError } = await supabase
-    .from("scholar_shift_assignments")
-    .select("scholar_id, semester_id, session_kind, day_of_week, start_time, end_time, is_active")
-    .eq("is_active", true)
-    .eq("semester_id", semester.id)
-    .eq("session_kind", kind)
-    .eq("day_of_week", getEasternDayOfWeek(now));
-  if (assignmentError) throw assignmentError;
-
-  const assignments = (assignmentRows ?? []) as ScholarShiftAssignment[];
+  const assignments = await fetchEffectiveAssignments(supabase, {
+    startKey: dateKey,
+    endKey: dateKey,
+    semesterId: semester.id,
+    kind,
+    dayOfWeek: getEasternDayOfWeek(now),
+  });
   const ids = [...new Set(assignments.map((row) => row.scholar_id))];
   if (!ids.length) return [];
 

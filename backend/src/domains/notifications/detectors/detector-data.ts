@@ -1,38 +1,31 @@
-import { addEasternCalendarDays, getEasternDayOfWeek, getEasternDateParts, getStartOfDayEastern } from "../../../services/time.service.js";
+import { addEasternCalendarDays, getEasternDayOfWeek, getStartOfDayEastern } from "../../../services/time.service.js";
+import { easternDateKey, fetchEffectiveAssignments, findSemesterForDate } from "../../../services/shift-assignment.service.js";
 import { getSupabaseServiceRoleClient } from "../../../supabase/client.js";
 import type { ScholarShiftAssignment, SessionLogRow } from "../../../models/session-log.model.js";
 
-export function easternDateKey(date: Date): string {
-  const { year, month, day } = getEasternDateParts(date);
-  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
+export { easternDateKey };
 
 export function dayRange(date: Date): { start: Date; end: Date } {
   const start = getStartOfDayEastern(date);
   return { start, end: new Date(addEasternCalendarDays(start, 1).getTime() - 1) };
 }
 
+/** Assignments effective on the Eastern date of `date`, resolved against the semester that contains it. */
 export async function fetchAssignmentsForDate(date: Date): Promise<ScholarShiftAssignment[]> {
   const supabase = getSupabaseServiceRoleClient();
   const dateKey = easternDateKey(date);
-  const { data: semesterRows, error: semesterError } = await supabase
-    .from("semesters").select("id, start_date, end_date").eq("is_active", true)
-    .order("start_date", { ascending: false }).limit(1);
-  if (semesterError) throw semesterError;
-  const semester = (semesterRows?.[0] ?? null) as { id: number; start_date: string; end_date: string } | null;
-  if (!semester || dateKey < semester.start_date || dateKey > semester.end_date) return [];
+  const semester = await findSemesterForDate(supabase, dateKey);
+  if (!semester) return [];
   const { data: breaks, error: breakError } = await supabase.from("semester_breaks").select("id")
     .eq("semester_id", semester.id).lte("start_date", dateKey).gte("end_date", dateKey).limit(1);
   if (breakError) throw breakError;
   if ((breaks?.length ?? 0) > 0) return [];
-  const { data, error } = await supabase
-    .from("scholar_shift_assignments")
-    .select("id, scholar_id, semester_id, session_kind, day_of_week, start_time, end_time, is_active")
-    .eq("is_active", true)
-    .eq("semester_id", semester.id)
-    .eq("day_of_week", getEasternDayOfWeek(date));
-  if (error) throw error;
-  return (data ?? []) as unknown as ScholarShiftAssignment[];
+  return fetchEffectiveAssignments(supabase, {
+    startKey: dateKey,
+    endKey: dateKey,
+    semesterId: semester.id,
+    dayOfWeek: getEasternDayOfWeek(date),
+  });
 }
 
 export function parseNonNegativeInt(raw: string | undefined, fallback: number): number {

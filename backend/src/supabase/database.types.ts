@@ -533,13 +533,54 @@ export type Database = {
           },
         ]
       }
+      scholar_schedule_revisions: {
+        Row: {
+          revision: number
+          scholar_id: string
+          semester_id: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          revision?: number
+          scholar_id: string
+          semester_id: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          revision?: number
+          scholar_id?: string
+          semester_id?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scholar_schedule_revisions_scholar_id_fkey"
+            columns: ["scholar_id"]
+            isOneToOne: false
+            referencedRelation: "user_roster"
+            referencedColumns: ["uid"]
+          },
+          {
+            foreignKeyName: "scholar_schedule_revisions_semester_id_fkey"
+            columns: ["semester_id"]
+            isOneToOne: false
+            referencedRelation: "semesters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scholar_shift_assignments: {
         Row: {
           created_at: string
           day_of_week: number
+          effective_dates: unknown
+          effective_from: string
+          effective_until: string
           end_time: string
           id: string
-          is_active: boolean
           scholar_id: string
           semester_id: number
           session_kind: Database["public"]["Enums"]["session_kind"]
@@ -549,9 +590,11 @@ export type Database = {
         Insert: {
           created_at?: string
           day_of_week: number
+          effective_dates?: unknown
+          effective_from: string
+          effective_until: string
           end_time: string
           id?: string
-          is_active?: boolean
           scholar_id: string
           semester_id: number
           session_kind: Database["public"]["Enums"]["session_kind"]
@@ -561,9 +604,11 @@ export type Database = {
         Update: {
           created_at?: string
           day_of_week?: number
+          effective_dates?: unknown
+          effective_from?: string
+          effective_until?: string
           end_time?: string
           id?: string
-          is_active?: boolean
           scholar_id?: string
           semester_id?: number
           session_kind?: Database["public"]["Enums"]["session_kind"]
@@ -580,6 +625,57 @@ export type Database = {
           },
           {
             foreignKeyName: "scholar_shift_assignments_semester_id_fkey"
+            columns: ["semester_id"]
+            isOneToOne: false
+            referencedRelation: "semesters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scholar_shift_assignments_legacy_inactive: {
+        Row: {
+          archived_at: string
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          scholar_id: string
+          semester_id: number
+          session_kind: Database["public"]["Enums"]["session_kind"]
+          start_time: string
+        }
+        Insert: {
+          archived_at?: string
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          scholar_id: string
+          semester_id: number
+          session_kind: Database["public"]["Enums"]["session_kind"]
+          start_time: string
+        }
+        Update: {
+          archived_at?: string
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          scholar_id?: string
+          semester_id?: number
+          session_kind?: Database["public"]["Enums"]["session_kind"]
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scholar_shift_assignments_legacy_inactive_scholar_id_fkey"
+            columns: ["scholar_id"]
+            isOneToOne: false
+            referencedRelation: "user_roster"
+            referencedColumns: ["uid"]
+          },
+          {
+            foreignKeyName: "scholar_shift_assignments_legacy_inactive_semester_id_fkey"
             columns: ["semester_id"]
             isOneToOne: false
             referencedRelation: "semesters"
@@ -1060,6 +1156,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      replace_scholar_schedule_from_week: {
+        Args: {
+          p_effective_week_start: string
+          p_expected_revision: number
+          p_scholar_id: string
+          p_semester_id: number
+          p_shifts: Json
+        }
+        Returns: Json
+      }
       compute_grade_trend: { Args: { scores: number[] }; Returns: string }
       count_break_days: {
         Args: { p_end: string; p_semester_id: number; p_start: string }
@@ -1101,6 +1207,10 @@ export type Database = {
           breaks: Json
           is_break_week: boolean
         }[]
+      }
+      get_schedule_snapshot: {
+        Args: { p_scholar_id?: string; p_semester_id?: number; p_week_start: string }
+        Returns: Json
       }
       get_weekly_memo: {
         Args: { p_semester_id: number; p_week_num: number }

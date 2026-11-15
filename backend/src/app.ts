@@ -37,6 +37,7 @@ import activityRoutes from "./routes/activity.routes.js";
 import tutorReportRoutes from "./routes/tutor-report-log.routes.js";
 import attendanceRoutes from "./routes/attendance.routes.js";
 import hoursBenchmarkRoutes from "./routes/hours-benchmark.routes.js";
+import scheduleRoutes from "./routes/schedule.routes.js";
 import { requestLogger } from "./middleware/request-logger.js";
 import { formatSupabaseError, supabaseErrorStatus } from "./utils/supabase-errors.js";
 
@@ -69,6 +70,7 @@ app.use("/api/daily-activity", activityRoutes);
 app.use("/api/tutor-reports", tutorReportRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/hours-benchmark", hoursBenchmarkRoutes);
+app.use("/api/schedules", scheduleRoutes);
 
 // Global error handler, the single place that decides how much of a thrown
 // error (Postgres or otherwise) is safe to expose to the client.

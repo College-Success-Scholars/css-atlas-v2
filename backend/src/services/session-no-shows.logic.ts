@@ -3,7 +3,7 @@
  * @module backend/services
  *
  * Pure no-show detection for scheduled study / front-desk shifts.
- * Callers supply semester-valid assignments and today's logs.
+ * Callers supply assignments and today's logs; only rows effective on `now`'s Eastern date count.
  *
  * ## What belongs here
  * - Threshold / window checks against findShiftOccurrenceMatch
@@ -13,7 +13,7 @@
  */
 import type { ScholarShiftAssignment, SessionLogRow, ShiftSessionKind } from "../models/session-log.model.js";
 import { findShiftOccurrenceMatch } from "./shift-occurrence.service.js";
-import { getEasternDayOfWeek } from "./time.service.js";
+import { assignmentsOccurringOn } from "./shift-assignment.service.js";
 
 /** One missed shift occurrence for a scholar (before roster enrichment). */
 export interface MissedShiftOccurrence {
@@ -40,9 +40,8 @@ function findMissedShifts(
   const missed: MissedShiftOccurrence[] = [];
   const seen = new Set<string>();
 
-  for (const assignment of assignments) {
-    if (!assignment.is_active || assignment.session_kind !== kind) continue;
-    if (assignment.day_of_week !== getEasternDayOfWeek(now)) continue;
+  for (const assignment of assignmentsOccurringOn(assignments, now)) {
+    if (assignment.session_kind !== kind) continue;
 
     const match = findShiftOccurrenceMatch(assignment, now, relevantLogs);
     const lateAt = match.scheduledStart.getTime() + lateThresholdMinutes * 60_000;

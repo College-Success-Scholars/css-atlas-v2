@@ -50,6 +50,7 @@ export {
   getEasternDateParts,
   getEasternDayOfWeek,
   getStartOfDayEastern,
+  mondayOfWeekEastern,
   parseEasternDate,
 } from "./eastern-time.js";
 export {

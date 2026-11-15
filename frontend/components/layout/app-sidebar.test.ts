@@ -18,6 +18,17 @@ describe("sidebar role navigation", () => {
     expect(getRoleBasedTeams("scholar")).toEqual([])
   })
 
+  it("links schedule management for team leaders and developers, not scholars", () => {
+    for (const role of ["team-leader", "developer"] as const) {
+      expect(getRoleBasedNav(role, false, false)).toContainEqual(
+        expect.objectContaining({ title: "Schedules", url: "/dashboard/schedules" }),
+      )
+    }
+    expect(getRoleBasedNav("scholar", false, false)).not.toContainEqual(
+      expect.objectContaining({ url: "/dashboard/schedules" }),
+    )
+  })
+
   it("uses Directory rather than the legacy Roster route for eligible roles", () => {
     for (const role of ["scholar", "team-leader", "developer"] as const) {
       const items = getRoleBasedNav(role, false, false)

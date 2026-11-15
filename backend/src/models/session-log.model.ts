@@ -133,7 +133,10 @@ export interface ScholarShiftAssignment {
   day_of_week: number;
   start_time: string;
   end_time: string;
-  is_active: boolean;
+  /** First Eastern date (YYYY-MM-DD) the weekly shift applies, inclusive. */
+  effective_from: string;
+  /** Eastern date (YYYY-MM-DD) the weekly shift stops applying, exclusive. */
+  effective_until: string;
 }
 
 export interface ShiftComplianceDateRange {

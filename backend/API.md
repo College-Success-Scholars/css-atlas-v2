@@ -1036,27 +1036,54 @@ All routes under `/api/dev` require **requireDeveloper**.
 ### `GET /api/dev/schedule-board`
 
 **Auth:** requireDeveloper
-**Description:** Schedule board payload for `/dev/schedule-views`. Returns hour-eligible enrolled scholars (current freshman/sophomore cohorts with `fd_required` or `ss_required` > 0) plus their active standing rows from `scholar_shift_assignments` (`front_desk` / `study_session`, day of week, start/end as `HH:MM`).
-**Request:** None
+**Description:** Developer-only variant of `GET /api/schedules`, narrowed to hour-eligible scholars. It returns the same effective-dated shift payload and revision.
+**Request:** Optional query parameter `week` (`YYYY-MM-DD`, Monday).
+**Response:** Same shape as `GET /api/schedules`.
+
+---
+
+### `PUT /api/dev/schedule-board/:uid`
+
+**Auth:** requireDeveloper
+**Description:** Developer-only alias for `PUT /api/schedules/:uid`. It calls the same revision-checked database function.
+**Request and response:** Same as `PUT /api/schedules/:uid`.
+
+---
+
+## Schedules
+
+### `GET /api/schedules?week=YYYY-MM-DD`
+
+**Auth:** requireTeamLeaderOrAbove
+**Description:** Reads every roster scholar's recurring front desk and study session shifts in effect during the selected Eastern Monday–Sunday week. Scheduling does not require a mentor, cohort, enrollment status, profile row, or owed hours. The database returns the semester, the current Eastern Monday, and each scholar's revision and dated-effective shifts in one consistent snapshot.
+**Request:** Optional `week`. Defaults to the current Eastern Monday. It must be a Monday.
 **Response:**
 ```json
 {
   "data": {
+    "semester": { "id": 902, "name": "Fall", "startDate": "2026-08-31", "endDate": "2026-12-18" },
+    "currentWeekStart": "2026-11-16",
+    "weekStart": "2026-11-16",
     "scholars": [
       {
-        "uid": "string",
-        "name": "string",
-        "cohort": 2026,
-        "classYearLabel": "Freshman",
+        "uid": "123456789",
+        "name": "Ada Lovelace",
+        "cohort": 2025,
+        "classYearLabel": "Sophomore",
+        "programRole": "Scholar",
+        "status": "enrolled",
         "fd_required": 180,
         "ss_required": 300,
+        "revision": 3,
         "shifts": [
           {
-            "id": "string",
+            "id": "uuid",
             "kind": "front_desk",
             "dayOfWeek": 1,
             "startTime": "09:00",
-            "endTime": "12:00"
+            "endTime": "12:00",
+            "effectiveFrom": "2026-08-31",
+            "effectiveUntil": "2026-12-19"
           }
         ]
       }
@@ -1064,45 +1091,32 @@ All routes under `/api/dev` require **requireDeveloper**.
   }
 }
 ```
+`revision` is the value to send on the next save. Past weeks return the shifts that were in effect then.
 
----
+### `GET /api/schedules/:uid?week=YYYY-MM-DD`
 
-### `PUT /api/dev/schedule-board/:uid`
+**Auth:** requireTeamLeaderOrAbove
+**Description:** Reads one roster scholar's schedule for the selected week. Returns `404` when the uid is not a scholar on the roster.
+**Response:** The board fields above with a single `scholar` object instead of `scholars`.
 
-**Auth:** requireDeveloper
-**Description:** Replace every active standing FD/SS assignment for one scholar in the active semester. Soft-deactivates current active rows (`is_active = false`), then inserts the replacement set — same pattern as `scripts/update-scholar-schedule.py`. An empty `shifts` array clears the scholar’s active schedule. Returns the new active rows with database ids.
+### `PUT /api/schedules/:uid`
+
+**Auth:** requireTeamLeaderOrAbove
+**Description:** Replaces the scholar's whole recurring schedule from the selected Eastern Monday through the end of the active semester. Earlier weeks keep their assignments. An empty `shifts` array clears future shifts. Unchanged shifts keep their assignment IDs. The selected week must be the current Eastern week or later and must be a Monday. A developer acting as a test profile is read-only.
 **Request:**
 ```json
 {
+  "semesterId": 902,
+  "effectiveWeekStart": "2026-11-16",
+  "expectedRevision": 3,
   "shifts": [
-    {
-      "kind": "front_desk",
-      "dayOfWeek": 1,
-      "startTime": "09:00",
-      "endTime": "12:00"
-    }
+    { "kind": "front_desk", "dayOfWeek": 1, "startTime": "09:00", "endTime": "12:00" }
   ]
 }
 ```
-`kind` is `front_desk` or `study_session`. `dayOfWeek` is 0=Sun … 6=Sat. Times are `HH:MM` (seconds optional).
-**Response:**
-```json
-{
-  "data": {
-    "uid": "string",
-    "shifts": [
-      {
-        "id": "string",
-        "kind": "front_desk",
-        "dayOfWeek": 1,
-        "startTime": "09:00",
-        "endTime": "12:00"
-      }
-    ]
-  }
-}
-```
-**Errors:** `400` validation; `409` when there is no active semester; `500` on write/rollback failure.
+`kind` is `front_desk` or `study_session`. `dayOfWeek` is 0=Sun … 6=Sat. Times are `HH:MM`. Front desk and study session share one timeline per scholar, so overlapping blocks are rejected.
+**Response:** The committed snapshot with the scholar and incremented revision.
+**Errors:** `400` malformed input; `403` not a team leader or above; `404` unknown scholar; `409` stale revision; `422` past week, inactive semester, or week outside the semester.
 
 ---
 

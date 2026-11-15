@@ -49,7 +49,8 @@ function assignment(overrides: Partial<ScholarShiftAssignment> = {}): ScholarShi
     day_of_week: 1,
     start_time: "10:00:00",
     end_time: "11:00:00",
-    is_active: true,
+    effective_from: "2026-08-31",
+    effective_until: "2026-12-20",
     ...overrides,
   };
 }
@@ -111,7 +112,7 @@ describe("expandShiftOccurrences", () => {
     expect(shifts.every((s) => s.startTime === "10:00" && s.endTime === "11:00")).toBe(true);
   });
 
-  it("excludes inactive and other-semester assignments", () => {
+  it("excludes assignments that are not effective in the window and other-semester assignments", () => {
     const shifts = expandShiftOccurrences({
       scholarUid: "1001",
       semesterId: "1",
@@ -119,12 +120,33 @@ describe("expandShiftOccurrences", () => {
       semesterEnd: WEEK_1.endDate,
       assignments: [
         assignment({ id: "active", semester_id: "1" }),
-        assignment({ id: "inactive", is_active: false }),
+        assignment({ id: "ended", effective_until: localDay(WEEK_1.startDate) }),
         assignment({ id: "other-semester", semester_id: "9" }),
       ],
     });
     expect(shifts).toHaveLength(1);
     expect(shifts[0]!.sourceId).toContain("active");
+  });
+
+  it("switches to the replacement row on the effective date and keeps unchanged ids stable", () => {
+    const week2Monday = localDay(WEEK_2.startDate);
+    const shifts = expandShiftOccurrences({
+      scholarUid: "1001",
+      semesterId: "1",
+      semesterStart: WEEK_1.startDate,
+      semesterEnd: WEEK_2.endDate,
+      assignments: [
+        assignment({ id: "before-move", effective_until: week2Monday, start_time: "10:00", end_time: "11:00" }),
+        assignment({ id: "after-move", effective_from: week2Monday, start_time: "13:00", end_time: "14:00" }),
+        assignment({ id: "unchanged", day_of_week: 3, start_time: "09:00", end_time: "10:00" }),
+      ],
+    });
+    expect(shifts.map((s) => `${s.date} ${s.startTime} ${s.sourceId}`)).toEqual([
+      `${localDay(WEEK_1.startDate)} 10:00 before-move:${localDay(WEEK_1.startDate)}`,
+      `${localDay(addEasternCalendarDays(WEEK_1.startDate, 2))} 09:00 unchanged:${localDay(addEasternCalendarDays(WEEK_1.startDate, 2))}`,
+      `${week2Monday} 13:00 after-move:${week2Monday}`,
+      `${localDay(addEasternCalendarDays(WEEK_2.startDate, 2))} 09:00 unchanged:${localDay(addEasternCalendarDays(WEEK_2.startDate, 2))}`,
+    ]);
   });
 
   it("preserves multiple same-kind shifts on one date with distinct source IDs", () => {

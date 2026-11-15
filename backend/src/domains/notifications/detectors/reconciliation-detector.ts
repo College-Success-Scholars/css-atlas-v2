@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { addEasternCalendarDays, getStartOfDayEastern } from "../../../services/time.service.js";
 import { findShiftOccurrenceMatch } from "../../../services/shift-occurrence.service.js";
+import { assignmentOccurrenceRef } from "../../../services/shift-assignment.service.js";
 import { getSupabaseServiceRoleClient } from "../../../supabase/client.js";
 import { emitNotificationEvent, NotificationEventType } from "../index.js";
 import { dayRange, easternDateKey, fetchAssignmentsForDate, fetchLogsForRange, firstEntryAt, kindLogs, parseNonNegativeInt } from "./detector-data.js";
@@ -52,7 +53,7 @@ export async function runReconciliationDetector(now = new Date()): Promise<void>
     const assignments = await fetchAssignmentsForDate(day);
     const { start, end } = dayRange(day);
     const logs = await fetchLogsForRange(start, end, assignments.map((assignment) => assignment.scholar_id));
-    const refFor = (assignment: (typeof assignments)[number]) => `${assignment.id ?? assignment.scholar_id}:${occurrenceDate}`;
+    const refFor = (assignment: (typeof assignments)[number]) => assignmentOccurrenceRef(assignment, occurrenceDate);
     const missed = await loadMissedNotifications(assignments.map(refFor));
 
     console.info("[reconciliation-detector] loaded data", {

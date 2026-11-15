@@ -2,322 +2,202 @@
  * @file schedule-board.service.ts
  * @module backend/services
  *
- * Schedule board for /dev/schedule-views: eligible scholars + standing shifts,
- * plus developer replace of one scholar's active FD/SS assignments.
+ * Team-leader schedule management: read every roster scholar's recurring FD/SS shifts for a
+ * week, and replace one scholar's schedule from an Eastern Monday onward.
+ *
+ * ## Responsibilities
+ * - Read a consistent board snapshot (rows + revisions) through get_schedule_snapshot
+ * - Write only through replace_scholar_schedule_from_week (the sole writer)
+ * - Map database error codes to ScheduleError statuses
+ *
+ * ## What does NOT belong here
+ * - Direct inserts, updates, or deletes on scholar_shift_assignments
+ * - Row validity rules (shift-assignment.service owns those for readers)
  */
 import { scholarYearLabel } from "../../../shared/dist/time.js";
-import type { ShiftSessionKind, ScholarShiftAssignment } from "../models/session-log.model.js";
+import type {
+  ScheduleShiftDto, ScheduleSemesterDto, ScheduleBoardScholarDto,
+  ScheduleBoardResponse, StandingShiftInput, ScholarScheduleResponse,
+} from "../../../shared/dist/schedules.js";
+export type {
+  ScheduleShiftDto, ScheduleSemesterDto, ScheduleBoardScholarDto,
+  ScheduleBoardResponse, StandingShiftInput, ScholarScheduleResponse,
+} from "../../../shared/dist/schedules.js";
+import type { MemoUserRow } from "../models/user.model.js";
 import { getSupabaseClient } from "../supabase/client.js";
-import { getActiveSemesterRow } from "./semester.service.js";
+import { easternDateKey } from "./shift-assignment.service.js";
+import { mondayOfWeekEastern } from "./time.service.js";
 import { fetchAllUsersForMemo, isEligibleScholar } from "./user.service.js";
 
-export type ScheduleBoardShiftDto = {
-  id: string;
-  kind: ShiftSessionKind;
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
+export type ReplaceScheduleInput = {
+  scholarUid: string;
+  semesterId: number;
+  effectiveWeekStart: string;
+  expectedRevision: number;
+  shifts: StandingShiftInput[];
 };
 
-export type ScheduleBoardScholarDto = {
-  uid: string;
-  name: string;
-  cohort: number | null;
-  classYearLabel: "Freshman" | "Sophomore" | null;
-  fd_required: number;
-  ss_required: number;
-  shifts: ScheduleBoardShiftDto[];
+type SnapshotScholar = { uid: string; revision: number; shifts: ScheduleShiftDto[] };
+type Snapshot = {
+  semester: ScheduleSemesterDto | null;
+  currentWeekStart: string;
+  weekStart: string;
+  scholars: SnapshotScholar[];
 };
 
-export type ScheduleBoardResponse = {
-  scholars: ScheduleBoardScholarDto[];
-};
-
-function shortTime(value: string): string {
-  return value.trim().slice(0, 5);
-}
-
-async function fetchActiveAssignmentsForScholars(
-  scholarIds: string[],
-): Promise<ScholarShiftAssignment[]> {
-  if (scholarIds.length === 0) return [];
-  const supabase = getSupabaseClient() as unknown as {
-    from: (table: string) => {
-      select: (columns: string) => {
-        in: (column: string, values: string[]) => {
-          eq: (column: string, value: boolean) => Promise<{
-            data: unknown;
-            error: unknown;
-          }>;
-        };
-      };
-    };
-  };
-  const { data, error } = await supabase
-    .from("scholar_shift_assignments")
-    .select("id, scholar_id, semester_id, session_kind, day_of_week, start_time, end_time, is_active")
-    .in("scholar_id", scholarIds)
-    .eq("is_active", true);
-  if (error) throw error;
-  return (data ?? []) as ScholarShiftAssignment[];
-}
-
-function toShiftDto(row: ScholarShiftAssignment): ScheduleBoardShiftDto | null {
-  if (row.session_kind !== "front_desk" && row.session_kind !== "study_session") {
-    return null;
+export class ScheduleError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+    readonly code?: string,
+    readonly currentRevision?: number,
+  ) {
+    super(message);
+    this.name = "ScheduleError";
   }
-  const id =
-    row.id != null
-      ? String(row.id)
-      : `${row.scholar_id}:${row.session_kind}:${row.day_of_week}:${row.start_time}`;
-  return {
-    id,
-    kind: row.session_kind,
-    dayOfWeek: Number(row.day_of_week),
-    startTime: shortTime(String(row.start_time ?? "")),
-    endTime: shortTime(String(row.end_time ?? "")),
-  };
 }
 
-/** Hour-eligible scholars with standing FD/SS assignments for the schedule board. */
-export async function getScheduleBoard(): Promise<ScheduleBoardResponse> {
-  const users = await fetchAllUsersForMemo();
-  const eligible = users.filter(isEligibleScholar);
-  const uids = eligible.map((u) => u.uid);
-  const assignments = await fetchActiveAssignmentsForScholars(uids);
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-  const shiftsByUid = new Map<string, ScheduleBoardShiftDto[]>();
-  for (const row of assignments) {
-    if (!row.is_active) continue;
-    const dto = toShiftDto(row);
-    if (!dto) continue;
-    const list = shiftsByUid.get(row.scholar_id) ?? [];
-    list.push(dto);
-    shiftsByUid.set(row.scholar_id, list);
+export function isDateKey(value: unknown): value is string {
+  if (typeof value !== "string" || !DATE_RE.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().startsWith(value);
+}
+
+export function currentEasternMonday(now: Date = new Date()): string {
+  return easternDateKey(mondayOfWeekEastern(now));
+}
+
+type RpcError = { code?: string; message?: string; details?: string | null };
+
+function toScheduleError(error: unknown): ScheduleError {
+  const e = (error ?? {}) as RpcError;
+  const message = e.message?.trim() || "Schedule request failed";
+  switch (e.code) {
+    case "42501":
+      return new ScheduleError(403, "Forbidden: Team leader or above required", e.code);
+    case "CS409": {
+      const current = Number(e.details);
+      return new ScheduleError(
+        409,
+        "This schedule changed since you loaded it. Reload to see the latest, then reapply your edit.",
+        e.code,
+        Number.isFinite(current) ? current : undefined,
+      );
+    }
+    case "CS404":
+      return new ScheduleError(404, message, e.code);
+    case "CS422":
+      return new ScheduleError(422, message, e.code);
+    case "22023":
+      return new ScheduleError(400, message, e.code);
+    default:
+      return new ScheduleError(500, message, e.code);
   }
+}
 
-  const scholars: ScheduleBoardScholarDto[] = eligible.map((u) => {
-    const name = [u.first_name, u.last_name].filter(Boolean).join(" ").trim();
-    const shifts = (shiftsByUid.get(u.uid) ?? []).sort((a, b) => {
-      if (a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek;
-      return a.startTime.localeCompare(b.startTime);
-    });
-    return {
-      uid: u.uid,
-      name: name || u.uid,
-      cohort: u.cohort,
-      classYearLabel: scholarYearLabel(u.cohort),
-      fd_required: u.fd_required != null ? Number(u.fd_required) : 0,
-      ss_required: u.ss_required != null ? Number(u.ss_required) : 0,
-      shifts,
-    };
+async function callSnapshot(weekStart: string, scholarUid?: string): Promise<Snapshot> {
+  const { data, error } = await getSupabaseClient().rpc("get_schedule_snapshot", {
+    p_week_start: weekStart,
+    ...(scholarUid ? { p_scholar_id: scholarUid } : {}),
   });
+  if (error) throw toScheduleError(error);
+  return data as unknown as Snapshot;
+}
 
-  scholars.sort((a, b) => {
+function displayName(user: MemoUserRow): string {
+  return [user.first_name, user.last_name].filter(Boolean).join(" ").trim() || user.uid;
+}
+
+function toBoardScholar(user: MemoUserRow, snap: SnapshotScholar | undefined): ScheduleBoardScholarDto {
+  return {
+    uid: user.uid,
+    name: displayName(user),
+    cohort: user.cohort,
+    classYearLabel: scholarYearLabel(user.cohort),
+    programRole: user.program_role,
+    status: user.status,
+    fd_required: user.fd_required != null ? Number(user.fd_required) : 0,
+    ss_required: user.ss_required != null ? Number(user.ss_required) : 0,
+    revision: snap?.revision ?? 0,
+    shifts: snap?.shifts ?? [],
+  };
+}
+
+function sortScholars(rows: ScheduleBoardScholarDto[]): ScheduleBoardScholarDto[] {
+  return rows.sort((a, b) => {
     const cohortA = a.cohort ?? 0;
     const cohortB = b.cohort ?? 0;
-    if (cohortA !== cohortB) return cohortB - cohortA; // fresher cohort first
+    if (cohortA !== cohortB) return cohortB - cohortA;
     return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
   });
-
-  return { scholars };
-}
-
-export type StandingShiftInput = {
-  kind: ShiftSessionKind;
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
-};
-
-export type ReplaceScholarShiftsResult = {
-  uid: string;
-  shifts: ScheduleBoardShiftDto[];
-};
-
-const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/;
-
-function normalizeClock(value: string, label: string): string {
-  const trimmed = value.trim();
-  const match = TIME_RE.exec(trimmed);
-  if (!match) {
-    throw new Error(`Invalid ${label}: expected HH:MM`);
-  }
-  return `${match[1]}:${match[2]}:00`;
-}
-
-function parseMinutes(clockWithSeconds: string): number {
-  const parts = clockWithSeconds.split(":").map(Number);
-  const h = parts[0] ?? 0;
-  const m = parts[1] ?? 0;
-  return h * 60 + m;
-}
-
-function validateStandingShiftInput(raw: StandingShiftInput, index: number): StandingShiftInput {
-  if (raw.kind !== "front_desk" && raw.kind !== "study_session") {
-    throw new Error(`shifts[${index}].kind must be front_desk or study_session`);
-  }
-  const dayOfWeek = Number(raw.dayOfWeek);
-  if (!Number.isInteger(dayOfWeek) || dayOfWeek < 0 || dayOfWeek > 6) {
-    throw new Error(`shifts[${index}].dayOfWeek must be an integer 0–6`);
-  }
-  const startTime = normalizeClock(String(raw.startTime ?? ""), `shifts[${index}].startTime`);
-  const endTime = normalizeClock(String(raw.endTime ?? ""), `shifts[${index}].endTime`);
-  if (parseMinutes(endTime) <= parseMinutes(startTime)) {
-    throw new Error(`shifts[${index}]: endTime must be after startTime`);
-  }
-  return {
-    kind: raw.kind,
-    dayOfWeek,
-    startTime: shortTime(startTime),
-    endTime: shortTime(endTime),
-  };
-}
-
-type ShiftTableClient = {
-  from: (table: string) => {
-    select: (columns: string) => {
-      eq: (column: string, value: string | number | boolean) => {
-        eq: (column: string, value: string | number | boolean) => {
-          eq: (
-            column: string,
-            value: string | number | boolean,
-          ) => Promise<{ data: unknown; error: unknown }>;
-        };
-      };
-    };
-    update: (values: Record<string, unknown>) => {
-      in: (
-        column: string,
-        values: string[],
-      ) => {
-        select: (columns: string) => Promise<{ data: unknown; error: unknown }>;
-      };
-    };
-    insert: (rows: Record<string, unknown>[]) => {
-      select: (columns: string) => Promise<{ data: unknown; error: unknown }>;
-    };
-  };
-};
-
-async function fetchActiveAssignmentsForScholarSemester(
-  scholarId: string,
-  semesterId: number,
-): Promise<ScholarShiftAssignment[]> {
-  const supabase = getSupabaseClient() as unknown as ShiftTableClient;
-  const { data, error } = await supabase
-    .from("scholar_shift_assignments")
-    .select("id, scholar_id, semester_id, session_kind, day_of_week, start_time, end_time, is_active")
-    .eq("scholar_id", scholarId)
-    .eq("semester_id", semesterId)
-    .eq("is_active", true);
-  if (error) throw error;
-  return (data ?? []) as ScholarShiftAssignment[];
-}
-
-async function setAssignmentsActive(
-  ids: string[],
-  isActive: boolean,
-): Promise<string[]> {
-  if (ids.length === 0) return [];
-  const supabase = getSupabaseClient() as unknown as ShiftTableClient;
-  const { data, error } = await supabase
-    .from("scholar_shift_assignments")
-    .update({ is_active: isActive })
-    .in("id", ids)
-    .select("id");
-  if (error) throw error;
-  const rows = (data ?? []) as Array<{ id: string }>;
-  return rows.map((row) => String(row.id));
-}
-
-async function insertStandingShifts(
-  scholarId: string,
-  semesterId: number,
-  shifts: StandingShiftInput[],
-): Promise<ScholarShiftAssignment[]> {
-  if (shifts.length === 0) return [];
-  const supabase = getSupabaseClient() as unknown as ShiftTableClient;
-  const rows = shifts.map((shift) => ({
-    scholar_id: scholarId,
-    semester_id: semesterId,
-    session_kind: shift.kind,
-    day_of_week: shift.dayOfWeek,
-    start_time: normalizeClock(shift.startTime, "startTime"),
-    end_time: normalizeClock(shift.endTime, "endTime"),
-    is_active: true,
-  }));
-  const { data, error } = await supabase
-    .from("scholar_shift_assignments")
-    .insert(rows)
-    .select("id, scholar_id, semester_id, session_kind, day_of_week, start_time, end_time, is_active");
-  if (error) throw error;
-  return (data ?? []) as ScholarShiftAssignment[];
 }
 
 /**
- * Soft-deactivate every active FD/SS standing row for the scholar in the
- * active semester, then insert the replacement set (same pattern as
- * scripts/update-scholar-schedule.py). Empty `shifts` clears the schedule.
+ * Every roster scholar with their shifts in effect during `weekStart`'s week.
+ * `eligibleOnly` narrows to hour-eligible scholars (the dev board); the team-leader board
+ * has no cohort, enrollment, mentor, or hours prerequisite.
  */
-export async function replaceScholarStandingShifts(
-  uid: string,
-  shiftsInput: StandingShiftInput[],
-): Promise<ReplaceScholarShiftsResult> {
-  if (!uid.trim()) throw new Error("Missing uid");
-  if (!Array.isArray(shiftsInput)) throw new Error("shifts must be an array");
-
-  const shifts = shiftsInput.map((raw, index) =>
-    validateStandingShiftInput(raw, index),
-  );
-
-  const semester = await getActiveSemesterRow();
-  if (!semester) throw new Error("No active semester");
-
-  const existing = await fetchActiveAssignmentsForScholarSemester(
-    uid,
-    semester.id,
-  );
-  const existingIds = existing
-    .map((row) => (row.id != null ? String(row.id) : null))
-    .filter((id): id is string => Boolean(id));
-
-  let deactivatedIds: string[] = [];
-  try {
-    deactivatedIds = await setAssignmentsActive(existingIds, false);
-    if (
-      existingIds.length > 0 &&
-      new Set(deactivatedIds).size !== new Set(existingIds).size
-    ) {
-      throw new Error("Could not deactivate every current shift");
-    }
-    const inserted = await insertStandingShifts(uid, semester.id, shifts);
-    const dtos = inserted
-      .map(toShiftDto)
-      .filter((dto): dto is ScheduleBoardShiftDto => dto != null)
-      .sort((a, b) => {
-        if (a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek;
-        return a.startTime.localeCompare(b.startTime);
-      });
-    return { uid, shifts: dtos };
-  } catch (error) {
-    if (deactivatedIds.length > 0) {
-      try {
-        await setAssignmentsActive(deactivatedIds, true);
-      } catch {
-        throw new Error(
-          `${caughtMessage(error)}; rollback failed — previous shifts may still be inactive`,
-        );
-      }
-      throw new Error(
-        `${caughtMessage(error)}; previous shifts were restored`,
-      );
-    }
-    throw error;
-  }
+export async function getScheduleBoard(
+  options: { weekStart?: string; eligibleOnly?: boolean } = {},
+): Promise<ScheduleBoardResponse> {
+  const weekStart = options.weekStart ?? currentEasternMonday();
+  const [snapshot, users] = await Promise.all([callSnapshot(weekStart), fetchAllUsersForMemo()]);
+  const byUid = new Map(snapshot.scholars.map((row) => [row.uid, row]));
+  const scholars = users.filter((user) => user.program_role?.trim().toLowerCase() === "scholar");
+  const roster = options.eligibleOnly ? scholars.filter(isEligibleScholar) : scholars;
+  return {
+    semester: snapshot.semester,
+    currentWeekStart: snapshot.currentWeekStart,
+    weekStart: snapshot.weekStart,
+    scholars: sortScholars(roster.map((user) => toBoardScholar(user, byUid.get(user.uid)))),
+  };
 }
 
-function caughtMessage(error: unknown): string {
-  if (error instanceof Error && error.message) return error.message;
-  return "Failed to replace scholar shifts";
+const UNKNOWN_USER = (uid: string): MemoUserRow => ({
+  uid,
+  first_name: null,
+  last_name: null,
+  cohort: null,
+  program_role: null,
+  app_role: null,
+  fd_required: null,
+  ss_required: null,
+  status: null,
+});
+
+async function toScholarResponse(snapshot: Snapshot, scholarUid: string): Promise<ScholarScheduleResponse> {
+  const { scholars, ...rest } = snapshot;
+  const row = scholars.find((candidate) => candidate.uid === scholarUid);
+  if (!row) throw new ScheduleError(404, "Scholar is not on the roster", "CS404");
+  const users = await fetchAllUsersForMemo();
+  const user = users.find((candidate) => candidate.uid === scholarUid) ?? UNKNOWN_USER(scholarUid);
+  return { ...rest, scholar: toBoardScholar(user, row) };
+}
+
+export async function getScholarSchedule(
+  scholarUid: string,
+  weekStart: string = currentEasternMonday(),
+): Promise<ScholarScheduleResponse> {
+  return toScholarResponse(await callSnapshot(weekStart, scholarUid), scholarUid);
+}
+
+/**
+ * Replaces the scholar's whole planned schedule from `effectiveWeekStart` through the end of
+ * the semester. Earlier weeks keep their history. `expectedRevision` must match the value
+ * returned by the last read, otherwise the database rejects the write as stale.
+ */
+export async function replaceScholarScheduleFromWeek(
+  input: ReplaceScheduleInput,
+): Promise<ScholarScheduleResponse> {
+  const { data, error } = await getSupabaseClient().rpc("replace_scholar_schedule_from_week", {
+    p_scholar_id: input.scholarUid,
+    p_semester_id: input.semesterId,
+    p_effective_week_start: input.effectiveWeekStart,
+    p_expected_revision: input.expectedRevision,
+    p_shifts: input.shifts,
+  });
+  if (error) throw toScheduleError(error);
+  return toScholarResponse(data as unknown as Snapshot, input.scholarUid);
 }

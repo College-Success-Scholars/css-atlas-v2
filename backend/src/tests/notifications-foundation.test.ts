@@ -11,7 +11,8 @@ const assignment: ScholarShiftAssignment = {
   day_of_week: 1,
   start_time: "09:00:00",
   end_time: "10:00:00",
-  is_active: true,
+  effective_from: "2026-08-31",
+  effective_until: "2026-12-20",
 };
 
 describe("assignment-first occurrence matching", () => {

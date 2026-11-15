@@ -32,7 +32,7 @@ Shell scripts for deployment validation and operational tasks. These run outside
 | `backfill-user-roster-defaults.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/backfill-user-roster-defaults.sh) | Ops: fill blank `cohort` and role/cohort-based `fd_required` / `ss_required` on `public.user_roster` |
 | `sync-mentee-count-from-mentor-mentee.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/sync-mentee-count-from-mentor-mentee.sh) | Ops: set TL `mentee_count` from `mentor_mentee` (`-1` if no relationship yet) |
 | `backfill-form-logs.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/backfill-form-logs.sh) | Ops: insert Google Form CSV dumps into `public.wpl_form_logs` / `public.mcf_form_logs` |
-| `update-scholar-schedule.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/update-scholar-schedule.sh) | Ops: replace one scholar's signed-up front-desk and study-session shifts for the active semester |
+| `update-scholar-schedule.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/update-scholar-schedule.sh) | Retired: prints a notice to use `/dashboard/schedules`; exits with code 1 |
 | `remove-scholar.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/remove-scholar.sh) | Ops: after confirmation, remove one uid from `user_roster` and `mentor_mentee` (and the linked profile / auth user) |
 | `assign-mentor-mentee.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/assign-mentor-mentee.sh) | Ops: pair one mentee to a mentor looked up by `student_id`; confirm before replacing any other mentor |
 | `supabase-env.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/supabase-env.sh) | Sourced helper: resolves `SUPABASE_URL` and prompts for the service role key. Not executable on its own |
@@ -146,9 +146,8 @@ SUPABASE_ACCESS_TOKEN=... SUPABASE_PROJECT_REF=... ./scripts/configure-supabase-
 # Form CSV dumps → form log tables (prompts for service role key)
 ./scripts/backfill-form-logs.sh
 
-# Replace one scholar's signed-up FD / SS shifts (prompts for the list)
-./scripts/update-scholar-schedule.sh --dry-run 123456789
-./scripts/update-scholar-schedule.sh 123456789
+# Retired schedule writer; use /dashboard/schedules instead
+./scripts/update-scholar-schedule.sh
 
 # Remove a scholar (prompts for the UID, then asks you to type yes)
 ./scripts/remove-scholar.sh
@@ -176,7 +175,7 @@ Ops script for bulk-loading a sheet export into `public.user_roster`. Companion 
 
 `--dry-run` skips the prompt and does not POST. Stdout includes TSV reports for bad university emails (with contact fields) and null UIDs.
 
-Credential resolution is shared with `backfill-user-roster-defaults.sh`, `sync-mentee-count-from-mentor-mentee.sh`, `backfill-form-logs.sh`, `update-scholar-schedule.sh`, `remove-scholar.sh`, and `assign-mentor-mentee.sh` via [`scripts/supabase-env.sh`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/supabase-env.sh) (`require_supabase_url`, `require_supabase_service_role`). Source that helper in any new Supabase ops script instead of re-implementing the `.env` walk or the hidden prompt.
+Credential resolution is shared with `backfill-user-roster-defaults.sh`, `sync-mentee-count-from-mentor-mentee.sh`, `backfill-form-logs.sh`, `remove-scholar.sh`, and `assign-mentor-mentee.sh` via [`scripts/supabase-env.sh`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/supabase-env.sh) (`require_supabase_url`, `require_supabase_service_role`). Source that helper in any new Supabase ops script instead of re-implementing the `.env` walk or the hidden prompt.
 
 ### `backfill-user-roster-defaults.sh`
 
@@ -268,27 +267,7 @@ Default source directory: `tmp/back fill form data/` (`wpl.csv`, `mcf.csv`). Fil
 
 ### `update-scholar-schedule.sh`
 
-Ops script that replaces one scholar's signed-up front-desk and study-session shifts on `public.scholar_shift_assignments` for the active semester (`is_active = true`). Companion helper: [`scripts/update-scholar-schedule.py`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/update-scholar-schedule.py).
-
-This is the standing weekly schedule compliance is checked against. It does **not** change `user_roster.fd_required` / `ss_required` (those are weekly minute totals).
-
-**Behavior**
-
-- Prompts for the UID unless it is passed as the first argument. The roster row must exist. Exactly one active semester is required.
-- Prints the scholar's current active shifts, then reads a replacement list from the terminal. One shift per line; a blank line finishes.
-- Accepted lines: `fd mon 09:00 11:00`, `ss Tuesday 2:00pm 4:00pm`, `front_desk wed 14:00-16:00`. Days are `sun`–`sat` (or the full name) and are stored with Sunday = 0.
-- The new list is the whole schedule. Previous active rows for that scholar and semester are set `is_active = false`, then the new rows are inserted. A blank list clears the schedule after an explicit confirm. Older semesters are left alone.
-- Front desk and study session share one timeline: overlapping blocks are rejected before any write. A shift that starts when another ends is allowed.
-- If the insert fails after the old rows were turned off, those rows are set active again.
-- `--dry-run` still prompts and prints the plan, then writes nothing. It **still needs credentials** because it reads the roster and current shifts.
-
-**Credentials** — same sources as `ingest-user-roster.sh` above (URL from the shell or `backend/.env`; service role via hidden prompt only).
-
-```bash
-./scripts/update-scholar-schedule.sh --dry-run 123456789
-./scripts/update-scholar-schedule.sh
-./scripts/update-scholar-schedule.sh 123456789
-```
+Retired schedule writer. It prints a notice and exits with code 1. It does not prompt for credentials, read the database, or write anything. Team leaders and developers edit recurring shifts at `/dashboard/schedules`, which writes through the revision-checked API.
 
 ### `remove-scholar.sh`
 

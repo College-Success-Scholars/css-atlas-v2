@@ -2,6 +2,7 @@ import "dotenv/config";
 import { randomUUID } from "node:crypto";
 import { getStartOfDayEastern } from "../../../services/time.service.js";
 import { findShiftOccurrenceMatch } from "../../../services/shift-occurrence.service.js";
+import { assignmentOccurrenceRef } from "../../../services/shift-assignment.service.js";
 import { emitNotificationEvent, NotificationEventType } from "../index.js";
 import type { NotificationPhase } from "../index.js";
 import { dayRange, easternDateKey, fetchAssignmentsForDate, fetchLogsForRange, firstEntryAt, kindLogs, parseNonNegativeInt } from "./detector-data.js";
@@ -62,7 +63,7 @@ export async function runSigninDetector(now = new Date()): Promise<void> {
   for (const rows of logs.values()) totalLogRows += rows.length;
 
   for (const assignment of assignments) {
-    const occurrenceRef = `${assignment.id ?? assignment.scholar_id}:${occurrenceDate}`;
+    const occurrenceRef = assignmentOccurrenceRef(assignment, occurrenceDate);
 
     const rows = logs.get(assignment.scholar_id) ?? [];
     const relevantRows = kindLogs(assignment, rows);

@@ -25,12 +25,12 @@
  */
 import { getSupabaseClient } from "../supabase/client.js";
 import { fetchScholarWeekExcuses } from "./attendance-week.service.js";
+import { addEasternCalendarDays } from "./time.service.js";
 import {
-  addEasternCalendarDays,
-  getEasternDateParts,
-  getEasternDayOfWeek,
-  getStartOfDayEastern,
-} from "./time.service.js";
+  easternDateKey,
+  expandAssignmentOccurrences,
+  fetchEffectiveAssignments,
+} from "./shift-assignment.service.js";
 import {
   fetchFrontDeskLogs,
   fetchStudySessionLogs,
@@ -97,26 +97,13 @@ export function excusesForWeek(
   return result;
 }
 
-interface UntypedQuery extends PromiseLike<{ data: unknown; error: unknown }> {
-  eq: (column: string, value: unknown) => UntypedQuery;
-  in: (column: string, values: string[]) => UntypedQuery;
-}
-interface UntypedClient {
-  from: (table: string) => { select: (columns: string) => UntypedQuery };
-}
-
 const SHIFT_KINDS: ShiftSessionKind[] = ["front_desk", "study_session"];
-
-function easternDateKey(date: Date): string {
-  const { year, month, day } = getEasternDateParts(date);
-  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
 
 function shortTime(value: string): string {
   return value.trim().slice(0, 5);
 }
 
-/** Expand active assignments into dated occurrences within [semesterStart, semesterEnd]. */
+/** Expand assignments into dated occurrences, each only on dates its row is effective. */
 export function expandShiftOccurrences(params: {
   scholarUid: string;
   semesterId: string | null;
@@ -127,34 +114,24 @@ export function expandShiftOccurrences(params: {
   const { scholarUid, semesterId, semesterStart, semesterEnd, assignments } = params;
   if (!semesterStart || !semesterEnd) return [];
 
-  const start = getStartOfDayEastern(semesterStart);
-  const endMs = getStartOfDayEastern(semesterEnd).getTime();
-
   // DB semester_id is integer; calendar id is String(semester.id). Compare as text.
   const applicable = assignments.filter(
     (a) =>
-      a.is_active &&
       a.scholar_id === scholarUid &&
       (semesterId == null || String(a.semester_id) === String(semesterId)) &&
       SHIFT_KINDS.includes(a.session_kind as ShiftSessionKind)
   );
 
-  const shifts: ScheduledShiftInput[] = [];
-  for (const assignment of applicable) {
-    for (let date = start; date.getTime() <= endMs; date = addEasternCalendarDays(date, 1)) {
-      if (getEasternDayOfWeek(date) !== assignment.day_of_week) continue;
-      const dateKey = easternDateKey(date);
-      shifts.push({
-        // Distinct per occurrence so multiple same-kind shifts on one date are preserved.
-        sourceId: `${assignment.id ?? `${assignment.session_kind}:${assignment.day_of_week}`}:${dateKey}`,
-        kind: assignment.session_kind as ShiftSessionKind,
-        date: dateKey,
-        startTime: shortTime(assignment.start_time),
-        endTime: shortTime(assignment.end_time),
-      });
-    }
-  }
-  return shifts;
+  return expandAssignmentOccurrences(applicable, semesterStart, semesterEnd).map(
+    ({ assignment, dateKey, occurrenceRef }) => ({
+      // Distinct per occurrence so multiple same-kind shifts on one date are preserved.
+      sourceId: occurrenceRef,
+      kind: assignment.session_kind as ShiftSessionKind,
+      date: dateKey,
+      startTime: shortTime(assignment.start_time),
+      endTime: shortTime(assignment.end_time),
+    })
+  );
 }
 
 function buildKindEvidence(
@@ -251,27 +228,6 @@ export function buildAttendanceEvidence(params: {
   };
 }
 
-async function fetchAssignmentsForScholar(
-  scholarUid: string,
-  semesterId: string | null
-): Promise<ScholarShiftAssignment[]> {
-  // The generated database types predate this live table.
-  const supabase = getSupabaseClient() as unknown as UntypedClient;
-  let query = supabase
-    .from("scholar_shift_assignments")
-    .select("id, scholar_id, semester_id, session_kind, day_of_week, start_time, end_time, is_active")
-    .eq("scholar_id", scholarUid)
-    .eq("is_active", true);
-  if (semesterId != null) {
-    // Column is integer; coerce so "1" from the calendar still matches.
-    const numericId = Number(semesterId);
-    query = query.eq("semester_id", Number.isFinite(numericId) ? numericId : semesterId);
-  }
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data ?? []) as ScholarShiftAssignment[];
-}
-
 /** Bounded semester-wide reads for one scholar, mapped to evaluator evidence. */
 export async function fetchMenteeAttendanceEvidence(params: {
   scholarUid: string;
@@ -282,7 +238,15 @@ export async function fetchMenteeAttendanceEvidence(params: {
 }): Promise<AttendanceEvidence> {
   const { scholarUid, semesterId, semesterStart, semesterEnd, asOf } = params;
 
-  const assignments = await fetchAssignmentsForScholar(scholarUid, semesterId);
+  const assignments =
+    semesterStart && semesterEnd
+      ? await fetchEffectiveAssignments(getSupabaseClient(), {
+          scholarIds: [scholarUid],
+          semesterId,
+          startKey: easternDateKey(semesterStart),
+          endKey: easternDateKey(semesterEnd),
+        })
+      : [];
 
   let frontDeskRows: SessionLogRow[] = [];
   let studyRows: SessionLogRow[] = [];

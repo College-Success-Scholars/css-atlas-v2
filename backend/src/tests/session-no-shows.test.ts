@@ -9,7 +9,8 @@ const assignment: ScholarShiftAssignment = {
   day_of_week: 1,
   start_time: "14:00",
   end_time: "15:00",
-  is_active: true,
+  effective_from: "2026-08-31",
+  effective_until: "2026-12-20",
 };
 
 const at = (time: string) => new Date(`2026-10-26T${time}:00-04:00`);
@@ -49,12 +50,12 @@ describe("findStudyNoShows", () => {
     }
   });
 
-  it("excludes inactive, other-day and front-desk shifts; deduplicates", () => {
+  it("excludes ended, other-day and front-desk shifts; deduplicates", () => {
     expect(
       ids(
         findStudyNoShows(
           [
-            { ...assignment, is_active: false },
+            { ...assignment, effective_until: "2026-10-26" },
             { ...assignment, day_of_week: 2 },
             { ...assignment, session_kind: "front_desk" },
           ],
@@ -66,6 +67,14 @@ describe("findStudyNoShows", () => {
     expect(ids(findStudyNoShows([assignment, assignment], [], at("14:20")))).toEqual([
       assignment.scholar_id,
     ]);
+  });
+
+  it("uses the row effective on today's Eastern date when a shift moved", () => {
+    const before = { ...assignment, id: "before", effective_until: "2026-10-26", start_time: "13:00", end_time: "14:00" };
+    const after = { ...assignment, id: "after", effective_from: "2026-10-26", start_time: "14:00", end_time: "15:00" };
+    const missed = findStudyNoShows([before, after], [], at("14:20"));
+    expect(missed.map((row) => row.scheduledStart.toISOString())).toEqual([at("14:00").toISOString()]);
+    expect(findStudyNoShows([before, after], [], at("13:20"))).toEqual([]);
   });
 
   it("supports configured threshold", () => {
@@ -120,14 +129,14 @@ describe("findFrontDeskNoShows", () => {
     }
   });
 
-  it("excludes other-day, inactive and study assignments; deduplicates", () => {
+  it("excludes other-day, not-yet-effective and study assignments; deduplicates", () => {
     expect(
       ids(
         findFrontDeskNoShows(
           [
             assignment,
             { ...frontDeskAssignment, day_of_week: 2 },
-            { ...frontDeskAssignment, is_active: false },
+            { ...frontDeskAssignment, effective_from: "2026-10-27" },
           ],
           [],
           at("14:20"),
