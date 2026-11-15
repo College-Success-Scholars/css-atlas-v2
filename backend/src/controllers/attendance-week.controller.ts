@@ -2,185 +2,31 @@
  * @file attendance-week.controller.ts
  * @module backend/controllers
  *
- * Handlers for /api/attendance/* — campus-week boards, mentee UID slices,
- * and excuse upserts.
+ * Handlers for /api/attendance, bound to the contract in
+ * @css-atlas/shared/contracts/attendance. Paths, validation, roles and the
+ * response envelope come from the contract and http/endpoint.ts.
  *
- * ## What belongs here
- * - Parse weekNum / kind / uids / excuse body; return { data } or { error }
- *
- * ## What does NOT belong here
- * - Ticket aggregation or Supabase queries
+ * This file is the reference shape for a controller: each handler takes
+ * validated input and returns data.
  */
-import type { Response } from "express";
-import type { AuthenticatedRequest } from "../middleware/auth.middleware.js";
-import {
-  getWeekAttendanceForUids,
-  getWeekBoard,
-  parseAttendanceKind,
-  upsertExcuse,
-} from "../services/attendance-week.service.js";
+import * as contract from "@css-atlas/shared/contracts/attendance";
+import { implement } from "../http/endpoint.js";
+import { getWeekAttendanceForUids, getWeekBoard, upsertExcuse } from "../services/attendance-week.service.js";
 
-function paramStr(val: string | string[] | undefined): string | undefined {
-  return Array.isArray(val) ? val[0] : val;
-}
+export const attendanceEndpoints = [
+  implement(contract.getWeekBoard, ({ params, query }) => getWeekBoard(params.week_num, query.kind)),
 
-function parseWeekNum(val: string | string[] | undefined): number | null {
-  const s = paramStr(val);
-  if (!s) return null;
-  const n = parseInt(s, 10);
-  return Number.isNaN(n) || n < 1 ? null : n;
-}
+  implement(contract.getWeekAttendanceForUids, ({ params, body }) =>
+    getWeekAttendanceForUids(params.week_num, body.uids),
+  ),
 
-// GET /api/attendance/week/:weekNum?kind=front_desk|study_session
-export async function weekBoard(req: AuthenticatedRequest, res: Response) {
-  try {
-    const weekNum = parseWeekNum(req.params.weekNum);
-    if (!weekNum) {
-      res.status(400).json({ error: "Invalid weekNum parameter" });
-      return;
-    }
-    const kindRaw =
-      typeof req.query.kind === "string" ? req.query.kind : undefined;
-    const kind = parseAttendanceKind(kindRaw);
-    if (!kind) {
-      res.status(400).json({
-        error: "Query kind must be front_desk or study_session",
-      });
-      return;
-    }
-    const data = await getWeekBoard(weekNum, kind);
-    res.json({ data });
-  } catch (e) {
-    const message =
-      e instanceof Error
-        ? e.message
-        : e && typeof e === "object" && "message" in e && typeof (e as { message: unknown }).message === "string"
-          ? (e as { message: string }).message
-          : "Failed to fetch attendance week board";
-    res.status(500).json({ error: message });
-  }
-}
-
-function parseUidList(body: unknown): string[] | null {
-  if (body == null || typeof body !== "object") return null;
-  const uids = (body as { uids?: unknown }).uids;
-  if (!Array.isArray(uids)) return null;
-  return uids.map((uid) => String(uid ?? "").trim()).filter(Boolean);
-}
-
-// POST /api/attendance/week/:weekNum/by-uids
-export async function weekAttendanceByUids(
-  req: AuthenticatedRequest,
-  res: Response
-) {
-  try {
-    const weekNum = parseWeekNum(req.params.weekNum);
-    if (!weekNum) {
-      res.status(400).json({ error: "Invalid weekNum parameter" });
-      return;
-    }
-    const uids = parseUidList(req.body);
-    if (!uids) {
-      res.status(400).json({ error: "uids must be an array of scholar UIDs" });
-      return;
-    }
-    const data = await getWeekAttendanceForUids(weekNum, uids);
-    res.json({ data });
-  } catch (e) {
-    const message =
-      e instanceof Error
-        ? e.message
-        : e && typeof e === "object" && "message" in e && typeof (e as { message: unknown }).message === "string"
-          ? (e as { message: string }).message
-          : "Failed to fetch attendance for UIDs";
-    res.status(500).json({ error: message });
-  }
-}
-
-// PATCH /api/attendance/excuse
-export async function patchExcuse(req: AuthenticatedRequest, res: Response) {
-  try {
-    const body = req.body as Record<string, unknown> | null;
-    if (!body || typeof body !== "object") {
-      res.status(400).json({ error: "Missing JSON body" });
-      return;
-    }
-
-    const scholarUid =
-      body.uid != null
-        ? String(body.uid)
-        : body.scholar_uid != null
-          ? String(body.scholar_uid)
-          : "";
-    const weekNumRaw = body.weekNum ?? body.week_num;
-    const weekNum =
-      typeof weekNumRaw === "number"
-        ? weekNumRaw
-        : typeof weekNumRaw === "string"
-          ? parseInt(weekNumRaw, 10)
-          : NaN;
-    const kind = parseAttendanceKind(
-      typeof body.kind === "string" ? body.kind : null
-    );
-
-    if (!scholarUid) {
-      res.status(400).json({ error: "Missing uid / scholar_uid" });
-      return;
-    }
-    if (!Number.isFinite(weekNum) || weekNum < 1) {
-      res.status(400).json({ error: "Invalid weekNum" });
-      return;
-    }
-    if (!kind) {
-      res.status(400).json({ error: "kind must be front_desk or study_session" });
-      return;
-    }
-
-    let excuseMin: number | null = null;
-    if (body.excuse_min !== undefined && body.excuse_min !== null && body.excuse_min !== "") {
-      const n = Number(body.excuse_min);
-      if (!Number.isFinite(n) || n < 0) {
-        res.status(400).json({ error: "excuse_min must be a non-negative number" });
-        return;
-      }
-      excuseMin = Math.round(n);
-    }
-
-    const descriptionRaw =
-      body.description !== undefined
-        ? body.description
-        : body.excuse !== undefined
-          ? body.excuse
-          : null;
-    const description =
-      descriptionRaw == null || descriptionRaw === ""
-        ? null
-        : String(descriptionRaw);
-
-    const updatedBy =
-      req.profile?.student_id != null
-        ? String(req.profile.student_id)
-        : req.authUser?.id ?? null;
-
-    const data = await upsertExcuse({
-      scholar_uid: scholarUid,
-      week_num: weekNum,
-      kind,
-      excuse_min: excuseMin,
-      description,
-      updated_by: updatedBy,
-    });
-    res.json({ data });
-  } catch (e) {
-    const message =
-      e instanceof Error
-        ? e.message
-        : e && typeof e === "object" && "message" in e && typeof (e as { message: unknown }).message === "string"
-          ? (e as { message: string }).message
-          : "Failed to upsert excuse";
-    const status =
-      message.includes("required") || message.includes("Invalid") ? 400 : 500;
-    console.error("[PATCH /api/attendance/excuse]", e);
-    res.status(status).json({ error: message });
-  }
-}
+  implement(contract.upsertExcuse, ({ body }, caller) =>
+    upsertExcuse(
+      {
+        ...body,
+        updated_by: caller.profile?.student_id != null ? String(caller.profile.student_id) : caller.userId || null,
+      },
+      caller.asOf,
+    ),
+  ),
+];

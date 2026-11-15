@@ -38,7 +38,7 @@ import tutorReportRoutes from "./routes/tutor-report-log.routes.js";
 import attendanceRoutes from "./routes/attendance.routes.js";
 import hoursBenchmarkRoutes from "./routes/hours-benchmark.routes.js";
 import { requestLogger } from "./middleware/request-logger.js";
-import { formatSupabaseError, supabaseErrorStatus } from "./utils/supabase-errors.js";
+import { errorHandler } from "./http/error-handler.js";
 
 // CORS: accepts comma-separated origins via CORS_ORIGIN env var
 // e.g. "https://app.vercel.app,https://app.railway.app"
@@ -67,24 +67,10 @@ app.use("/api/traffic", trafficRoutes);
 app.use("/api/form-logs", formLogRoutes);
 app.use("/api/daily-activity", activityRoutes);
 app.use("/api/tutor-reports", tutorReportRoutes);
-app.use("/api/attendance", attendanceRoutes);
+app.use(attendanceRoutes); // contract-backed: paths come from @css-atlas/shared/contracts/attendance
 app.use("/api/hours-benchmark", hoursBenchmarkRoutes);
 
-// Global error handler, the single place that decides how much of a thrown
-// error (Postgres or otherwise) is safe to expose to the client.
-app.use(
-  (
-    err: unknown,
-    _req: express.Request,
-    res: express.Response,
-    next: express.NextFunction,
-  ) => {
-    if (res.headersSent) { next(err); return; }
-    const status = supabaseErrorStatus(err);
-    if (status >= 500) console.error("Unhandled error:", err);
-    res.status(status).json({ error: formatSupabaseError(err, status) });
-  },
-);
+app.use(errorHandler);
 
 export { app };
 export default app;

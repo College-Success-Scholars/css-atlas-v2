@@ -477,6 +477,8 @@ The `front_desk_records` / `study_session_records` tables are frozen as
 All routes under `/api/attendance` require **requireTeamLeaderOrAbove**.  
 Minutes are computed on read from cleaned session tickets (campus week). Excuses live in `scholar_week_excuses`, keyed by `(scholar_uid, week_start, kind)` where `week_start` is the Eastern date of `campusWeekToDateRange(weekNum).startDate`. Callers still send `weekNum`; the server derives `week_start`. These endpoints do **not** write frozen `*_records_legacy` tables.
 
+These endpoints are **contract-backed**: paths, request shapes, response shapes and the minimum role are defined in [`shared/contracts/attendance.ts`](../shared/contracts/attendance.ts), which is the source of truth if this section and the code ever disagree.
+
 ### `GET /api/attendance/week/:weekNum`
 
 **Auth:** requireTeamLeaderOrAbove  
@@ -566,14 +568,14 @@ Minutes are computed on read from cleaned session tickets (campus week). Excuses
 **Request Body:**
 ```json
 {
-  "uid": "12345",
-  "weekNum": 1,
+  "scholar_uid": "12345",
+  "week_num": 1,
   "kind": "front_desk",
   "excuse_min": 60,
   "description": "Sick day"
 }
 ```
-(`scholar_uid` and `week_num` / `excuse` aliases are also accepted.)  
+These are the only accepted field names (the former `uid` / `weekNum` / `excuse` aliases were removed). Invalid input returns `400` with `"<field> <problem>"`.  
 **Response:**
 ```json
 { "data": { /* scholar_week_excuses row */ } }

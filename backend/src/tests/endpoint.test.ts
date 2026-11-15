@@ -1,0 +1,145 @@
+import express from "express";
+import request from "supertest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import * as attendance from "@css-atlas/shared/contracts/attendance";
+import { implement, type Caller, type Handler } from "../http/endpoint.js";
+import { errorHandler } from "../http/error-handler.js";
+import { notFound } from "../utils/app-error.js";
+
+/** Mount a bound endpoint without the auth middleware, so only the request lifecycle is under test. */
+function appFor(bound: ReturnType<typeof implement>) {
+  const app = express();
+  app.use(express.json());
+  const method = bound.contract.method.toLowerCase() as "get" | "patch";
+  app[method](bound.contract.path, bound.handle);
+  app.use(errorHandler);
+  return app;
+}
+
+const board = (week_num: number, kind: attendance.AttendanceKind) => ({
+  week_num,
+  week_start: "2026-08-31",
+  kind,
+  rows: [],
+  summary: { scholar_count: 0, at_or_above_90: 0, below_75: 0 },
+});
+
+const excuseRow = {
+  scholar_uid: "123",
+  week_start: "2026-08-31",
+  week_num: 1,
+  kind: "front_desk" as const,
+  excuse_min: 30,
+  description: "Sick",
+  updated_by: null,
+  updated_at: "2026-09-01T00:00:00.000Z",
+};
+
+afterEach(() => vi.restoreAllMocks());
+
+describe("implement — request lifecycle", () => {
+  it("passes validated, coerced input to the handler and wraps the result in { data }", async () => {
+    const handler = vi.fn<Handler<typeof attendance.getWeekBoard>>(async ({ params, query }) =>
+      board(params.week_num, query.kind),
+    );
+    const res = await request(appFor(implement(attendance.getWeekBoard, handler))).get(
+      "/api/attendance/week/7?kind=study_session",
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ data: board(7, "study_session") });
+    expect(handler.mock.calls[0]?.[0].params.week_num).toBe(7);
+  });
+
+  it("gives the handler the request time, read once at the edge", async () => {
+    let caller: Caller | undefined;
+    const bound = implement(attendance.getWeekBoard, async ({ params, query }, who) => {
+      caller = who;
+      return board(params.week_num, query.kind);
+    });
+    await request(appFor(bound)).get("/api/attendance/week/1?kind=front_desk");
+    expect(caller?.asOf).toBeInstanceOf(Date);
+  });
+
+  it.each([
+    ["/api/attendance/week/0?kind=front_desk", "week_num must be a campus week number of 1 or more"],
+    ["/api/attendance/week/abc?kind=front_desk", "week_num must be a whole number"],
+  ])("rejects a bad path parameter with 400 and never calls the handler (%s)", async (url, error) => {
+    const handler = vi.fn();
+    const res = await request(appFor(implement(attendance.getWeekBoard, handler))).get(url);
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error });
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("rejects a missing or unknown query value with 400 naming the field", async () => {
+    const app = appFor(implement(attendance.getWeekBoard, vi.fn()));
+    for (const url of ["/api/attendance/week/1", "/api/attendance/week/1?kind=study"]) {
+      const res = await request(app).get(url);
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/^kind /);
+    }
+  });
+
+  it("rejects a body that breaks a cross-field rule with 400", async () => {
+    const handler = vi.fn();
+    const res = await request(appFor(implement(attendance.upsertExcuse, handler)))
+      .patch("/api/attendance/excuse")
+      .send({ scholar_uid: "123", week_num: 1, kind: "front_desk", excuse_min: 30, description: "  " });
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "description is required when excuse_min is greater than 0" });
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("normalises the body before the handler sees it", async () => {
+    const handler = vi.fn<Handler<typeof attendance.upsertExcuse>>(async () => excuseRow);
+    await request(appFor(implement(attendance.upsertExcuse, handler)))
+      .patch("/api/attendance/excuse")
+      .send({ scholar_uid: " 123 ", week_num: "1", kind: "front_desk", excuse_min: 30, description: " Sick " });
+    expect(handler.mock.calls[0]?.[0].body).toEqual({
+      scholar_uid: "123",
+      week_num: 1,
+      kind: "front_desk",
+      excuse_min: 30,
+      description: "Sick",
+    });
+  });
+
+  it("maps a thrown AppError to its status and message", async () => {
+    const bound = implement(attendance.getWeekBoard, async () => {
+      throw notFound("No such campus week");
+    });
+    const res = await request(appFor(bound)).get("/api/attendance/week/1?kind=front_desk");
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: "No such campus week" });
+  });
+
+  it("hides unexpected errors behind a 500", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const bound = implement(attendance.getWeekBoard, async () => {
+      throw new Error("connection string leaked");
+    });
+    const res = await request(appFor(bound)).get("/api/attendance/week/1?kind=front_desk");
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: "Internal server error" });
+  });
+
+  it("drops fields the contract does not declare", async () => {
+    const bound = implement(attendance.getWeekBoard, async ({ params, query }) => ({
+      ...board(params.week_num, query.kind),
+      internal_note: "do not ship",
+    }));
+    const res = await request(appFor(bound)).get("/api/attendance/week/1?kind=front_desk");
+    expect(res.body.data).not.toHaveProperty("internal_note");
+  });
+
+  it("answers 500 when a handler returns data that breaks the contract", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const handler = (async () => ({ week_num: 1 })) as unknown as Handler<typeof attendance.getWeekBoard>;
+    const res = await request(appFor(implement(attendance.getWeekBoard, handler))).get(
+      "/api/attendance/week/1?kind=front_desk",
+    );
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: "Internal server error" });
+  });
+});

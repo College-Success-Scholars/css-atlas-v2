@@ -18,6 +18,9 @@ CI runs both. A red guardrail is fixed by changing the code, never by widening a
 | `atlas/no-use-effect` | frontend, except `hooks/` | Fetch in a Server Component or server action, derive state during render, or use a named hook from `frontend/hooks/` |
 | `atlas/no-clock-read` (`new Date()`, `Date.now()`) | backend `services/`, `models/`, `utils/`, `domains/`; frontend except `hooks/` | Accept `asOf: Date` as a parameter. Controllers and cron entrypoints read the clock and pass it down |
 | `atlas/no-process-env` | both apps | Read configuration once in the app's env module and pass it in |
+| `atlas/no-express-import` | backend `controllers/` | Bind a handler to a contract with `implement()`; see [controllers](backend/src/controllers/README.md) |
+| `atlas/no-schema-library` (`zod`) | backend | Schemas live in `shared/contracts/`; validate with `validate()` from `@css-atlas/shared/contract` |
+| relative imports of `shared/` | both apps | Import by package name: `@css-atlas/shared/<module>` |
 | `atlas/no-try-catch` | backend `controllers/` | Let errors reach the global error handler; throw a typed error for a specific status |
 | `atlas/no-double-cast` (`as unknown as`) | both apps | Fix the source type (regenerate `database.types.ts`) or parse the value |
 | `atlas/no-supabase-query` (`.from("table")`) | frontend | Call an Express endpoint through `lib/server/data.ts` |
@@ -35,6 +38,7 @@ The directory a file lives in decides what it may import.
 
 ```
 backend:   routes → controllers → services / domains → models · supabase · utils
+           (http/ is the request lifecycle; nothing below controllers imports it)
 frontend:  app/<route> → components → lib · hooks → shared
 ```
 

@@ -23,6 +23,7 @@ export default [
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/ban-ts-comment": "error",
       "atlas/no-enum": "error",
+      "atlas/no-schema-library": "error",
       "no-restricted-imports": ["error", {
         patterns: [
           { group: ["**/shared/dist/**", "../**/shared/*"], message: "Import shared code by package name: @css-atlas/shared/<module>." },
@@ -46,9 +47,9 @@ export default [
     rules: { "atlas/no-clock-read": "error" },
   },
   {
-    // Controllers let errors propagate to the global error handler.
+    // Controllers are handlers bound to a contract: no Express, no catching.
     files: ["src/controllers/**"],
-    rules: { "atlas/no-try-catch": "error" },
+    rules: { "atlas/no-try-catch": "error", "atlas/no-express-import": "error" },
   },
   ...baselineOverrides(baseline),
 ];

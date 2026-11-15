@@ -21,7 +21,9 @@
  * - Client-side data fetching (that's lib/client/api-client.ts)
  */
 import "server-only";
-import { backendGet, backendPost, backendPut, backendPatch, backendDelete, backendDownload } from "./api-client";
+import { backendGet, backendPost, backendPut, backendPatch, backendDelete, backendDownload, callEndpoint } from "./api-client";
+import type { EndpointRequest } from "@css-atlas/shared/contract";
+import * as attendance from "@css-atlas/shared/contracts/attendance";
 import { getEffectiveScholarId } from "@css-atlas/shared/auth";
 import type {
   SessionLogRow,
@@ -39,7 +41,7 @@ import type {
   AttendanceWeekBoard,
   AttendanceForUids,
   ScholarWeekExcuse,
-} from "@/lib/types/attendance-week";
+} from "@css-atlas/shared/contracts/attendance";
 import type { RosterRow } from "@/lib/types/roster";
 import type { MenteeWithCompliance } from "@/lib/types/supabase";
 import type {
@@ -294,7 +296,7 @@ export async function getAttendanceWeekBoard(
   weekNum: number,
   kind: AttendanceKind
 ): Promise<AttendanceWeekBoard> {
-  return backendGet(`/api/attendance/week/${weekNum}?kind=${kind}`);
+  return callEndpoint(attendance.getWeekBoard, { params: { week_num: weekNum }, query: { kind } });
 }
 
 export async function fetchAttendanceForUids(
@@ -304,17 +306,13 @@ export async function fetchAttendanceForUids(
   if (uids.length === 0) {
     return { week_num: weekNum, week_start: "", rows: [] };
   }
-  return backendPost<AttendanceForUids>(`/api/attendance/week/${weekNum}/by-uids`, { uids });
+  return callEndpoint(attendance.getWeekAttendanceForUids, { params: { week_num: weekNum }, body: { uids } });
 }
 
-export async function upsertAttendanceExcuse(payload: {
-  uid: string;
-  weekNum: number;
-  kind: AttendanceKind;
-  excuse_min: number | null;
-  description: string | null;
-}): Promise<ScholarWeekExcuse> {
-  return backendPatch("/api/attendance/excuse", payload);
+export async function upsertAttendanceExcuse(
+  excuse: EndpointRequest<typeof attendance.upsertExcuse>["body"]
+): Promise<ScholarWeekExcuse> {
+  return callEndpoint(attendance.upsertExcuse, { body: excuse });
 }
 
 // ---------------------------------------------------------------------------

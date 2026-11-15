@@ -41,6 +41,10 @@ npm --prefix frontend run guardrails
 - Do not copy a pattern from a grandfathered file. If a file is in a baseline, it is an example of what not to write.
 - When you fix a grandfathered file, delete its baseline entry in the same change (`npm run lint:baseline` tells you which).
 
+## Adding or changing an API endpoint
+
+Endpoints are contract-backed. Describe the endpoint once in `shared/contracts/<domain>.ts`, bind a handler with `implement()` in the controller, and call it from the frontend with `callEndpoint()`. Reference implementation: `shared/contracts/attendance.ts` + `backend/src/controllers/attendance-week.controller.ts`. Full rules: `docs/dev/backend/src/controllers/README.md`.
+
 ## graphify
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.

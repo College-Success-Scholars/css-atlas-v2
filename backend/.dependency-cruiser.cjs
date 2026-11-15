@@ -3,6 +3,7 @@
  * it may import:
  *
  *   routes → controllers → services / domains → models, supabase, utils
+ *   (http/ is the request lifecycle; only routes, controllers and app.ts use it)
  *
  * Existing violations are grandfathered in .dependency-cruiser-known-violations.json
  * (may only shrink). See docs/dev/guardrails.md.
@@ -28,7 +29,7 @@ module.exports = {
       "no-upward-imports",
       "Services, domains, models and utils never import the HTTP edge.",
       { path: "^src/(services|domains|models|utils|supabase)/" },
-      { path: "^src/(routes|controllers)/" },
+      { path: "^src/(routes|controllers|http)/" },
     ),
     rule(
       "no-express-below-controllers",

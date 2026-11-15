@@ -15,6 +15,7 @@
  * - backendPatch<T>(path, body): PATCH shorthand
  * - backendDelete<T>(path): DELETE shorthand
  * - backendDownload(path): authenticated binary GET (no JSON unwrap)
+ * - callEndpoint(contract, request): typed call to a contract-backed endpoint (preferred)
  *
  * ## What belongs here
  * - The low-level server-side authenticated fetch infrastructure
@@ -34,6 +35,12 @@ import {
   logApiResponse,
   resolveBackendBaseUrl,
 } from "@/lib/api-log";
+import {
+  endpointPath,
+  type Endpoint,
+  type EndpointOutput,
+  type EndpointRequest,
+} from "@css-atlas/shared/contract";
 import {
   DEV_ACTIVE_PROFILE_COOKIE,
   DEV_ACTIVE_PROFILE_HEADER,
@@ -162,6 +169,22 @@ export async function backendFetch<T>(
     return json.data as T;
   }
   return json as T;
+}
+
+/**
+ * Call a contract-backed endpoint. The path, method, request shape and return
+ * type all come from the contract in @css-atlas/shared/contracts/*, so there
+ * is nothing to restate here or in lib/types.
+ */
+export async function callEndpoint<E extends Endpoint>(
+  contract: E,
+  ...[request]: Record<string, never> extends EndpointRequest<E> ? [request?: EndpointRequest<E>] : [request: EndpointRequest<E>]
+): Promise<EndpointOutput<E>> {
+  const { params, query, body } = (request ?? {}) as { params?: unknown; query?: unknown; body?: unknown };
+  return backendFetch<EndpointOutput<E>>(endpointPath(contract, { params, query }), {
+    method: contract.method,
+    ...(contract.method === "GET" ? {} : { body: body ?? {} }),
+  });
 }
 
 export async function backendGet<T>(path: string): Promise<T> {

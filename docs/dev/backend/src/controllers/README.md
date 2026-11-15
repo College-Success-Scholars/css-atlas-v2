@@ -23,14 +23,22 @@ One `*.controller.ts` per domain (auth, user, session-log, form-log, memo, traff
 
 ## Standards
 
-- **One controller per domain** — matches the corresponding service and route files.
-- **Controllers do not import from `@supabase/supabase-js`** — all DB access goes through services.
-- **Input validation at the top** — check params/query before any service call; return 400 immediately on bad input.
-- **Response shape** — success: `res.json({ data: ... })` · error: `res.status(4xx|5xx).json({ error: "message" })`.
-- **Use `AuthenticatedRequest`** from `auth.controller.ts` instead of plain `Request` so TypeScript knows about `authUser`, `profile`, and `accessToken`.
-- **Auth middleware goes in the route file**, not the controller. Controllers assume auth has already been verified.
-- **No `next()` calls** — controllers are terminal handlers; they always send a response.
-- **Naming** — export functions as camelCase verbs: `getScholarNames`, `upsertExcuse`.
+New and migrated endpoints are **contract-backed**. `attendance-week.controller.ts` is the reference.
+
+1. **Describe the endpoint once** in `shared/contracts/<domain>.ts` with `endpoint({ method, path, access, params, query, body, output })`. One name per field, no aliases.
+2. **Bind a handler** in the controller with `implement(contract, handler)` from `http/endpoint.ts`. A handler is `(input, caller) => data`: it receives validated `params` / `query` / `body`, returns what the output schema accepts, and does nothing else.
+3. **Mount** with `toRouter(endpoints)` in the route file. Path, method and minimum role come from the contract.
+4. **Call it from the frontend** with `callEndpoint(contract, request)`. Types come from the contract; do not add a mirror type under `frontend/lib/types`.
+
+What a handler never does (each is a lint error in new files):
+
+- import Express, call `res.status(...)`, or build the `{ data }` / `{ error }` envelope
+- `try/catch` — throw `invalid()`, `notFound()`, `forbidden()`, `conflict()` or `unavailable()` from `utils/app-error.ts`; anything else becomes a 500
+- parse or validate input by hand, or import `zod`
+- read the clock — use `caller.asOf` and pass it down
+- query Supabase — call a service
+
+Controllers that still export `(req, res)` functions predate this and are grandfathered in `backend/eslint-baseline.json`. Do not copy them; migrate them.
 
 <!-- AUTO-API-REFERENCE:START -->
 

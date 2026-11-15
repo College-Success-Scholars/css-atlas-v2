@@ -57,7 +57,7 @@ export type ActivityRow = {
 }
 
 import { WahfFormLogRow, McfFormLogRow, WplFormLogRow } from "./form-log"
-import type { AttendanceForUids } from "./attendance-week"
+import type { AttendanceForUids } from "@css-atlas/shared/contracts/attendance"
 
 export type WahfRow = WahfFormLogRow
 export type McfRow = McfFormLogRow

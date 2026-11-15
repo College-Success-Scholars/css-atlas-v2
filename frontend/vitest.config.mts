@@ -13,7 +13,8 @@ export default defineConfig({
       "app/**/*.test.tsx",
       "components/**/*.test.ts",
       "components/**/*.test.tsx",
-      "../shared/**/*.test.ts",
+      "../shared/*.test.ts",
+      "../shared/contracts/**/*.test.ts",
     ],
   },
   resolve: {

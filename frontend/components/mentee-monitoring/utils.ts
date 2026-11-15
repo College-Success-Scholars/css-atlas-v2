@@ -16,7 +16,7 @@ import type {
   WahfRow,
   TutoringRow,
 } from "@/lib/types/supabase"
-import type { AttendanceKind, AttendanceWeekBoardRow } from "@/lib/types/attendance-week"
+import type { AttendanceKind, AttendanceWeekBoardRow } from "@css-atlas/shared/contracts/attendance"
 import {
   computeWeekOptions,
   latestSubmissionForCampusWeek,

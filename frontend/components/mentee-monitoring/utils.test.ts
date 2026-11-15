@@ -21,7 +21,7 @@ import {
   formatCompactHours,
 } from "./utils"
 import type { ShiftComplianceByKind, WahfRow, TutoringRow } from "@/lib/types/supabase"
-import type { AttendanceWeekBoardRow } from "@/lib/types/attendance-week"
+import type { AttendanceWeekBoardRow } from "@css-atlas/shared/contracts/attendance"
 
 const UID = "scholar-1"
 

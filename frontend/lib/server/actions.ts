@@ -30,6 +30,8 @@ import { createClient } from "@/lib/supabase/server"
 import { backendPost } from "@/lib/server/api-client"
 import { deleteTutorReport, upsertAttendanceExcuse } from "@/lib/server/data"
 import { DEV_ACTIVE_PROFILE_COOKIE, hasRoleAtLeast } from "@css-atlas/shared/auth"
+import { validate } from "@css-atlas/shared/contract"
+import { upsertExcuse } from "@css-atlas/shared/contracts/attendance"
 import { revalidatePath } from "next/cache"
 import { cookies } from "next/headers"
 import { z } from "zod"
@@ -224,23 +226,15 @@ export async function recordTrafficEntry(input: unknown) {
   return { success: true as const }
 }
 
-const attendanceExcuseSchema = z.object({
-  uid: z.string().min(1).max(50),
-  weekNum: z.number().int().positive(),
-  kind: z.enum(["front_desk", "study_session"]),
-  excuse_min: z.number().int().min(0).nullable(),
-  description: z.string().max(2000).nullable(),
-})
-
 /**
  * Upsert a campus-week FD/SS excuse from the teams board.
  * Uses the server backend client (`BACKEND_URL`) so Railway does not need
  * `NEXT_PUBLIC_BACKEND_URL` inlined at image build time.
  */
 export async function upsertAttendanceExcuseAction(input: unknown) {
-  const parsed = attendanceExcuseSchema.safeParse(input)
-  if (!parsed.success) {
-    return { error: "Invalid input" }
+  const parsed = validate(upsertExcuse.body, input)
+  if (!parsed.ok) {
+    return { error: `${parsed.field} ${parsed.message}`.trim() }
   }
 
   try {

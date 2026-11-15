@@ -13,7 +13,7 @@ import {
   TeamsAttendanceClient,
   TeamsPageFallback,
 } from "./teams-attendance-client";
-import type { AttendanceKind, AttendanceWeekBoard } from "@/lib/types/attendance-week";
+import type { AttendanceKind, AttendanceWeekBoard } from "@css-atlas/shared/contracts/attendance";
 
 export { TeamsPageFallback };
 

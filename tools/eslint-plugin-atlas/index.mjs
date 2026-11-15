@@ -52,6 +52,16 @@ const rules = {
     "Do not use dynamic import(). Import at the top of the file.",
     ["ImportExpression"],
   ),
+  "no-express-import": ban(
+    "Ban Express in controllers.",
+    "Controllers do not touch Express. Describe the endpoint in @css-atlas/shared/contracts/<domain>.ts and bind a handler with implement() from http/endpoint.ts (see controllers/attendance-week.controller.ts).",
+    ["ImportDeclaration[source.value='express']"],
+  ),
+  "no-schema-library": ban(
+    "Ban importing the schema library outside shared/.",
+    "Do not import zod here. Schemas live in shared/contracts/; validate with validate() from @css-atlas/shared/contract.",
+    ["ImportDeclaration[source.value='zod']"],
+  ),
   "no-use-effect": ban(
     "Ban direct use of React effects outside the hooks directory.",
     "Do not use useEffect/useLayoutEffect here. Fetch data in a Server Component or server action, derive state during render, or use (or add) a named hook in frontend/hooks/.",

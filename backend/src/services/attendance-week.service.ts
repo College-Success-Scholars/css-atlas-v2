@@ -21,6 +21,7 @@
  * - Frozen *_records_legacy tables
  */
 import { getSupabaseClient } from "../supabase/client.js";
+import { invalid } from "../utils/app-error.js";
 import {
   campusWeekToDateRange,
   getEasternDateParts,
@@ -63,13 +64,6 @@ export function completionPct(
 
 function isAttendanceKind(value: string): value is AttendanceKind {
   return value === "front_desk" || value === "study_session";
-}
-
-export function parseAttendanceKind(
-  value: string | undefined | null
-): AttendanceKind | null {
-  if (!value) return null;
-  return isAttendanceKind(value) ? value : null;
 }
 
 /** Eastern YYYY-MM-DD of campusWeekToDateRange(weekNum).startDate. */
@@ -432,33 +426,18 @@ export async function getWeekBoard(
   };
 }
 
+/**
+ * Create or replace one excuse. The payload is already validated by the
+ * attendance contract; `asOf` is the request time supplied by the caller.
+ */
 export async function upsertExcuse(
-  payload: UpsertExcusePayload
+  payload: UpsertExcusePayload,
+  asOf: Date
 ): Promise<ScholarWeekExcuseRow> {
-  const {
-    scholar_uid,
-    week_num,
-    kind,
-    excuse_min,
-    description,
-    updated_by,
-  } = payload;
+  const { scholar_uid, week_num, kind, excuse_min, description, updated_by } = payload;
 
-  if (!scholar_uid) throw new Error("Missing scholar_uid");
-  if (!week_num || week_num < 1) throw new Error("Invalid week_num");
-  if (!isAttendanceKind(kind)) throw new Error("Invalid kind");
   const weekStart = campusWeekStartDate(week_num);
-  if (!weekStart) throw new Error("Invalid week_num");
-  if (excuse_min != null && (Number.isNaN(excuse_min) || excuse_min < 0)) {
-    throw new Error("excuse_min must be null or a non-negative number");
-  }
-  if (
-    excuse_min != null &&
-    excuse_min > 0 &&
-    !(description && description.trim())
-  ) {
-    throw new Error("description is required when excuse_min > 0");
-  }
+  if (!weekStart) throw invalid(`week_num ${week_num} is outside the campus calendar`);
 
   const supabase = getSupabaseClient();
   const row = {
@@ -466,10 +445,10 @@ export async function upsertExcuse(
     week_start: weekStart,
     week_num,
     kind,
-    excuse_min: excuse_min ?? null,
-    description: description?.trim() ? description.trim() : null,
-    updated_by: updated_by ?? null,
-    updated_at: new Date().toISOString(),
+    excuse_min,
+    description,
+    updated_by,
+    updated_at: asOf.toISOString(),
   };
 
   const { data, error } = await supabase
@@ -480,6 +459,6 @@ export async function upsertExcuse(
   if (error) throw error;
 
   const mapped = mapExcuseRow(data);
-  if (!mapped) throw new Error("Invalid kind");
+  if (!mapped) throw new Error(`scholar_week_excuses returned an unknown kind: ${data.kind}`);
   return mapped;
 }

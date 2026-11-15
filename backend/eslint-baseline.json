@@ -3,7 +3,6 @@
     "src/domains/notifications/detectors/reconciliation-detector.ts",
     "src/domains/notifications/detectors/signin-detector.ts",
     "src/domains/notifications/notification.service.ts",
-    "src/services/attendance-week.service.ts",
     "src/services/freshman-grades.service.ts",
     "src/services/hours-benchmark.service.ts",
     "src/services/memo-page.service.ts",
@@ -24,6 +23,18 @@
   "atlas/no-dynamic-import": [
     "src/controllers/memo.controller.ts"
   ],
+  "atlas/no-express-import": [
+    "src/controllers/activity.controller.ts",
+    "src/controllers/auth.controller.ts",
+    "src/controllers/dev.controller.ts",
+    "src/controllers/form-log.controller.ts",
+    "src/controllers/hours-benchmark.controller.ts",
+    "src/controllers/memo.controller.ts",
+    "src/controllers/session-log.controller.ts",
+    "src/controllers/traffic.controller.ts",
+    "src/controllers/tutor-report-log.controller.ts",
+    "src/controllers/user.controller.ts"
+  ],
   "atlas/no-process-env": [
     "src/app.ts",
     "src/domains/notifications/channels/slack-channel.ts",
@@ -38,7 +49,6 @@
   ],
   "atlas/no-try-catch": [
     "src/controllers/activity.controller.ts",
-    "src/controllers/attendance-week.controller.ts",
     "src/controllers/auth.controller.ts",
     "src/controllers/dev.controller.ts",
     "src/controllers/form-log.controller.ts",

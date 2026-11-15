@@ -14,7 +14,8 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["frontend/*"]
+      "@/*": ["frontend/*"],
+      "@css-atlas/shared/*": ["shared/*"]
     },
     "types": ["node"]
   },
