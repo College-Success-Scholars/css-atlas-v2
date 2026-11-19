@@ -43,7 +43,7 @@ npm --prefix frontend run guardrails
 
 ## Adding or changing an API endpoint
 
-Endpoints are contract-backed. Describe the endpoint once in `shared/contracts/<domain>.ts`, bind a handler with `implement()` in the controller, and call it from the frontend with `callEndpoint()`. Reference implementation: `shared/contracts/attendance.ts` + `backend/src/controllers/attendance-week.controller.ts`. Full rules: `docs/dev/backend/src/controllers/README.md`.
+Endpoints are contract-backed. Describe the endpoint once in `shared/contracts/<domain>.ts`, bind a handler with `implement()` in the controller, and call it from the frontend with `callEndpoint()`. Reference implementation: `shared/contracts/attendance.ts` + `backend/src/controllers/attendance-week.controller.ts`. New services return `Effect.Effect<Output, DomainError, CurrentCaller>` (reference: `upsertExcuse` in `backend/src/services/attendance-week.service.ts`). Full rules: `docs/dev/backend/src/controllers/README.md`.
 
 ## graphify
 

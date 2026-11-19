@@ -21,7 +21,9 @@
  * - Frozen *_records_legacy tables
  */
 import { getSupabaseClient } from "../supabase/client.js";
-import { invalid } from "../utils/app-error.js";
+import { Effect } from "effect";
+import { CurrentCaller } from "../context/current-caller.js";
+import { ValidationError } from "../utils/domain-error.js";
 import {
   campusWeekToDateRange,
   getEasternDateParts,
@@ -43,8 +45,8 @@ import type {
   CampusWeekAttendance,
   CampusWeekAttendanceTotals,
   ScholarWeekExcuseRow,
-  UpsertExcusePayload,
 } from "../models/attendance-week.model.js";
+import type { ExcuseInput } from "@css-atlas/shared/contracts/attendance";
 
 export function loggedMinutes(m: WeeklyMinutesByDay): number {
   return m.mon_min + m.tues_min + m.wed_min + m.thurs_min + m.fri_min;
@@ -427,38 +429,45 @@ export async function getWeekBoard(
 }
 
 /**
- * Create or replace one excuse. The payload is already validated by the
- * attendance contract; `asOf` is the request time supplied by the caller.
+ * Create, replace or clear one excuse. The input is already validated by the
+ * attendance contract; who made the change and when come from CurrentCaller.
  */
-export async function upsertExcuse(
-  payload: UpsertExcusePayload,
-  asOf: Date
-): Promise<ScholarWeekExcuseRow> {
-  const { scholar_uid, week_num, kind, excuse_min, description, updated_by } = payload;
+export const upsertExcuse = (
+  input: ExcuseInput
+): Effect.Effect<ScholarWeekExcuseRow, ValidationError, CurrentCaller> =>
+  Effect.gen(function* () {
+    const { actorId, asOf } = yield* CurrentCaller;
 
-  const weekStart = campusWeekStartDate(week_num);
-  if (!weekStart) throw invalid(`week_num ${week_num} is outside the campus calendar`);
+    const weekStart = campusWeekStartDate(input.week_num);
+    if (!weekStart) {
+      return yield* new ValidationError({ field: "week_num", message: "is outside the campus calendar" });
+    }
 
-  const supabase = getSupabaseClient();
-  const row = {
-    scholar_uid: String(scholar_uid),
-    week_start: weekStart,
-    week_num,
-    kind,
-    excuse_min,
-    description,
-    updated_by,
-    updated_at: asOf.toISOString(),
-  };
+    const { data, error } = yield* Effect.promise(async () =>
+      getSupabaseClient()
+        .from("scholar_week_excuses")
+        .upsert(
+          {
+            scholar_uid: input.scholar_uid,
+            week_start: weekStart,
+            week_num: input.week_num,
+            kind: input.kind,
+            excuse_min: input.excuse_min,
+            description: input.description,
+            updated_by: actorId,
+            updated_at: asOf.toISOString(),
+          },
+          { onConflict: "scholar_uid,week_start,kind" }
+        )
+        .select()
+        .single()
+    );
+    // Database failures are not the caller's to fix: the error handler decides the status.
+    if (error) return yield* Effect.die(error);
 
-  const { data, error } = await supabase
-    .from("scholar_week_excuses")
-    .upsert(row, { onConflict: "scholar_uid,week_start,kind" })
-    .select()
-    .single();
-  if (error) throw error;
-
-  const mapped = mapExcuseRow(data);
-  if (!mapped) throw new Error(`scholar_week_excuses returned an unknown kind: ${data.kind}`);
-  return mapped;
-}
+    const mapped = mapExcuseRow(data);
+    if (!mapped) {
+      return yield* Effect.die(new Error(`scholar_week_excuses returned an unknown kind: ${data.kind}`));
+    }
+    return mapped;
+  });

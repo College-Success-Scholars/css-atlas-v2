@@ -6,8 +6,9 @@
  * @css-atlas/shared/contracts/attendance. Paths, validation, roles and the
  * response envelope come from the contract and http/endpoint.ts.
  *
- * This file is the reference shape for a controller: each handler takes
- * validated input and returns data.
+ * This file is the reference shape for a controller: each handler maps
+ * validated input to one service call. upsertExcuse is an Effect service
+ * (the target shape); the two reads are Promise services awaiting migration.
  */
 import * as contract from "@css-atlas/shared/contracts/attendance";
 import { implement } from "../http/endpoint.js";
@@ -20,13 +21,5 @@ export const attendanceEndpoints = [
     getWeekAttendanceForUids(params.week_num, body.uids),
   ),
 
-  implement(contract.upsertExcuse, ({ body }, caller) =>
-    upsertExcuse(
-      {
-        ...body,
-        updated_by: caller.profile?.student_id != null ? String(caller.profile.student_id) : caller.userId || null,
-      },
-      caller.asOf,
-    ),
-  ),
+  implement(contract.upsertExcuse, ({ body }) => upsertExcuse(body)),
 ];

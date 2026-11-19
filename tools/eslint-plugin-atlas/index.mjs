@@ -62,6 +62,11 @@ const rules = {
     "Do not import zod here. Schemas live in shared/contracts/; validate with validate() from @css-atlas/shared/contract.",
     ["ImportDeclaration[source.value='zod']"],
   ),
+  "no-effect-run": ban(
+    "Run Effects only at the edge.",
+    "Do not run an Effect here. Return it, and let http/endpoint.ts (or a cron entrypoint) run it once with CurrentCaller provided.",
+    ["CallExpression[callee.object.name='Effect'][callee.property.name=/^run/]"],
+  ),
   "no-use-effect": ban(
     "Ban direct use of React effects outside the hooks directory.",
     "Do not use useEffect/useLayoutEffect here. Fetch data in a Server Component or server action, derive state during render, or use (or add) a named hook in frontend/hooks/.",

@@ -19,6 +19,7 @@ CI runs both. A red guardrail is fixed by changing the code, never by widening a
 | `atlas/no-clock-read` (`new Date()`, `Date.now()`) | backend `services/`, `models/`, `utils/`, `domains/`; frontend except `hooks/` | Accept `asOf: Date` as a parameter. Controllers and cron entrypoints read the clock and pass it down |
 | `atlas/no-process-env` | both apps | Read configuration once in the app's env module and pass it in |
 | `atlas/no-express-import` | backend `controllers/` | Bind a handler to a contract with `implement()`; see [controllers](backend/src/controllers/README.md) |
+| `atlas/no-effect-run` (`Effect.run*`) | backend, except `http/` and tests | Return the Effect; `http/endpoint.ts` runs it with `CurrentCaller` provided |
 | `atlas/no-schema-library` (`zod`) | backend | Schemas live in `shared/contracts/`; validate with `validate()` from `@css-atlas/shared/contract` |
 | relative imports of `shared/` | both apps | Import by package name: `@css-atlas/shared/<module>` |
 | `atlas/no-try-catch` | backend `controllers/` | Let errors reach the global error handler; throw a typed error for a specific status |
@@ -49,6 +50,7 @@ frontend:  app/<route> → components → lib · hooks → shared
 | `no-upward-imports`, `models-are-leaves` | Nothing below the HTTP edge imports it |
 | `no-express-below-controllers` | Express types stop at controllers and middleware |
 | `services-never-import-domains`, `domains-are-isolated` | A domain may use shared services; nothing reaches into a domain, and domains do not import each other |
+| `context-is-a-leaf` | `context/` (CurrentCaller) imports nothing above models, so every layer can read it |
 | `nothing-imports-app`, `lib-is-below-components` | `components/`, `lib/`, `hooks/` never import upward |
 | `dashboard-routes-are-isolated` | One dashboard route never imports another's `_lib` or `_components`; shared code moves down |
 | `dev-pages-are-not-a-library` | Product routes never import `app/dev` |

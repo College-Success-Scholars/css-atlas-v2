@@ -3,7 +3,8 @@
  * it may import:
  *
  *   routes → controllers → services / domains → models, supabase, utils
- *   (http/ is the request lifecycle; only routes, controllers and app.ts use it)
+ *   (http/ is the request lifecycle; only routes, controllers and app.ts use it.
+ *    context/ holds CurrentCaller; every layer may import it.)
  *
  * Existing violations are grandfathered in .dependency-cruiser-known-violations.json
  * (may only shrink). See docs/dev/guardrails.md.
@@ -42,6 +43,12 @@ module.exports = {
       "Models hold types and constants. They import nothing above them.",
       { path: "^src/models/" },
       { path: "^src/(services|domains|controllers|routes|middleware)/" },
+    ),
+    rule(
+      "context-is-a-leaf",
+      "context/ describes the current request (CurrentCaller). Every layer may read it, so it imports nothing above models.",
+      { path: "^src/context/" },
+      { path: "^src/(routes|controllers|http|middleware|services|domains|supabase)/" },
     ),
     rule(
       "services-never-import-domains",

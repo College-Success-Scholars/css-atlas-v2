@@ -2,9 +2,11 @@ import express from "express";
 import request from "supertest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as attendance from "@css-atlas/shared/contracts/attendance";
+import { Context, Effect } from "effect";
+import { CurrentCaller } from "../context/current-caller.js";
 import { implement, type Caller, type Handler } from "../http/endpoint.js";
 import { errorHandler } from "../http/error-handler.js";
-import { notFound } from "../utils/app-error.js";
+import { ConflictError, ForbiddenError, NotFoundError } from "../utils/domain-error.js";
 
 /** Mount a bound endpoint without the auth middleware, so only the request lifecycle is under test. */
 function appFor(bound: ReturnType<typeof implement>) {
@@ -105,13 +107,13 @@ describe("implement — request lifecycle", () => {
     });
   });
 
-  it("maps a thrown AppError to its status and message", async () => {
+  it("maps a domain error thrown by a Promise handler to its status", async () => {
     const bound = implement(attendance.getWeekBoard, async () => {
-      throw notFound("No such campus week");
+      throw new NotFoundError({ resource: "Campus week", id: "1" });
     });
     const res = await request(appFor(bound)).get("/api/attendance/week/1?kind=front_desk");
     expect(res.status).toBe(404);
-    expect(res.body).toEqual({ error: "No such campus week" });
+    expect(res.body).toEqual({ error: 'Campus week "1" not found' });
   });
 
   it("hides unexpected errors behind a 500", async () => {
@@ -141,5 +143,53 @@ describe("implement — request lifecycle", () => {
     );
     expect(res.status).toBe(500);
     expect(res.body).toEqual({ error: "Internal server error" });
+  });
+});
+
+describe("implement — Effect handlers", () => {
+  it("provides CurrentCaller to the handler and everything it calls", async () => {
+    const recordedBy = Effect.gen(function* () {
+      const { actorId } = yield* CurrentCaller;
+      return actorId;
+    });
+    const bound = implement(attendance.getWeekBoard, ({ params, query }) =>
+      Effect.gen(function* () {
+        const actor = yield* recordedBy;
+        return { ...board(params.week_num, query.kind), week_start: actor ?? "anonymous" };
+      }),
+    );
+    const res = await request(appFor(bound)).get("/api/attendance/week/2?kind=front_desk");
+    expect(res.status).toBe(200);
+    expect(res.body.data.week_start).toBe("anonymous");
+  });
+
+  it.each([
+    [new ForbiddenError({ reason: "Only your own mentees" }), 403, "Only your own mentees"],
+    [new ConflictError({ message: "The week is locked" }), 409, "The week is locked"],
+  ])("maps a typed failure to its status (%s)", async (failure, status, error) => {
+    const bound = implement(attendance.getWeekBoard, () => Effect.fail(failure));
+    const res = await request(appFor(bound)).get("/api/attendance/week/1?kind=front_desk");
+    expect(res.status).toBe(status);
+    expect(res.body).toEqual({ error });
+  });
+
+  it("turns a defect into a 500 without leaking it", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const bound = implement(attendance.getWeekBoard, () => Effect.die(new Error("db password in message")));
+    const res = await request(appFor(bound)).get("/api/attendance/week/1?kind=front_desk");
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: "Internal server error" });
+  });
+
+  it("rejects, at compile time, handlers it cannot run", () => {
+    class Mailer extends Context.Service<Mailer, { send: () => void }>()("Mailer") {}
+
+    // @ts-expect-error a requirement other than CurrentCaller is never provided
+    implement(attendance.getWeekBoard, () => Effect.gen(function* () { yield* Mailer; return board(1, "front_desk"); }));
+
+    // @ts-expect-error only DomainError failures map to a status
+    implement(attendance.getWeekBoard, () => Effect.fail(new Error("untyped")));
+
+    expect(true).toBe(true);
   });
 });

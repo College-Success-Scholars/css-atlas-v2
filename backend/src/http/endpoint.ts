@@ -3,51 +3,50 @@
  * @module backend/http
  *
  * Request handling for contract-backed endpoints. `implement` binds a handler
- * to a contract from @css-atlas/shared/contracts/*; this module then owns the
- * whole request lifecycle:
+ * to a contract from @css-atlas/shared/contracts/*; this module owns the whole
+ * request lifecycle:
  *
  *   authenticate + role check (from contract.access)
- *   → validate params, query, body (400 on failure)
- *   → handler(input, caller)
- *   → validate the result against contract.output
+ *   → validate params, query, body        (ValidationError → 400)
+ *   → run the handler with CurrentCaller provided
+ *   → validate the result against contract.output (mismatch is our bug → 500)
  *   → { data } envelope
  *
- * Any thrown error goes to the global error handler in app.ts. A handler is
- * a function from valid input to data and contains none of the above.
- *
- * ## What belongs here
- * - The request lifecycle shared by every endpoint
- *
- * ## What does NOT belong here
- * - Anything specific to one endpoint or domain
+ * A handler returns an Effect (preferred) or a Promise (unmigrated code). An
+ * Effect handler's failures are limited to DomainError and its requirements
+ * to CurrentCaller, so the compiler rejects anything this module cannot
+ * handle or provide. This is the only place backend code runs an Effect.
  */
 import { Router, type NextFunction, type RequestHandler, type Response } from "express";
-import { validate, type Access, type Endpoint, type EndpointInput, type EndpointResult } from "@css-atlas/shared/contract";
+import { Effect } from "effect";
+import {
+  validate,
+  type Access,
+  type Endpoint,
+  type EndpointInput,
+  type EndpointResult,
+} from "@css-atlas/shared/contract";
+import { CurrentCaller, type Caller } from "../context/current-caller.js";
 import {
   requireAuth,
   requireDeveloper,
   requireTeamLeaderOrAbove,
   type AuthenticatedRequest,
 } from "../middleware/auth.middleware.js";
-import type { ProfilesRow } from "../models/user.model.js";
-import { invalid } from "../utils/app-error.js";
+import { ValidationError, type DomainError } from "../utils/domain-error.js";
 
-/** Who is making the request. */
-export interface Caller {
-  userId: string;
-  /** Effective profile (a developer's test persona when acting as one). */
-  profile: ProfilesRow | null;
-  /** The signed-in user's own profile; never a test persona. */
-  realProfile: ProfilesRow | null;
-  /** The clock, read once at the edge. Pass it down; services never read the time. */
-  asOf: Date;
-}
+export type { Caller } from "../context/current-caller.js";
 
-/** A handler returns what the contract's output schema accepts. */
-export type Handler<E extends Endpoint> = (
+/**
+ * A handler receives validated input and the caller, and returns either
+ * - an Effect that succeeds with the contract's output, may fail only with a
+ *   DomainError, and may require only CurrentCaller; or
+ * - a Promise of the output (unmigrated code; throw a DomainError to fail).
+ */
+export type Handler<E extends Endpoint, Err extends DomainError = DomainError, Req extends CurrentCaller = never> = (
   input: EndpointInput<E>,
   caller: Caller,
-) => Promise<EndpointResult<E>>;
+) => Effect.Effect<EndpointResult<E>, Err, Req> | Promise<EndpointResult<E>>;
 
 /** A contract bound to its handler, ready to mount. */
 export interface BoundEndpoint {
@@ -61,37 +60,67 @@ const AUTH: Record<Access, RequestHandler> = {
   developer: requireDeveloper as RequestHandler,
 };
 
-function parsePart<T>(schema: Parameters<typeof validate>[0], part: string, value: unknown): T {
+function callerFrom(req: AuthenticatedRequest, asOf: Date): Caller {
+  const userId = req.authUser?.id ?? "";
+  const studentId = req.profile?.student_id;
+  return {
+    userId,
+    actorId: studentId != null ? String(studentId) : userId || null,
+    profile: req.profile ?? null,
+    realProfile: req.realProfile ?? null,
+    asOf,
+  };
+}
+
+function parsePart<T>(
+  schema: Parameters<typeof validate>[0],
+  part: string,
+  value: unknown,
+): Effect.Effect<T, ValidationError> {
   const result = validate(schema, value ?? {});
-  if (result.ok) return result.data as T;
-  throw invalid(`${result.field || part} ${result.message}`);
+  return result.ok
+    ? Effect.succeed(result.data as T)
+    : Effect.fail(new ValidationError({ field: result.field || part, message: result.message }));
 }
 
 /** Bind a handler to its contract. */
-export function implement<E extends Endpoint>(contract: E, handler: Handler<E>): BoundEndpoint {
+export function implement<E extends Endpoint, Err extends DomainError = DomainError, Req extends CurrentCaller = never>(
+  contract: E,
+  handler: Handler<E, Err, Req>,
+): BoundEndpoint {
+  // Effect is covariant in its error and requirement types, so this widening is
+  // safe, and it lets the compiler see that providing CurrentCaller leaves nothing.
+  const run: Handler<E, DomainError, CurrentCaller> = handler;
+
   const handle = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    Promise.resolve()
-      .then(async () => {
-        const input: EndpointInput<E> = {
-          params: parsePart(contract.params, "params", req.params),
-          query: parsePart(contract.query, "query", req.query),
-          body: parsePart(contract.body, "body", req.body),
-        };
-        const caller: Caller = {
-          userId: req.authUser?.id ?? "",
-          profile: req.profile ?? null,
-          realProfile: req.realProfile ?? null,
-          asOf: new Date(),
-        };
-        const result = await handler(input, caller);
-        const output = validate(contract.output, result);
-        // A mismatch here is our bug, not the caller's: surface it as a 500.
-        if (!output.ok) {
-          throw new Error(`${contract.method} ${contract.path} broke its contract: ${output.field} ${output.message}`);
-        }
-        res.json({ data: output.data });
-      })
-      .catch(next);
+    const caller = callerFrom(req, new Date());
+
+    const program = Effect.gen(function* () {
+      const input: EndpointInput<E> = {
+        params: yield* parsePart<EndpointInput<E>["params"]>(contract.params, "params", req.params),
+        query: yield* parsePart<EndpointInput<E>["query"]>(contract.query, "query", req.query),
+        body: yield* parsePart<EndpointInput<E>["body"]>(contract.body, "body", req.body),
+      };
+
+      const outcome = run(input, caller);
+      const result: EndpointResult<E> = Effect.isEffect(outcome)
+        ? yield* outcome
+        : yield* Effect.promise(() => outcome);
+
+      const output = validate(contract.output, result);
+      if (!output.ok) {
+        return yield* Effect.die(
+          new Error(`${contract.method} ${contract.path} broke its contract: ${output.field} ${output.message}`),
+        );
+      }
+      return output.data;
+    }).pipe(
+      Effect.provideService(CurrentCaller, caller),
+      Effect.withSpan(`${contract.method} ${contract.path}`),
+    );
+
+    // Failures and defects reject with the original error; error-handler.ts maps it.
+    Effect.runPromise(program).then((data) => res.json({ data }), next);
   };
   return { contract, handle: handle as RequestHandler };
 }

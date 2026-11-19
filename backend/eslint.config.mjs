@@ -47,6 +47,12 @@ export default [
     rules: { "atlas/no-clock-read": "error" },
   },
   {
+    // Effects are values until the edge runs them.
+    files: ["src/**/*.ts"],
+    ignores: [...TESTS, "src/http/**"],
+    rules: { "atlas/no-effect-run": "error" },
+  },
+  {
     // Controllers are handlers bound to a contract: no Express, no catching.
     files: ["src/controllers/**"],
     rules: { "atlas/no-try-catch": "error", "atlas/no-express-import": "error" },

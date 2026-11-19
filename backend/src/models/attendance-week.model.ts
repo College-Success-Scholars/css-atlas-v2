@@ -17,11 +17,7 @@ import type { MemoUserRow } from "./user.model.js";
 import type { ScholarWithCompletedSession } from "./session-log.model.js";
 
 // Wire shapes are defined once, in the API contract.
-import type {
-  AttendanceKind,
-  ExcuseInput,
-  ScholarWeekExcuse,
-} from "@css-atlas/shared/contracts/attendance";
+import type { ScholarWeekExcuse } from "@css-atlas/shared/contracts/attendance";
 
 export type {
   AttendanceForUids,
@@ -32,8 +28,6 @@ export type {
 } from "@css-atlas/shared/contracts/attendance";
 
 export type ScholarWeekExcuseRow = ScholarWeekExcuse;
-
-export type UpsertExcusePayload = ExcuseInput & { updated_by: string | null };
 
 export interface CampusWeekAttendanceTotals {
   minutes: WeeklyMinutesByDay;

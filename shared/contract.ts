@@ -92,7 +92,11 @@ export function endpointPath(
   });
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries((request.query ?? {}) as Record<string, unknown>)) {
-    if (value !== undefined && value !== null) search.set(key, String(value));
+    if (value === undefined || value === null) continue;
+    // Repeat the key for arrays (?uids=a&uids=b), which Express parses back into an array.
+    for (const item of Array.isArray(value) ? value : [value]) {
+      if (item !== undefined && item !== null) search.append(key, String(item));
+    }
   }
   const queryString = search.toString();
   return queryString ? `${path}?${queryString}` : path;
@@ -109,7 +113,7 @@ export const campusWeekNumber = z
   .pipe(z.number().int().min(1, "must be a campus week number of 1 or more"));
 
 /** A Scholar ID (University ID). */
-export const scholarId = z.string().trim().min(1, "is required").max(50);
+export const scholarId = z.string().trim().min(1, "is required").max(50, "must be 50 characters or fewer");
 
 // ---------------------------------------------------------------------------
 // Validation helpers — so the apps never import the schema library themselves
@@ -118,16 +122,30 @@ export const scholarId = z.string().trim().min(1, "is required").max(50);
 /** What a handler may return: anything the endpoint's output schema accepts. */
 export type EndpointResult<E extends Endpoint> = z.input<E["output"]>;
 
-export type Validated<T> = { ok: true; data: T } | { ok: false; field: string; message: string };
+export interface ValidationIssue {
+  readonly field: string;
+  readonly message: string;
+}
 
-/** Validate one value against a contract schema, reporting the first problem as field + message. */
+export type Validated<T> =
+  | { readonly ok: true; readonly data: T }
+  | {
+      readonly ok: false;
+      /** The first failing field path ("" when the value as a whole is invalid). */
+      readonly field: string;
+      /** The first failing message. */
+      readonly message: string;
+      /** Every problem found, in order. */
+      readonly issues: readonly ValidationIssue[];
+    };
+
+/** Validate one value against a contract schema, reporting the first problem and all of them. */
 export function validate<S extends z.ZodType>(schema: S, value: unknown): Validated<z.output<S>> {
   const result = schema.safeParse(value);
   if (result.success) return { ok: true, data: result.data };
-  const issue = result.error.issues[0];
-  return {
-    ok: false,
-    field: issue?.path.length ? issue.path.join(".") : "",
-    message: issue?.message ?? "is invalid",
-  };
+  const issues = result.error.issues.map((issue) => ({
+    field: issue.path.length ? issue.path.join(".") : "",
+    message: issue.message,
+  }));
+  return { ok: false, field: issues[0]?.field ?? "", message: issues[0]?.message ?? "is invalid", issues };
 }

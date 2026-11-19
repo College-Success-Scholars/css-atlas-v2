@@ -5,21 +5,41 @@
  * The global Express error handler: the single place that decides which
  * status a thrown error becomes and how much of it is safe to show a client.
  *
- * - AppError → the status for its kind, with its message
+ * - DomainError → the status for its tag, with a message built from its fields
  * - Postgres / PostgREST data errors → 400 with the database message
  * - anything else → 500 "Internal server error" (details are logged only)
  */
 import type { NextFunction, Request, Response } from "express";
-import { APP_ERROR_STATUS, AppError } from "../utils/app-error.js";
+import { isDomainError, type DomainError } from "../utils/domain-error.js";
 import { formatSupabaseError, supabaseErrorStatus } from "../utils/supabase-errors.js";
+
+const STATUS: Record<DomainError["_tag"], number> = {
+  ValidationError: 400,
+  ForbiddenError: 403,
+  NotFoundError: 404,
+  ConflictError: 409,
+};
+
+function describe(error: DomainError): string {
+  switch (error._tag) {
+    case "ValidationError":
+      return error.field ? `${error.field} ${error.message}` : error.message;
+    case "NotFoundError":
+      return error.id ? `${error.resource} "${error.id}" not found` : `${error.resource} not found`;
+    case "ForbiddenError":
+      return error.reason;
+    case "ConflictError":
+      return error.message;
+  }
+}
 
 export function errorHandler(err: unknown, _req: Request, res: Response, next: NextFunction) {
   if (res.headersSent) {
     next(err);
     return;
   }
-  if (err instanceof AppError) {
-    res.status(APP_ERROR_STATUS[err.kind]).json({ error: err.message });
+  if (isDomainError(err)) {
+    res.status(STATUS[err._tag]).json({ error: describe(err) });
     return;
   }
   const status = supabaseErrorStatus(err);
