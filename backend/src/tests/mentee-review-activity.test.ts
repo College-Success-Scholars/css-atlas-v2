@@ -247,12 +247,32 @@ describe("buildAttendanceEvidence", () => {
     ]);
   });
 
-  it("keeps an open entry bounded to its own local day and marks the date non-terminal", () => {
-    const open = evidence.logs.find((l) => l.sourceId === "fd-open-in");
-    expect(open).toBeDefined();
-    expect(open!.end.getTime()).toBe(asOf.getTime()); // 12:00 < day end
+  it("surfaces an open entry as an uncounted sign-in and marks the date non-terminal", () => {
+    expect(evidence.logs.some((l) => l.sourceId === "fd-open-in")).toBe(false);
+    expect(evidence.openSignIns).toEqual([
+      { sourceId: "fd-open-in", kind: "front_desk", start: at(tue, "09:00") },
+    ]);
     expect(evidence.nonTerminalDates).toContain(localDay(tue));
-    expect(open!.end.getTime()).toBeLessThan(addEasternCalendarDays(tue, 1).getTime());
+  });
+
+  it("lists open sign-ins in the week summary without adding minutes", () => {
+    const summary = evaluateWeek({
+      weekNumber: 1,
+      weekStart: WEEK_1.startDate,
+      weekEnd: WEEK_1.endDate,
+      asOf,
+      shifts: [],
+      logs: evidence.logs,
+      openSignIns: evidence.openSignIns,
+      nonTerminalDates: evidence.nonTerminalDates,
+      targets: { front_desk: 300 },
+      wahf: { available: true, dueAt: at(WEEK_1.endDate, "23:59"), submission: null },
+      tutoring: { available: true, reports: [] },
+    });
+    const fd = summary.hours.find((h) => h.kind === "front_desk")!;
+    expect(fd.loggedMinutes).toBe(60);
+    expect(fd.openSignIns.map((o) => o.sourceId)).toEqual(["fd-open-in"]);
+    expect(fd.offShiftLogs.flatMap((l) => l.sourceIds)).not.toContain("fd-open-in");
   });
 
   it("marks unmatched evidence dates non-terminal without manufacturing attendance", () => {
@@ -430,6 +450,7 @@ describe("composeMenteeReview", () => {
       logs: [
         { sourceId: "l1", kind: "front_desk", start: at(WEEK_1.startDate, "10:00"), end: at(WEEK_1.startDate, "11:00") },
       ],
+      openSignIns: [],
       nonTerminalDates: [],
       excuses: [],
     },

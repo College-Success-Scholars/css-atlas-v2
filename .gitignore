@@ -19,5 +19,8 @@ graphify-out
 docs/dev/supabase/CSS-Atlas-Data-Inventory.pdf
 docs/dev/supabase/css-atlas-data-inventory.html
 docs/dev/supabase/css-atlas-data-inventory.md
+docs/dev/supabase/CSS-Atlas-Director-Cost-Request.pdf
+docs/dev/supabase/css-atlas-director-cost-request.html
+docs/dev/supabase/css-atlas-director-cost-request.md
 docs/dev/supabase/inventory-print.css
 scripts/build-data-inventory-pdf.sh

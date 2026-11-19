@@ -42,6 +42,7 @@ function hourSummary(kind: ShiftSessionKind, over: Partial<HourWeekSummary> = {}
     hasActivity: false,
     shifts: [],
     offShiftLogs: [],
+    openSignIns: [],
     ...over,
   };
 }

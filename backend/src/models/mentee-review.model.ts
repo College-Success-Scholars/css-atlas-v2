@@ -77,6 +77,16 @@ export interface LoggedIntervalInput {
   end: Date;
 }
 
+/**
+ * A sign-in with no matching sign-out. Shown for visibility only: it never
+ * contributes minutes or shift overlap, matching the Weekly Memo's completed-pair math.
+ */
+export interface OpenSignInEvidence {
+  sourceId: string;
+  kind: ShiftSessionKind;
+  start: Date;
+}
+
 /** A standing scheduled shift occurrence (one date of a weekday assignment). */
 export interface ScheduledShiftInput {
   sourceId: string;
@@ -194,6 +204,8 @@ export interface HourWeekSummary {
   hasActivity: boolean;
   shifts: ShiftEvidence[];
   offShiftLogs: OffShiftLogEvidence[];
+  /** Sign-ins this week with no sign-out; not counted toward minutes. */
+  openSignIns: OpenSignInEvidence[];
 }
 
 export interface WahfWeekSummary {
@@ -277,6 +289,8 @@ export interface EvaluateWeekInput {
   asOf: Date;
   shifts: ScheduledShiftInput[];
   logs: LoggedIntervalInput[];
+  /** Sign-ins with no sign-out; displayed but never counted. */
+  openSignIns?: OpenSignInEvidence[];
   /**
    * Program-local dates (YYYY-MM-DD) carrying open or unmatched evidence.
    * A no-show is never confirmed on these dates (task 3.3).

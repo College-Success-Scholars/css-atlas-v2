@@ -230,6 +230,18 @@ describe("HourSummaryCard", () => {
     expect(html).toContain('class="flex items-center gap-2 border-t')
   })
 
+  it("lists open sign-ins as no sign-out and not counted", () => {
+    const html = renderToStaticMarkup(
+      <HourSummaryCard summary={summary({ shifts: [], openSignIns: [{
+        kind: "front_desk", sourceId: "open-1", start: "2026-09-11T19:10:00.000Z",
+      }] })} />,
+    )
+    expect(html).toContain('data-slot="open-sign-ins"')
+    expect(html).toContain(">Fri<")
+    expect(html).toContain("3:10pm – no sign-out")
+    expect(html).toContain("Not counted")
+  })
+
   it("fills the bar for a completed target even without a shift assignment", () => {
     const html = renderToStaticMarkup(
       <HourSummaryCard summary={summary({ assignmentAvailable: false, percent: null })} tier="rare" />,

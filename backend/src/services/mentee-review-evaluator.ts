@@ -55,6 +55,7 @@ import type {
   LoggedIntervalInput,
   NormalizedInterval,
   OffShiftLogEvidence,
+  OpenSignInEvidence,
   ScheduledShiftInput,
   ShiftEvidence,
   ShiftStatus,
@@ -219,6 +220,8 @@ export function evaluateHours(params: {
   asOfMs: number;
   phase: WeekPhase;
   nonTerminalDates: ReadonlySet<string>;
+  /** Sign-ins with no sign-out; listed for this week but never counted. */
+  openSignIns?: OpenSignInEvidence[];
   /** Campus-week excuse minutes + note (`scholar_week_excuses`). */
   excuseMinutes?: number;
   excuseDescription?: string | null;
@@ -318,6 +321,13 @@ export function evaluateHours(params: {
       sourceIds: iv.sourceIds,
     }));
 
+  const openSignIns = (params.openSignIns ?? [])
+    .filter((o) => {
+      const startMs = o.start.getTime();
+      return startMs >= weekStartMs && startMs < weekEndExclusiveMs;
+    })
+    .sort((a, b) => a.start.getTime() - b.start.getTime());
+
   return {
     kind,
     assignmentAvailable: weekShifts.length > 0,
@@ -331,9 +341,11 @@ export function evaluateHours(params: {
     overageMinutes,
     pending,
     noShowCount: shiftEvidence.filter((s) => s.status === "no_show").length,
-    hasActivity: normalized.length > 0 || weekShifts.length > 0 || excuseMinutes > 0,
+    hasActivity:
+      normalized.length > 0 || weekShifts.length > 0 || excuseMinutes > 0 || openSignIns.length > 0,
     shifts: shiftEvidence,
     offShiftLogs,
+    openSignIns,
   };
 }
 
@@ -582,6 +594,7 @@ export function evaluateWeek(input: EvaluateWeekInput): WeekReviewSummary {
       asOfMs,
       phase,
       nonTerminalDates,
+      openSignIns: (input.openSignIns ?? []).filter((o) => o.kind === kind),
       excuseMinutes: excuse?.minutes ?? 0,
       excuseDescription: excuse?.description ?? null,
     });

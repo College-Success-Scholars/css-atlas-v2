@@ -15,6 +15,7 @@
  * ## Responsibilities
  * - Expand semester-scoped standing assignments into dated shift occurrences
  * - Map completed sessions into logged intervals
+ * - Surface open sign-ins (no sign-out) separately; they never add minutes
  * - Record open/errored evidence dates as non-terminal
  * - Attach campus-week excuses from scholar_week_excuses
  *
@@ -41,6 +42,7 @@ import type { ScholarWeekExcuseRow } from "../models/attendance-week.model.js";
 import type { ScholarShiftAssignment, SessionLogRow } from "../models/session-log.model.js";
 import type {
   LoggedIntervalInput,
+  OpenSignInEvidence,
   ScheduledShiftInput,
   ShiftSessionKind,
   WeekExcuseInput,
@@ -59,6 +61,8 @@ export interface ExcuseEvidence {
 export interface AttendanceEvidence {
   shifts: ScheduledShiftInput[];
   logs: LoggedIntervalInput[];
+  /** Sign-ins with no matching sign-out; displayed, never counted as minutes. */
+  openSignIns: OpenSignInEvidence[];
   /** Program-local dates (YYYY-MM-DD) with open or unmatched evidence. */
   nonTerminalDates: string[];
   /** All scholar_week_excuses for this scholar (any campus week). */
@@ -163,6 +167,7 @@ function buildKindEvidence(
   scholarUid: string,
   asOf: Date,
   logs: LoggedIntervalInput[],
+  openSignIns: OpenSignInEvidence[],
   nonTerminal: Set<string>
 ): void {
   const completed = getScholarsWithValidEntryExit(rows).filter((s) => s.scholarId === scholarUid);
@@ -188,11 +193,9 @@ function buildKindEvidence(
     if (completedEntryAts.has(processed.ticket.created_at)) continue;
     const start = new Date(processed.ticket.created_at);
     nonTerminal.add(easternDateKey(start));
-    // An open entry stays bounded to its own local day so it cannot bleed across weeks.
-    const dayEndMs = addEasternCalendarDays(start, 1).getTime() - 1;
-    const endMs = Math.min(asOf.getTime(), dayEndMs);
-    if (endMs > start.getTime()) {
-      logs.push({ sourceId: processed.ticket.id, kind, start, end: new Date(endMs) });
+    // No sign-out means no countable minutes (Weekly Memo pairs only); surface it instead.
+    if (start.getTime() <= asOf.getTime()) {
+      openSignIns.push({ sourceId: processed.ticket.id, kind, start });
     }
   }
 
@@ -234,11 +237,13 @@ export function buildAttendanceEvidence(params: {
   });
 
   const logs: LoggedIntervalInput[] = [];
+  const openSignIns: OpenSignInEvidence[] = [];
   const nonTerminal = new Set<string>();
-  buildKindEvidence("front_desk", frontDeskRows, scholarUid, asOf, logs, nonTerminal);
-  buildKindEvidence("study_session", studyRows, scholarUid, asOf, logs, nonTerminal);
+  buildKindEvidence("front_desk", frontDeskRows, scholarUid, asOf, logs, openSignIns, nonTerminal);
+  buildKindEvidence("study_session", studyRows, scholarUid, asOf, logs, openSignIns, nonTerminal);
 
   logs.sort((a, b) => a.start.getTime() - b.start.getTime());
+  openSignIns.sort((a, b) => a.start.getTime() - b.start.getTime());
   shifts.sort(
     (a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime)
   );
@@ -246,6 +251,7 @@ export function buildAttendanceEvidence(params: {
   return {
     shifts,
     logs,
+    openSignIns,
     nonTerminalDates: [...nonTerminal].sort(),
     excuses: mapExcuseRowsToEvidence(excuseRows),
   };

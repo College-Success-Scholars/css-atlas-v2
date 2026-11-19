@@ -204,6 +204,7 @@ function evaluateInstructionalWeeks(input: ComposeMenteeReviewInput): WeekReview
         asOf,
         shifts: attendance.data.shifts,
         logs: attendance.data.logs,
+        openSignIns: attendance.data.openSignIns,
         nonTerminalDates: attendance.data.nonTerminalDates,
         targets,
         excuses: weekStartYmd
@@ -311,7 +312,7 @@ async function composeReviewForMentee(params: {
       targets,
       attendance: {
         ok: true,
-        data: { shifts: [], logs: [], nonTerminalDates: [], excuses: [] },
+        data: { shifts: [], logs: [], openSignIns: [], nonTerminalDates: [], excuses: [] },
         loadedAt: asOf.toISOString(),
       },
       wahf: { ok: true, data: [], loadedAt: asOf.toISOString() },

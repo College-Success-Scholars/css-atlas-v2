@@ -9,6 +9,7 @@ import tierStyles from "./tier-styles.module.css"
 import {
   HOUR_BAND_STYLES,
   PENDING_STYLES,
+  formatClock,
   formatClockRange,
   formatCompactHours,
   formatHours,
@@ -79,7 +80,11 @@ export function HourSummaryCard({ summary, tier = null }: HourSummaryCardProps) 
   const offShiftLogs = [...summary.offShiftLogs].sort(
     (a, b) => Date.parse(a.start) - Date.parse(b.start),
   )
-  const hasSessionList = scheduledShifts.length > 0 || offShiftLogs.length > 0
+  const openSignIns = [...(summary.openSignIns ?? [])].sort(
+    (a, b) => Date.parse(a.start) - Date.parse(b.start),
+  )
+  const hasSessionList =
+    scheduledShifts.length > 0 || offShiftLogs.length > 0 || openSignIns.length > 0
 
   return (
     <Card
@@ -229,6 +234,31 @@ export function HourSummaryCard({ summary, tier = null }: HourSummaryCardProps) 
                         <span className="shrink-0 font-semibold" title={day}>{day.slice(0, 3)}</span>
                         <span className="whitespace-nowrap text-muted-foreground">{times}</span>
                         <span className="ml-auto shrink-0 font-semibold">{hours}</span>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            ) : null}
+
+            {openSignIns.length > 0 ? (
+              <div data-slot="open-sign-ins">
+                <p className="pt-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  No sign-out
+                </p>
+                <ul>
+                  {openSignIns.map((entry) => {
+                    const day = formatShiftDay(entry.start)
+                    const times = `${formatClock(entry.start)} – no sign-out`
+                    return (
+                      <li
+                        key={`open-${entry.sourceId}`}
+                        aria-label={`${day}, signed in ${formatClock(entry.start)}, no sign-out, not counted`}
+                        className="flex items-center gap-2 border-t border-border/50 py-2 text-[13px] tabular-nums"
+                      >
+                        <span className="shrink-0 font-semibold" title={day}>{day.slice(0, 3)}</span>
+                        <span className="whitespace-nowrap text-warning-muted-foreground">{times}</span>
+                        <span className="ml-auto shrink-0 text-muted-foreground">Not counted</span>
                       </li>
                     )
                   })}

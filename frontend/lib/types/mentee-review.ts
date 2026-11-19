@@ -51,6 +51,13 @@ export interface OffShiftLogEvidence {
   sourceIds: string[];
 }
 
+/** Sign-in with no sign-out: shown, never counted toward hours. */
+export interface OpenSignInEvidence {
+  sourceId: string;
+  kind: ShiftSessionKind;
+  start: string;
+}
+
 export interface HourWeekSummary {
   kind: ShiftSessionKind;
   /** Derived from this requirement's logged minutes by `applyWeekTiers`; not an API field. */
@@ -71,6 +78,8 @@ export interface HourWeekSummary {
   hasActivity: boolean;
   shifts: ShiftEvidence[];
   offShiftLogs: OffShiftLogEvidence[];
+  /** Optional so older payloads still render. */
+  openSignIns?: OpenSignInEvidence[];
 }
 
 export interface WahfWeekSummary {
