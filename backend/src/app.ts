@@ -58,7 +58,7 @@ app.get("/", (_req, res) => {
   res.json({ message: "CSS Atlas API" });
 });
 
-app.use("/api/dev", devRoutes);
+app.use(devRoutes);
 app.use("/api/memo", memoRoutes);
 app.use("/api/auth", authRoutes);
 app.use(userRoutes);

@@ -968,7 +968,7 @@ All routes under `/api/dev` require **requireDeveloper**.
 **Request:** None
 **Response:**
 ```json
-{ "ok": true, "message": "Developer API test successful", "user": "email@example.com", "timestamp": "ISO string" }
+{ "data": { "ok": true, "message": "Developer API test successful", "user": "email@example.com", "timestamp": "ISO string" } }
 ```
 
 ---
@@ -976,27 +976,53 @@ All routes under `/api/dev` require **requireDeveloper**.
 ### `GET /api/dev/me`
 
 **Auth:** requireDeveloper
-**Description:** Returns the authenticated developer's identity and role.
+**Description:** Returns the authenticated developer's identity and role, and whether they are acting as a test profile.
 **Request:** None
 **Response:**
 ```json
 {
-  "user": { "id": "uuid", "email": "string" },
-  "profile": { "app_role": "developer", "email": "string" }
+  "data": {
+    "user": { "id": "uuid", "email": "string" },
+    "profile": { "app_role": "developer", "email": "string" },
+    "activeTestProfileId": null,
+    "isActingAsTestProfile": false
+  }
 }
 ```
 
 ---
 
-### `GET /api/dev/form-logs/:formType/:formId`
+### `GET /api/dev/test-profiles`
 
 **Auth:** requireDeveloper
-**Description:** Retrieves a single form log entry by type and ID. Supported types: `mcf`, `wpl`.
-**Request Params:** `formType` (`"mcf"` | `"wpl"`), `formId` (string for MCF UUID, integer for WPL)
+**Description:** Active rows of `dev_test_profiles` (personas a developer can act as), ordered by label.
+**Request:** None
 **Response:**
 ```json
-{ "data": { /* single form log row */ } }
+{ "data": [ { "id": "uuid", "label": "string", "roster_uid": "string", "program_role": "Scholar", "app_role": null } ] }
 ```
+
+---
+
+### `POST /api/dev/active-profile`
+
+**Auth:** requireDeveloper
+**Description:** Checks that a test profile exists before the client sets the active-profile cookie. A null or missing `testProfileId` stops acting as a test profile. Allowed while acting.
+**Request Body:** `{ "testProfileId": "uuid" | null }`
+**Response:**
+```json
+{
+  "data": {
+    "user": { "id": "uuid", "email": "string" },
+    "profile": { /* effective profile row */ },
+    "realProfile": { /* the developer's own profile row */ },
+    "activeTestProfileId": "uuid | null",
+    "isActingAsTestProfile": true,
+    "isDeveloper": true
+  }
+}
+```
+**Errors:** `404` when no active test profile has that id.
 
 ---
 

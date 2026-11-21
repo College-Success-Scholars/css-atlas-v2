@@ -5,13 +5,16 @@
 import { describe, expectTypeOf, it } from "vitest";
 import type { TutorReportLogRow } from "../models/tutor-report-log.model.js";
 import type { SessionLogRow } from "../models/session-log.model.js";
-import type { ProfilesRow } from "../models/user.model.js";
+import type { DevTestProfile } from "@css-atlas/shared/contracts/dev";
+import type { ProfilesRow, RosterRow } from "../models/user.model.js";
 import type { ScholarWeekExcuseRow } from "../models/attendance-week.model.js";
 import type { Database } from "../supabase/database.types.js";
 
 type ProfilesDbRow = Database["public"]["Tables"]["profiles"]["Row"];
 type FrontDeskLogDbRow = Database["public"]["Tables"]["front_desk_logs"]["Row"];
 type StudySessionLogDbRow = Database["public"]["Tables"]["study_session_logs"]["Row"];
+type UserRosterDbRow = Database["public"]["Tables"]["user_roster"]["Row"];
+type DevTestProfileDbRow = Database["public"]["Tables"]["dev_test_profiles"]["Row"];
 type TutorReportDbRow = Database["public"]["Tables"]["tutor_report_logs"]["Row"];
 type ScholarWeekExcuseDbRow = Database["public"]["Tables"]["scholar_week_excuses"]["Row"];
 
@@ -39,6 +42,44 @@ describe("Database ↔ model alignment", () => {
     expectTypeOf<SessionLogRow["id"]>().toEqualTypeOf<StudySessionLogDbRow["id"]>();
     expectTypeOf<SessionLogRow["scholar_uid"]>().toEqualTypeOf<StudySessionLogDbRow["scholar_uid"]>();
     expectTypeOf<SessionLogRow["action_type"]>().toEqualTypeOf<StudySessionLogDbRow["action_type"]>();
+  });
+
+  it("RosterRow columns match user_roster Row", () => {
+    expectTypeOf<RosterRow["id"]>().toEqualTypeOf<UserRosterDbRow["id"]>();
+    // The service drops rows with no uid, so the wire type is non-null.
+    expectTypeOf<RosterRow["uid"]>().toEqualTypeOf<NonNullable<UserRosterDbRow["uid"]>>();
+    expectTypeOf<RosterRow["created_at"]>().toEqualTypeOf<UserRosterDbRow["created_at"]>();
+    expectTypeOf<RosterRow["first_name"]>().toEqualTypeOf<UserRosterDbRow["first_name"]>();
+    expectTypeOf<RosterRow["last_name"]>().toEqualTypeOf<UserRosterDbRow["last_name"]>();
+    expectTypeOf<RosterRow["phone_number"]>().toEqualTypeOf<UserRosterDbRow["phone_number"]>();
+    expectTypeOf<RosterRow["email"]>().toEqualTypeOf<UserRosterDbRow["email"]>();
+    expectTypeOf<RosterRow["cohort"]>().toEqualTypeOf<UserRosterDbRow["cohort"]>();
+    expectTypeOf<RosterRow["status"]>().toEqualTypeOf<UserRosterDbRow["status"]>();
+    expectTypeOf<RosterRow["app_role"]>().toEqualTypeOf<UserRosterDbRow["app_role"]>();
+    expectTypeOf<RosterRow["program_role"]>().toEqualTypeOf<UserRosterDbRow["program_role"]>();
+    expectTypeOf<RosterRow["fd_required"]>().toEqualTypeOf<UserRosterDbRow["fd_required"]>();
+    expectTypeOf<RosterRow["ss_required"]>().toEqualTypeOf<UserRosterDbRow["ss_required"]>();
+    expectTypeOf<RosterRow["mentee_count"]>().toEqualTypeOf<UserRosterDbRow["mentee_count"]>();
+    expectTypeOf<RosterRow["invite_accepted_at"]>().toEqualTypeOf<UserRosterDbRow["invite_accepted_at"]>();
+    expectTypeOf<RosterRow["invite_sent_at"]>().toEqualTypeOf<UserRosterDbRow["invite_sent_at"]>();
+    // Contract arrays are readonly; the element type must still match the column.
+    expectTypeOf<RosterRow["majors"]>().toEqualTypeOf<Readonly<UserRosterDbRow["majors"]>>();
+    expectTypeOf<RosterRow["minors"]>().toEqualTypeOf<Readonly<UserRosterDbRow["minors"]>>();
+    expectTypeOf<RosterRow["mentee_uids"]>().toEqualTypeOf<Readonly<UserRosterDbRow["mentee_uids"]>>();
+    expectTypeOf<RosterRow["teams"]>().toEqualTypeOf<Readonly<UserRosterDbRow["teams"]>>();
+  });
+
+  it("DevTestProfile columns match dev_test_profiles Row", () => {
+    expectTypeOf<DevTestProfile["id"]>().toEqualTypeOf<DevTestProfileDbRow["id"]>();
+    expectTypeOf<DevTestProfile["label"]>().toEqualTypeOf<DevTestProfileDbRow["label"]>();
+    expectTypeOf<DevTestProfile["roster_uid"]>().toEqualTypeOf<DevTestProfileDbRow["roster_uid"]>();
+    expectTypeOf<NonNullable<DevTestProfile["program_role"]> | null>().toEqualTypeOf<DevTestProfileDbRow["program_role"]>();
+    expectTypeOf<NonNullable<DevTestProfile["app_role"]> | null>().toEqualTypeOf<DevTestProfileDbRow["app_role"]>();
+    expectTypeOf<NonNullable<DevTestProfile["first_name"]> | null>().toEqualTypeOf<DevTestProfileDbRow["first_name"]>();
+    expectTypeOf<NonNullable<DevTestProfile["last_name"]> | null>().toEqualTypeOf<DevTestProfileDbRow["last_name"]>();
+    expectTypeOf<NonNullable<DevTestProfile["cohort"]> | null>().toEqualTypeOf<DevTestProfileDbRow["cohort"]>();
+    expectTypeOf<NonNullable<DevTestProfile["fd_required"]> | null>().toEqualTypeOf<DevTestProfileDbRow["fd_required"]>();
+    expectTypeOf<NonNullable<DevTestProfile["ss_required"]> | null>().toEqualTypeOf<DevTestProfileDbRow["ss_required"]>();
   });
 
   it("ScholarWeekExcuseRow columns match scholar_week_excuses Row", () => {

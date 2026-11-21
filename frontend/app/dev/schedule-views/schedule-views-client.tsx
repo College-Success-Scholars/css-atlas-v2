@@ -7,7 +7,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { backendPut } from "@/lib/client/api-client";
+import { replaceShifts } from "@css-atlas/shared/contracts/dev";
+import { callEndpoint } from "@/lib/client/api-client";
 import { cn } from "@/lib/utils";
 import { getEasternDayOfWeek, parseEasternDate } from "@/lib/format/time";
 import { DailyBoard } from "./daily-board";
@@ -34,12 +35,7 @@ import type {
 import { useDayShifts } from "./use-day-shifts";
 import { WeeklyBoard } from "./weekly-board";
 
-type ReplaceScholarShiftsResponse = {
-  uid: string;
-  shifts: StandingShift[];
-};
-
-function shiftWritePayload(shifts: StandingShift[]) {
+function shiftWritePayload(shifts: ReadonlyArray<StandingShift>) {
   return shifts.map((shift) => ({
     kind: shift.kind,
     dayOfWeek: shift.dayOfWeek,
@@ -50,7 +46,7 @@ function shiftWritePayload(shifts: StandingShift[]) {
 
 function withServerShifts(
   scholar: BoardScholar,
-  shifts: StandingShift[],
+  shifts: ReadonlyArray<StandingShift>,
 ): BoardScholar {
   return {
     ...scholar,
@@ -75,10 +71,10 @@ function replaceScholarInBaseline(
 
 type ScheduleViewsClientProps = {
   weekNum: number;
-  scholars: BoardScholar[];
+  scholars: ReadonlyArray<BoardScholar>;
 };
 
-function cloneScholars(rows: BoardScholar[]): BoardScholar[] {
+function cloneScholars(rows: ReadonlyArray<BoardScholar>): BoardScholar[] {
   return rows.map((s) => ({ ...s, shifts: s.shifts.map((shift) => ({ ...shift })) }));
 }
 
@@ -197,10 +193,10 @@ export function ScheduleViewsClient({
     }
     setManageSaving(true);
     setManageSaveError(null);
-    const result = await backendPut<ReplaceScholarShiftsResponse>(
-      `/api/dev/schedule-board/${encodeURIComponent(manageDraft.uid)}`,
-      { shifts: shiftWritePayload(manageDraft.shifts) },
-    );
+    const result = await callEndpoint(replaceShifts, {
+      params: { uid: manageDraft.uid },
+      body: { shifts: shiftWritePayload(manageDraft.shifts) },
+    });
     if (!result.ok) {
       setManageSaving(false);
       setManageSaveError(result.error || "Failed to save shifts");
@@ -226,10 +222,10 @@ export function ScheduleViewsClient({
     let nextRows = draftScholars;
     let nextBaseline = baseline;
     for (const scholar of dirtyScholars) {
-      const result = await backendPut<ReplaceScholarShiftsResponse>(
-        `/api/dev/schedule-board/${encodeURIComponent(scholar.uid)}`,
-        { shifts: shiftWritePayload(scholar.shifts) },
-      );
+      const result = await callEndpoint(replaceShifts, {
+        params: { uid: scholar.uid },
+        body: { shifts: shiftWritePayload(scholar.shifts) },
+      });
       if (!result.ok) {
         setDraftScholars(nextRows);
         setBaseline(nextBaseline);

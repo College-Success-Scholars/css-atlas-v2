@@ -2,352 +2,75 @@
  * @file dev.controller.ts
  * @module backend/controllers
  *
- * Request handlers for developer-only diagnostic endpoints (/api/dev/*).
- * These endpoints expose raw or unfiltered data for debugging and operational
- * purposes. Accessible only to users with app_role = "developer".
- *
- * ## Responsibilities
- * - Provide diagnostic endpoints: test, me, form log lookups, test profiles
- * - Developer roster get/update for /dev/profiles
- * - Temporary freshman and sophomore FD/SS/WAHF completion for /dev/freshman-grades
- * - Schedule board read/replace for /dev/schedule-views (eligible scholars + standing shifts)
- *
- * ## What belongs here
- * - Handler functions for /api/dev/* routes
- * - Dev-specific data access patterns that do not belong in production routes
- *
- * ## What does NOT belong here
- * - Production-grade endpoints (add those to the appropriate domain routes)
- * - Endpoints accessible to non-developer roles
+ * Handlers for /api/dev, bound to the contract in
+ * @css-atlas/shared/contracts/dev. Developer-only diagnostics and tools:
+ * test-profile switching, roster editing, the freshman and sophomore grades
+ * report, and the FD/SS schedule board.
  */
-import type { Response } from "express";
-import type { AuthenticatedRequest } from "../middleware/auth.middleware.js";
+import { Effect } from "effect";
+import * as contract from "@css-atlas/shared/contracts/dev";
 import { isDeveloperProfile } from "@css-atlas/shared/auth";
-import { listTestProfiles, getTestProfileById } from "../services/dev-profile.service.js";
-import { getMcfFormLogById, getWplFormLogById } from "../services/form-log.service.js";
+import { implement } from "../http/endpoint.js";
+import { getTestProfileById, listTestProfiles } from "../services/dev-profile.service.js";
 import { getFreshmanGradesReport } from "../services/freshman-grades.service.js";
-import {
-  getScheduleBoard,
-  replaceScholarStandingShifts,
-  type StandingShiftInput,
-} from "../services/schedule-board.service.js";
+import { getScheduleBoard, replaceScholarStandingShifts } from "../services/schedule-board.service.js";
 import { getRosterByUid, updateRosterByUid } from "../services/user.service.js";
-import type { RosterPatch } from "../models/user.model.js";
+import { NotFoundError, ValidationError } from "../utils/domain-error.js";
 
-// GET /api/dev/test
-export function test(req: AuthenticatedRequest, res: Response) {
-  res.json({
-    ok: true,
-    message: "Developer API test successful",
-    user: req.authUser?.email,
-    timestamp: new Date().toISOString(),
-  });
-}
+export const devEndpoints = [
+  implement(contract.ping, (_input, caller) =>
+    Effect.succeed({
+      ok: true,
+      message: "Developer API test successful",
+      user: caller.email,
+      timestamp: caller.asOf.toISOString(),
+    }),
+  ),
 
-// GET /api/dev/me
-export function me(req: AuthenticatedRequest, res: Response) {
-  res.json({
-    user: {
-      id: req.authUser?.id ?? null,
-      email: req.authUser?.email ?? null,
-    },
-    profile: req.realProfile
-      ? { app_role: req.realProfile.app_role, email: req.realProfile.emails?.[0] ?? null }
-      : null,
-    activeTestProfileId: req.activeTestProfileId ?? null,
-    isActingAsTestProfile: req.isActingAsTestProfile ?? false,
-  });
-}
+  implement(contract.me, (_input, caller) =>
+    Effect.succeed({
+      user: { id: caller.userId, email: caller.email },
+      profile: caller.realProfile
+        ? { app_role: caller.realProfile.app_role ?? null, email: caller.realProfile.emails?.[0] ?? null }
+        : null,
+      activeTestProfileId: caller.activeTestProfileId,
+      isActingAsTestProfile: caller.isActingAsTestProfile,
+    }),
+  ),
 
-// GET /api/dev/test-profiles
-export async function getTestProfiles(_req: AuthenticatedRequest, res: Response) {
-  try {
-    const data = await listTestProfiles();
-    res.json({ data });
-  } catch (e) {
-    res.status(500).json({ error: e instanceof Error ? e.message : "Failed to list test profiles" });
-  }
-}
+  implement(contract.listTestProfiles, () => listTestProfiles()),
 
-// GET /api/dev/test-profiles/:id
-export async function getTestProfile(req: AuthenticatedRequest, res: Response) {
-  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  if (!id) {
-    res.status(400).json({ error: "Missing profile id" });
-    return;
-  }
-  try {
-    const data = await getTestProfileById(id);
-    if (!data) {
-      res.status(404).json({ error: "Test profile not found" });
-      return;
+  implement(contract.setActiveProfile, async ({ body }, caller) => {
+    const testProfileId = body.testProfileId ?? null;
+    if (testProfileId !== null && !(await getTestProfileById(testProfileId))) {
+      throw new NotFoundError({ resource: "Test profile" });
     }
-    res.json({ data });
-  } catch (e) {
-    res.status(500).json({ error: e instanceof Error ? e.message : "Failed to fetch test profile" });
-  }
-}
-
-// POST /api/dev/active-profile — validates testProfileId; client sets httpOnly cookie separately
-export async function setActiveProfile(req: AuthenticatedRequest, res: Response) {
-  const body = req.body as { testProfileId?: string | null };
-  const testProfileId = body.testProfileId ?? null;
-
-  if (testProfileId !== null) {
-    const profile = await getTestProfileById(testProfileId);
-    if (!profile) {
-      res.status(404).json({ error: "Test profile not found" });
-      return;
-    }
-  }
-
-  res.json({
-    user: { id: req.authUser?.id ?? null, email: req.authUser?.email ?? null },
-    profile: req.profile ?? null,
-    realProfile: req.realProfile ?? null,
-    activeTestProfileId: testProfileId,
-    isActingAsTestProfile: testProfileId !== null,
-    isDeveloper: isDeveloperProfile(req.realProfile),
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Form logs
-// ---------------------------------------------------------------------------
-
-// GET /api/dev/form-logs/:formType/:formId
-export async function getFormLog(req: AuthenticatedRequest, res: Response) {
-  const formType = req.params.formType as string;
-  const formId = req.params.formId as string;
-
-  try {
-    if (formType === "mcf") {
-      const data = await getMcfFormLogById(formId!);
-      if (!data) { res.status(404).json({ error: "MCF submission not found." }); return; }
-      res.json({ data }); return;
-    }
-
-    if (formType === "wpl") {
-      const numericId = Number(formId);
-      if (Number.isNaN(numericId)) { res.status(400).json({ error: "Invalid WPL ID." }); return; }
-      const data = await getWplFormLogById(numericId);
-      if (!data) { res.status(404).json({ error: "WPL submission not found." }); return; }
-      res.json({ data }); return;
-    }
-
-    res.status(400).json({ error: "Unsupported form type." });
-  } catch (e) {
-    res.status(500).json({ error: e instanceof Error ? e.message : "Failed to fetch form log" });
-  }
-}
-
-const ROSTER_STATUSES = new Set(["enrolled", "inactive", "graduated"]);
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function caughtErrorMessage(error: unknown, fallback: string): string {
-  if (error && typeof error === "object" && "message" in error) {
-    const e = error as { message?: unknown; details?: unknown; hint?: unknown };
-    const parts = [e.message, e.details, e.hint].filter(
-      (part): part is string => typeof part === "string" && part.trim() !== "",
-    );
-    if (parts.length > 0) return parts.join(" — ");
-  }
-  return fallback;
-}
-
-function optionalString(value: unknown): string | null | undefined {
-  if (value === undefined) return undefined;
-  if (value === null) return null;
-  if (typeof value !== "string") throw new Error("Expected a string");
-  const trimmed = value.trim();
-  return trimmed === "" ? null : trimmed;
-}
-
-function optionalInt(value: unknown): number | null | undefined {
-  if (value === undefined) return undefined;
-  if (value === null || value === "") return null;
-  const n = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(n) || !Number.isInteger(n)) throw new Error("Expected an integer");
-  return n;
-}
-
-function optionalNonNegativeInt(value: unknown): number | null | undefined {
-  const n = optionalInt(value);
-  if (n != null && n < 0) throw new Error("Expected a non-negative integer");
-  return n;
-}
-
-function optionalStringArray(value: unknown): string[] | null | undefined {
-  if (value === undefined) return undefined;
-  if (value === null) return null;
-  if (!Array.isArray(value)) throw new Error("Expected an array of strings");
-  return uniqueStrings(value);
-}
-
-function uniqueStrings(values: unknown[]): string[] {
-  return [...new Set(values.map((v) => String(v).trim()).filter(Boolean))];
-}
-
-function parseRosterPatch(body: unknown): RosterPatch {
-  if (body == null || typeof body !== "object" || Array.isArray(body)) {
-    throw new Error("Body must be an object");
-  }
-  const raw = body as Record<string, unknown>;
-  const patch: RosterPatch = {};
-  if ("first_name" in raw) patch.first_name = optionalString(raw.first_name);
-  if ("last_name" in raw) patch.last_name = optionalString(raw.last_name);
-  if ("phone_number" in raw) patch.phone_number = optionalString(raw.phone_number);
-  if ("email" in raw) {
-    const email = optionalString(raw.email);
-    if (email != null && !EMAIL_RE.test(email)) throw new Error("Invalid email");
-    patch.email = email;
-  }
-  if ("cohort" in raw) patch.cohort = optionalInt(raw.cohort);
-  if ("status" in raw) {
-    const status = optionalString(raw.status);
-    if (status != null && !ROSTER_STATUSES.has(status.toLowerCase())) {
-      throw new Error("status must be enrolled, inactive, or graduated");
-    }
-    patch.status = status == null ? null : status.toLowerCase();
-  }
-  if ("app_role" in raw) {
-    throw new Error("app_role is not writable");
-  }
-  if ("program_role" in raw) patch.program_role = optionalString(raw.program_role);
-  if ("fd_required" in raw) patch.fd_required = optionalNonNegativeInt(raw.fd_required);
-  if ("ss_required" in raw) patch.ss_required = optionalNonNegativeInt(raw.ss_required);
-  if ("majors" in raw) patch.majors = optionalStringArray(raw.majors);
-  if ("minors" in raw) patch.minors = optionalStringArray(raw.minors);
-  if ("teams" in raw) patch.teams = optionalStringArray(raw.teams);
-  if ("mentee_uids" in raw) patch.mentee_uids = optionalStringArray(raw.mentee_uids);
-  return patch;
-}
-
-// GET /api/dev/freshman-grades
-export async function getFreshmanGrades(_req: AuthenticatedRequest, res: Response) {
-  try {
-    const data = await getFreshmanGradesReport();
-    res.json({ data });
-  } catch (e) {
-    res.status(500).json({ error: caughtErrorMessage(e, "Failed to load freshman and sophomore grades") });
-  }
-}
-
-// GET /api/dev/schedule-board
-export async function getScheduleBoardHandler(_req: AuthenticatedRequest, res: Response) {
-  try {
-    const data = await getScheduleBoard();
-    res.json({ data });
-  } catch (e) {
-    res.status(500).json({
-      error: caughtErrorMessage(e, "Failed to load schedule board"),
-    });
-  }
-}
-
-// PUT /api/dev/schedule-board/:uid
-export async function putScheduleBoardScholar(
-  req: AuthenticatedRequest,
-  res: Response,
-) {
-  const uid = Array.isArray(req.params.uid) ? req.params.uid[0] : req.params.uid;
-  if (!uid) {
-    res.status(400).json({ error: "Missing uid parameter" });
-    return;
-  }
-  try {
-    const shifts = parseStandingShiftsBody(req.body);
-    const data = await replaceScholarStandingShifts(uid, shifts);
-    res.json({ data });
-  } catch (e) {
-    const message = caughtErrorMessage(e, "Failed to replace scholar shifts");
-    const isValidation =
-      message.startsWith("Missing") ||
-      message.startsWith("shifts") ||
-      message.startsWith("Invalid") ||
-      message.includes("must be") ||
-      message.includes("endTime must");
-    if (message === "No active semester") {
-      res.status(409).json({ error: message });
-      return;
-    }
-    res.status(isValidation ? 400 : 500).json({ error: message });
-  }
-}
-
-function parseStandingShiftsBody(body: unknown): StandingShiftInput[] {
-  if (body == null || typeof body !== "object" || Array.isArray(body)) {
-    throw new Error("Body must be an object");
-  }
-  const raw = (body as { shifts?: unknown }).shifts;
-  if (!Array.isArray(raw)) {
-    throw new Error("shifts must be an array");
-  }
-  return raw.map((item, index) => {
-    if (item == null || typeof item !== "object" || Array.isArray(item)) {
-      throw new Error(`shifts[${index}] must be an object`);
-    }
-    const row = item as Record<string, unknown>;
     return {
-      kind: row.kind as StandingShiftInput["kind"],
-      dayOfWeek: Number(row.dayOfWeek),
-      startTime: String(row.startTime ?? ""),
-      endTime: String(row.endTime ?? ""),
+      user: { id: caller.userId, email: caller.email },
+      profile: caller.profile,
+      realProfile: caller.realProfile,
+      activeTestProfileId: testProfileId,
+      isActingAsTestProfile: testProfileId !== null,
+      isDeveloper: isDeveloperProfile(caller.realProfile),
     };
-  });
-}
+  }),
 
-// GET /api/dev/roster/:uid
-export async function getRoster(req: AuthenticatedRequest, res: Response) {
-  const uid = Array.isArray(req.params.uid) ? req.params.uid[0] : req.params.uid;
-  if (!uid) {
-    res.status(400).json({ error: "Missing uid parameter" });
-    return;
-  }
-  try {
-    const data = await getRosterByUid(uid);
-    if (!data) {
-      res.status(404).json({ error: "User not found" });
-      return;
-    }
-    res.json({ data });
-  } catch (e) {
-    res.status(500).json({ error: caughtErrorMessage(e, "Failed to fetch roster") });
-  }
-}
+  implement(contract.getFreshmanGrades, () => getFreshmanGradesReport()),
 
-// PATCH /api/dev/roster/:uid
-export async function patchRoster(req: AuthenticatedRequest, res: Response) {
-  const uid = Array.isArray(req.params.uid) ? req.params.uid[0] : req.params.uid;
-  if (!uid) {
-    res.status(400).json({ error: "Missing uid parameter" });
-    return;
-  }
-  try {
-    const patch = parseRosterPatch(req.body);
-    if (Object.keys(patch).length === 0) {
-      res.status(400).json({ error: "No roster fields to update" });
-      return;
+  implement(contract.getScheduleBoard, () => getScheduleBoard()),
+
+  implement(contract.replaceShifts, ({ params, body }) => replaceScholarStandingShifts(params.uid, body.shifts)),
+
+  implement(contract.getRoster, async ({ params }) => {
+    const roster = await getRosterByUid(params.uid);
+    if (!roster) throw new NotFoundError({ resource: "User" });
+    return roster;
+  }),
+
+  implement(contract.patchRoster, ({ params, body }) => {
+    if (Object.keys(body).length === 0) {
+      throw new ValidationError({ field: "", message: "No roster fields to update" });
     }
-    const data = await updateRosterByUid(uid, patch);
-    res.json({ data });
-  } catch (e) {
-    const message = caughtErrorMessage(e, "Failed to update roster");
-    if (message === "User not found") {
-      res.status(404).json({ error: message });
-      return;
-    }
-    if (message.includes("blocked by RLS")) {
-      res.status(403).json({ error: message });
-      return;
-    }
-    const isValidation =
-      message.startsWith("Expected") ||
-      message.startsWith("status") ||
-      message.startsWith("app_role") ||
-      message.startsWith("Invalid") ||
-      message.startsWith("Body") ||
-      message.startsWith("No roster");
-    res.status(isValidation ? 400 : 500).json({ error: message });
-  }
-}
+    return updateRosterByUid(params.uid, body);
+  }),
+];

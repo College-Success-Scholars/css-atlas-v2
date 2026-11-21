@@ -38,7 +38,7 @@ import type {
   RosterRow,
   TeamLeaderRow,
 } from "../models/user.model.js";
-import { ValidationError } from "../utils/domain-error.js";
+import { ForbiddenError, NotFoundError, ValidationError } from "../utils/domain-error.js";
 import { isHourEligibleCohort } from "./time.service.js";
 
 /** Writable profiles insert — excludes generated `full_name` and server `created_at`. */
@@ -431,9 +431,24 @@ async function replaceMentorMenteeAssignments(
   if (insertError) throw insertError;
 }
 
+/** A fresh mutable copy of a list column, for the database client's write types. */
+function writableList(list: ReadonlyArray<string> | null | undefined): string[] | null | undefined {
+  return list ? [...list] : list;
+}
+
 export async function updateRosterByUid(uid: string, patch: RosterPatch): Promise<RosterRow> {
   const supabase = getSupabaseClient();
-  const rosterUpdate: Database["public"]["Tables"]["user_roster"]["Update"] = { ...patch };
+  const majors = writableList(patch.majors);
+  const minors = writableList(patch.minors);
+  const teams = writableList(patch.teams);
+  const menteeUids = writableList(patch.mentee_uids);
+  const rosterUpdate: Database["public"]["Tables"]["user_roster"]["Update"] = {
+    ...patch,
+    majors,
+    minors,
+    teams,
+    mentee_uids: menteeUids,
+  };
   if (patch.mentee_uids !== undefined) {
     rosterUpdate.mentee_count = patch.mentee_uids?.length ?? 0;
   }
@@ -447,13 +462,14 @@ export async function updateRosterByUid(uid: string, patch: RosterPatch): Promis
   if (error) throw error;
   if (!data) {
     const existing = await getRosterByUid(uid);
-    if (!existing) throw new Error("User not found");
-    throw new Error(
-      "Roster update blocked by RLS. Apply supabase/migrations/20260903053000_developer_write_user_roster.sql on the linked project.",
-    );
+    if (!existing) throw new NotFoundError({ resource: "User" });
+    throw new ForbiddenError({
+      reason:
+        "Roster update blocked by RLS. Apply supabase/migrations/20260903053000_developer_write_user_roster.sql on the linked project.",
+    });
   }
   const mapped = mapRosterRow(data);
-  if (!mapped) throw new Error("User not found");
+  if (!mapped) throw new NotFoundError({ resource: "User" });
 
   const profilePatch: Database["public"]["Tables"]["profiles"]["Update"] = {};
   if (patch.first_name !== undefined) profilePatch.first_name = patch.first_name;
@@ -464,9 +480,9 @@ export async function updateRosterByUid(uid: string, patch: RosterPatch): Promis
   if (patch.program_role !== undefined) profilePatch.program_role = patch.program_role;
   if (patch.fd_required !== undefined) profilePatch.fd_required = patch.fd_required;
   if (patch.ss_required !== undefined) profilePatch.ss_required = patch.ss_required;
-  if (patch.majors !== undefined) profilePatch.majors = patch.majors;
-  if (patch.minors !== undefined) profilePatch.minors = patch.minors;
-  if (patch.teams !== undefined) profilePatch.teams = patch.teams;
+  if (patch.majors !== undefined) profilePatch.majors = majors;
+  if (patch.minors !== undefined) profilePatch.minors = minors;
+  if (patch.teams !== undefined) profilePatch.teams = teams;
   if (patch.email !== undefined) profilePatch.emails = patch.email ? [patch.email] : [];
   if (patch.mentee_uids !== undefined) profilePatch.mentee_count = patch.mentee_uids?.length ?? 0;
 
@@ -486,7 +502,7 @@ export async function updateRosterByUid(uid: string, patch: RosterPatch): Promis
         if (profileUpdateError) throw profileUpdateError;
       }
       if (patch.mentee_uids !== undefined) {
-        await replaceMentorMenteeAssignments(profile.id, patch.mentee_uids ?? []);
+        await replaceMentorMenteeAssignments(profile.id, menteeUids ?? []);
       }
     }
   }

@@ -41,7 +41,7 @@ import type {
   AttendanceForUids,
   ScholarWeekExcuse,
 } from "@css-atlas/shared/contracts/attendance";
-import type { RosterRow } from "@/lib/types/roster";
+import { getRoster, type RosterRow } from "@css-atlas/shared/contracts/dev";
 import type { MenteeWithCompliance } from "@/lib/types/supabase";
 import type {
   McfPrefill,
@@ -163,10 +163,10 @@ export async function getUserByUid(uid: string): Promise<MemoUserRow | null> {
   return callEndpoint(users.getUser, { params: { uid } });
 }
 
-export type { RosterRow } from "@/lib/types/roster";
+export type { RosterRow };
 
-export async function getRosterByUid(uid: string): Promise<RosterRow | null> {
-  return backendGet<RosterRow | null>(`/api/dev/roster/${encodeURIComponent(uid)}`);
+export async function getRosterByUid(uid: string): Promise<RosterRow> {
+  return callEndpoint(getRoster, { params: { uid } });
 }
 
 export async function fetchTeamLeaders(): Promise<readonly TeamLeaderRow[]> {

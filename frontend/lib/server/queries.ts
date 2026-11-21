@@ -29,14 +29,6 @@ export type CurrentUserResponse = {
   isActingAsTestProfile?: boolean;
 };
 
-export type DevTestProfileListItem = {
-  id: string;
-  label: string;
-  roster_uid: string;
-  program_role: string | null;
-  app_role: string | null;
-};
-
 /**
  * Fetches GET /api/auth/semester. Use sparingly — prefer the server-owned time
  * frame (shared campus week calendar) for week bounds and navigation. Use this

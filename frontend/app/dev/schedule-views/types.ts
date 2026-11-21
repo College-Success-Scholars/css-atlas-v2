@@ -3,32 +3,16 @@
  * (`GET` / `PUT /api/dev/schedule-board`).
  */
 
-export type SessionKind = "front_desk" | "study_session";
+import type { ScheduleBoardScholar, ScheduleBoardShift } from "@css-atlas/shared/contracts/dev";
+
+export type SessionKind = ScheduleBoardShift["kind"];
 
 export type ScheduleViewMode = "week" | "day";
 
-export type StandingShift = {
-  id: string;
-  kind: SessionKind;
-  /** 0=Sun … 6=Sat (CSSAtlas / Eastern convention). */
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
-};
+/** `dayOfWeek` is 0=Sun … 6=Sat (CSSAtlas / Eastern convention). */
+export type StandingShift = ScheduleBoardShift;
 
-export type BoardScholar = {
-  uid: string;
-  name: string;
-  cohort: number | null;
-  classYearLabel: "Freshman" | "Sophomore" | null;
-  fd_required: number;
-  ss_required: number;
-  shifts: StandingShift[];
-};
-
-export type ScheduleBoardResponse = {
-  scholars: BoardScholar[];
-};
+export type BoardScholar = ScheduleBoardScholar;
 
 export type DayShiftBlock = StandingShift & {
   scholarUid: string;

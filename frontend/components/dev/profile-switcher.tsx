@@ -10,12 +10,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { setActiveTestProfile } from "@/lib/server/dev-profile-actions";
-import type { DevTestProfileListItem } from "@/lib/server/queries";
+import type { DevTestProfile } from "@css-atlas/shared/contracts/dev";
 
 const MY_PROFILE_VALUE = "__my_profile__";
 
 type ProfileSwitcherProps = {
-  testProfiles: DevTestProfileListItem[];
+  testProfiles: readonly DevTestProfile[];
   activeTestProfileId: string | null;
   compact?: boolean;
 };

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { backendPatch } from "@/lib/client/api-client";
+import { callEndpoint } from "@/lib/client/api-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +18,7 @@ import {
   isHourEligibleCohort,
   sophomoreCohortYear,
 } from "@/lib/format/time";
-import type { RosterRow } from "@/lib/types/roster";
+import { patchRoster, type RosterRow } from "@css-atlas/shared/contracts/dev";
 
 const STATUS_OPTIONS = ["enrolled", "inactive", "graduated"] as const;
 const PROGRAM_ROLE_OPTIONS = [
@@ -29,7 +29,7 @@ const PROGRAM_ROLE_OPTIONS = [
   "Program Coordinator",
 ] as const;
 
-function csv(values: string[] | null): string {
+function csv(values: ReadonlyArray<string> | null): string {
   return (values ?? []).join(", ");
 }
 
@@ -98,9 +98,9 @@ export function RosterEditForm({ roster }: RosterEditFormProps) {
     setSaving(true);
     setError(null);
     setSaved(false);
-    const result = await backendPatch<RosterRow>(
-      `/api/dev/roster/${encodeURIComponent(roster.uid)}`,
-      {
+    const result = await callEndpoint(patchRoster, {
+      params: { uid: roster.uid },
+      body: {
         first_name: optionalText(firstName),
         last_name: optionalText(lastName),
         phone_number: optionalText(phone),
@@ -115,7 +115,7 @@ export function RosterEditForm({ roster }: RosterEditFormProps) {
         teams: parseCsv(teams),
         mentee_uids: parseCsv(menteeUids),
       },
-    );
+    });
     setSaving(false);
     if (!result.ok) {
       setError(result.error);

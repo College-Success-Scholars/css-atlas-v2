@@ -1,13 +1,12 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import type { FreshmanGradeRow, FreshmanGradesReport } from "@css-atlas/shared/contracts/dev";
 import {
   FreshmanGradesTable,
   freshmanGradesCsv,
   freshmanGradesCsvFilename,
   hoursDetail,
-  type FreshmanGradesReport,
-  type FreshmanGradeRow,
 } from "./freshman-grades-table";
 
 const report: FreshmanGradesReport = {

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
-import { backendGet } from "@/lib/server/api-client";
-import { getCurrentUser, type DevTestProfileListItem } from "@/lib/server/queries";
+import * as devContract from "@css-atlas/shared/contracts/dev";
+import { callEndpoint } from "@/lib/server/api-client";
+import { getCurrentUser } from "@/lib/server/queries";
 import { isDeveloperProfile } from "@/lib/auth";
 import { ProfileSwitcher } from "@/components/dev/profile-switcher";
 import { DevActingBanner } from "@/components/dev/dev-acting-banner";
@@ -19,17 +20,17 @@ export default async function DevLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const result = await backendGet("/api/dev/test").catch(() => null);
+  const result = await callEndpoint(devContract.ping).catch(() => null);
   if (!result) {
     redirect("/dashboard");
   }
 
   const me = await getCurrentUser();
   const isDeveloper = isDeveloperProfile(me?.realProfile ?? me?.profile ?? null);
-  let testProfiles: DevTestProfileListItem[] = [];
+  let testProfiles: readonly devContract.DevTestProfile[] = [];
   if (isDeveloper) {
     try {
-      testProfiles = await backendGet<DevTestProfileListItem[]>("/api/dev/test-profiles");
+      testProfiles = await callEndpoint(devContract.listTestProfiles);
     } catch {
       testProfiles = [];
     }

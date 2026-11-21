@@ -5,6 +5,7 @@
  * Shared auth constants and pure helpers for role hierarchy and profile merging.
  * Single source of truth for both backend auth middleware and frontend server auth.
  */
+import type { DevTestProfile } from "./contracts/dev.js";
 
 export const APP_ROLE_ORDER = [null, "team_leader", "developer"] as const;
 export type AppRole = (typeof APP_ROLE_ORDER)[number];
@@ -79,21 +80,7 @@ export function isDeveloperProfile(profile: { app_role?: string | null } | null 
 }
 
 /** Row shape from public.dev_test_profiles (subset used for overlay). */
-export type DevTestProfileRow = {
-  id: string;
-  label: string;
-  roster_uid: string;
-  program_role?: string | null;
-  app_role?: string | null;
-  first_name?: string | null;
-  last_name?: string | null;
-  cohort?: number | null;
-  fd_required?: number | null;
-  ss_required?: number | null;
-  teams?: string[] | null;
-  mentee_uids?: string[] | null;
-  mentee_count?: number | null;
-};
+export type DevTestProfileRow = DevTestProfile;
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
