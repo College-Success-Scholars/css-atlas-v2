@@ -53,7 +53,7 @@ export function minutesToHours(mins: number): number {
 }
 
 export function attendanceRowForKind(
-  rows: AttendanceWeekBoardRow[],
+  rows: ReadonlyArray<AttendanceWeekBoardRow>,
   uid: string,
   kind: AttendanceKind,
 ): AttendanceWeekBoardRow | null {

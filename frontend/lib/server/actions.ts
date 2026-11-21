@@ -9,15 +9,15 @@
  * ## Responsibilities
  * - Handle profile update mutations (basic info, etc.)
  * - Self-service mentee assignment add/remove (`addMentee`, `removeMentee`)
- * - Public `/traffic` kiosk check-in (`recordTrafficEntry`) — no auth, Zod-validated write
+ * - Public `/traffic` kiosk check-in (`recordTrafficEntry`) — no auth, schema-validated write
  * - Teams board excuse upsert (`upsertAttendanceExcuseAction`) via backend `BACKEND_URL`
  * - Teams tutoring single-row delete (`deleteTutorReportAction`) via backend `BACKEND_URL`
- * - Validate inputs with Zod before writing to Supabase or calling the backend
+ * - Validate inputs with Effect Schema (via @css-atlas/shared/contract) before writing to Supabase or calling the backend
  * - Revalidate Next.js cache paths after mutations
  *
  * ## What belongs here
  * - "use server" functions that handle form submissions or mutations
- * - Zod input validation schemas
+ * - Input validation schemas
  *
  * ## What does NOT belong here
  * - Data fetching (use data.ts or api-client.ts instead)
@@ -30,21 +30,22 @@ import { createClient } from "@/lib/supabase/server"
 import { backendPost } from "@/lib/server/api-client"
 import { deleteTutorReport, upsertAttendanceExcuse } from "@/lib/server/data"
 import { DEV_ACTIVE_PROFILE_COOKIE, hasRoleAtLeast } from "@css-atlas/shared/auth"
-import { validate } from "@css-atlas/shared/contract"
+import { Schema, scholarId, validate } from "@css-atlas/shared/contract"
 import { upsertExcuse } from "@css-atlas/shared/contracts/attendance"
 import { revalidatePath } from "next/cache"
 import { cookies } from "next/headers"
-import { z } from "zod"
 
-const basicInfoSchema = z.object({
-  first_name: z.string().min(1).max(100),
-  last_name: z.string().min(1).max(100),
-  phone: z.string().max(20).optional(),
+const name = Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(100))
+
+const basicInfoSchema = Schema.Struct({
+  first_name: name,
+  last_name: name,
+  phone: Schema.optional(Schema.String.check(Schema.isMaxLength(20))),
 })
 
 export async function updateBasicInfo(formData: unknown) {
-  const parsed = basicInfoSchema.safeParse(formData)
-  if (!parsed.success) {
+  const parsed = validate(basicInfoSchema, formData)
+  if (!parsed.ok) {
     return { error: "Invalid input" }
   }
 
@@ -63,7 +64,7 @@ export async function updateBasicInfo(formData: unknown) {
   return { success: true }
 }
 
-const menteeUidSchema = z.string().trim().min(1).max(50)
+const menteeUidSchema = scholarId
 
 type MenteeMutationResult = { error: string } | { success: true }
 
@@ -107,8 +108,8 @@ async function getMenteeMutationContext(): Promise<MenteeMutationContext> {
 
 /** Add an enrolled scholar to the caller's mentee list. */
 export async function addMentee(input: unknown): Promise<MenteeMutationResult> {
-  const parsed = menteeUidSchema.safeParse(input)
-  if (!parsed.success) return { error: "Invalid mentee" }
+  const parsed = validate(menteeUidSchema, input)
+  if (!parsed.ok) return { error: "Invalid mentee" }
 
   const ctx = await getMenteeMutationContext()
   if ("error" in ctx) return { error: ctx.error }
@@ -146,8 +147,8 @@ export async function addMentee(input: unknown): Promise<MenteeMutationResult> {
 
 /** Remove one of the caller's mentee assignments. */
 export async function removeMentee(input: unknown): Promise<MenteeMutationResult> {
-  const parsed = menteeUidSchema.safeParse(input)
-  if (!parsed.success) return { error: "Invalid mentee" }
+  const parsed = validate(menteeUidSchema, input)
+  if (!parsed.ok) return { error: "Invalid mentee" }
 
   const ctx = await getMenteeMutationContext()
   if ("error" in ctx) return { error: ctx.error }
@@ -166,17 +167,17 @@ export async function removeMentee(input: unknown): Promise<MenteeMutationResult
   return { success: true as const }
 }
 
-const scholarProfileSchema = z.object({
-  first_name: z.string().min(1).max(100),
-  last_name: z.string().min(1).max(100),
-  student_id: z.string().min(1).max(50),
-  phone_number: z.string().max(20).nullable().optional(),
-  cohort: z.number().int().positive(),
+const scholarProfileSchema = Schema.Struct({
+  first_name: name,
+  last_name: name,
+  student_id: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(50)),
+  phone_number: Schema.optional(Schema.NullOr(Schema.String.check(Schema.isMaxLength(20)))),
+  cohort: Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0)),
 })
 
 export async function createScholarProfile(formData: unknown) {
-  const parsed = scholarProfileSchema.safeParse(formData)
-  if (!parsed.success) {
+  const parsed = validate(scholarProfileSchema, formData)
+  if (!parsed.ok) {
     return { error: "Invalid input" }
   }
 
@@ -196,9 +197,9 @@ export async function createScholarProfile(formData: unknown) {
 }
 
 /** Public kiosk check-in: 9-digit UID + stay length only. */
-const trafficEntrySchema = z.object({
-  uid: z.string().regex(/^\d{9}$/),
-  duration_min: z.number().int().min(1).max(720),
+const trafficEntrySchema = Schema.Struct({
+  uid: Schema.String.check(Schema.isPattern(/^\d{9}$/)),
+  duration_min: Schema.Number.check(Schema.isInt(), Schema.isBetween({ minimum: 1, maximum: 720 })),
 })
 
 /**
@@ -207,8 +208,8 @@ const trafficEntrySchema = z.object({
  * leaves `created_at` to the database default (no client-controlled timestamps).
  */
 export async function recordTrafficEntry(input: unknown) {
-  const parsed = trafficEntrySchema.safeParse(input)
-  if (!parsed.success) {
+  const parsed = validate(trafficEntrySchema, input)
+  if (!parsed.ok) {
     return { error: "Invalid traffic entry" }
   }
 
@@ -249,12 +250,12 @@ export async function upsertAttendanceExcuseAction(input: unknown) {
   }
 }
 
-const tutorReportIdSchema = z.number().int().positive()
+const tutorReportIdSchema = Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0))
 
 /** Delete one tutor report from the teams tutoring page (TL+; RLS enforced by the backend JWT client). */
 export async function deleteTutorReportAction(id: unknown) {
-  const parsed = tutorReportIdSchema.safeParse(id)
-  if (!parsed.success) {
+  const parsed = validate(tutorReportIdSchema, id)
+  if (!parsed.ok) {
     return { error: "Invalid input" }
   }
 

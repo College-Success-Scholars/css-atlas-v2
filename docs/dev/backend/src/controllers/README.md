@@ -45,7 +45,7 @@ What a handler never does (each is a lint error in new files):
 
 - import Express, call `res.status(...)`, or build the `{ data }` / `{ error }` envelope
 - `try/catch`
-- parse or validate input by hand, or import `zod`
+- parse or validate input by hand, or import a schema library (use `Schema` from `@css-atlas/shared/contract`)
 - read the clock
 - query Supabase — call a service
 - run an Effect

@@ -188,7 +188,7 @@ function buildTotalsMap(
   return map;
 }
 
-function uniqueUids(uids: string[]): string[] {
+function uniqueUids(uids: ReadonlyArray<string>): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const raw of uids) {
@@ -296,7 +296,7 @@ export async function getCampusWeekAttendance(
  */
 export async function getWeekAttendanceForUids(
   weekNum: number,
-  uids: string[]
+  uids: ReadonlyArray<string>
 ): Promise<AttendanceForUids> {
   const range = campusWeekToDateRange(weekNum);
   if (!range) throw new Error(`Invalid week number: ${weekNum}`);

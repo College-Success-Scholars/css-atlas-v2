@@ -20,7 +20,7 @@ CI runs both. A red guardrail is fixed by changing the code, never by widening a
 | `atlas/no-process-env` | both apps | Read configuration once in the app's env module and pass it in |
 | `atlas/no-express-import` | backend `controllers/` | Bind a handler to a contract with `implement()`; see [controllers](backend/src/controllers/README.md) |
 | `atlas/no-effect-run` (`Effect.run*`) | backend, except `http/` and tests | Return the Effect; `http/endpoint.ts` runs it with `CurrentCaller` provided |
-| `atlas/no-schema-library` (`zod`) | backend | Schemas live in `shared/contracts/`; validate with `validate()` from `@css-atlas/shared/contract` |
+| `atlas/no-schema-library` (`zod`, `Schema` from `effect`) | both apps | Import `Schema` from `@css-atlas/shared/contract`; decode only with its `validate()` |
 | relative imports of `shared/` | both apps | Import by package name: `@css-atlas/shared/<module>` |
 | `atlas/no-try-catch` | backend `controllers/` | Let errors reach the global error handler; throw a typed error for a specific status |
 | `atlas/no-double-cast` (`as unknown as`) | both apps | Fix the source type (regenerate `database.types.ts`) or parse the value |

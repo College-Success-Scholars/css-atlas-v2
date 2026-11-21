@@ -10,7 +10,7 @@ Each Express endpoint is described once, in `shared/contracts/<domain>.ts`: meth
 - The backend binds a handler with `implement(contract, handler)` (`backend/src/http/endpoint.ts`), which owns authentication, validation, the `{ data }` envelope and error mapping. A handler is `(input, caller) => data`.
 - The frontend calls `callEndpoint(contract, request)` and takes its types from the contract.
 
-Errors a caller can act on are the domain errors in `backend/src/utils/domain-error.ts`, mapped to a status in one place (`backend/src/http/error-handler.ts`). Handlers may be Effects; see ADR 003. The schema library (zod) is a dependency of `shared` only; the apps validate through `validate()` from the contract module.
+Errors a caller can act on are the domain errors in `backend/src/utils/domain-error.ts`, mapped to a status in one place (`backend/src/http/error-handler.ts`). Handlers may be Effects; see ADR 003. The schema library (Effect Schema) is a dependency of `shared`; the apps author schemas with the `Schema` it re-exports and decode only through `validate()` from the contract module.
 
 ## Why
 
@@ -20,7 +20,7 @@ Alternatives considered:
 
 - **tRPC** — removes the REST surface that `backend/API.md`, the smoke test and the cron containers rely on.
 - **OpenAPI + codegen** — adds a generation step and generated files to keep in sync; the contract module gives the same guarantee with plain imports.
-- **Effect Schema / HttpApi** — Effect was later adopted for handlers and services (ADR 003), but the contracts stay in zod so the frontend does not depend on Effect.
+- **Effect HttpApi** — not adopted: it replaces Express routing as well. The contracts were first written in zod and moved to Effect Schema with ADR 003.
 
 ## Consequences
 

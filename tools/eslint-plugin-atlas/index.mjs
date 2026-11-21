@@ -58,9 +58,13 @@ const rules = {
     ["ImportDeclaration[source.value='express']"],
   ),
   "no-schema-library": ban(
-    "Ban importing the schema library outside shared/.",
-    "Do not import zod here. Schemas live in shared/contracts/; validate with validate() from @css-atlas/shared/contract.",
-    ["ImportDeclaration[source.value='zod']"],
+    "Schemas come from the shared contract module.",
+    "Do not import zod, or Schema from effect, here. Import Schema from @css-atlas/shared/contract and decode only with its validate() (shared has its own copy of effect).",
+    [
+      "ImportDeclaration[source.value='zod']",
+      "ImportDeclaration[source.value=/^effect\\/Schema/]",
+      "ImportDeclaration[source.value='effect'] > ImportSpecifier[imported.name=/^Schema/]",
+    ],
   ),
   "no-effect-run": ban(
     "Run Effects only at the edge.",

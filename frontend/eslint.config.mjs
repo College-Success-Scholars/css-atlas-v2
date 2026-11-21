@@ -42,6 +42,7 @@ const eslintConfig = [
     linterOptions: { reportUnusedDisableDirectives: "error" },
     rules: {
       "atlas/no-enum": "error",
+      "atlas/no-schema-library": "error",
       "no-restricted-imports": ["error", {
         patterns: [
           { group: ["**/backend/src/**"], message: "The frontend never imports backend source. Share code through shared/." },

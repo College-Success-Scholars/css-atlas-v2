@@ -9,22 +9,31 @@
  *
  * An endpoint is described once, in shared/contracts/<domain>.ts. Do not
  * restate its path, input or output shape anywhere else.
+ *
+ * Schemas are Effect Schema. Both apps import `Schema` from this module, not
+ * from "effect", and decode only with `validate()`: shared has its own copy of
+ * effect, so a schema must never be handed to another copy's decoder.
  */
-import { z } from "zod";
+import { Result, Schema, SchemaIssue, SchemaTransformation } from "effect";
+
+export { Schema, SchemaTransformation };
+
+/** Any schema a contract can use: decodes without services. */
+export type ContractSchema = Schema.Codec<unknown, unknown>;
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 /** Minimum role allowed to call an endpoint. Every endpoint requires a signed-in user. */
 export type Access = "authenticated" | "team_leader" | "developer";
 
-const empty = z.object({});
+const empty = Schema.Struct({});
 type Empty = typeof empty;
 
 export interface Endpoint<
-  P extends z.ZodType = z.ZodType,
-  Q extends z.ZodType = z.ZodType,
-  B extends z.ZodType = z.ZodType,
-  O extends z.ZodType = z.ZodType,
+  P extends ContractSchema = ContractSchema,
+  Q extends ContractSchema = ContractSchema,
+  B extends ContractSchema = ContractSchema,
+  O extends ContractSchema = ContractSchema,
 > {
   readonly method: HttpMethod;
   /** Full path with Express-style params, e.g. "/api/attendance/week/:week_num". */
@@ -38,10 +47,10 @@ export interface Endpoint<
 
 /** Describe one endpoint. Omitted `params`, `query` and `body` mean "none". */
 export function endpoint<
-  O extends z.ZodType,
-  P extends z.ZodType = Empty,
-  Q extends z.ZodType = Empty,
-  B extends z.ZodType = Empty,
+  O extends ContractSchema,
+  P extends ContractSchema = Empty,
+  Q extends ContractSchema = Empty,
+  B extends ContractSchema = Empty,
 >(definition: {
   method: HttpMethod;
   path: string;
@@ -64,20 +73,20 @@ export function endpoint<
 
 /** What a handler receives: the request after validation. */
 export type EndpointInput<E extends Endpoint> = {
-  params: z.output<E["params"]>;
-  query: z.output<E["query"]>;
-  body: z.output<E["body"]>;
+  params: E["params"]["Type"];
+  query: E["query"]["Type"];
+  body: E["body"]["Type"];
 };
 
 /** What the endpoint returns inside the `{ data }` envelope. */
-export type EndpointOutput<E extends Endpoint> = z.output<E["output"]>;
+export type EndpointOutput<E extends Endpoint> = E["output"]["Type"];
 
 type Part<K extends string, T> = Record<string, never> extends T ? { [key in K]?: T } : { [key in K]: T };
 
 /** What a caller sends. Parts with no fields may be omitted. */
-export type EndpointRequest<E extends Endpoint> = Part<"params", z.input<E["params"]>> &
-  Part<"query", z.input<E["query"]>> &
-  Part<"body", z.input<E["body"]>>;
+export type EndpointRequest<E extends Endpoint> = Part<"params", E["params"]["Encoded"]> &
+  Part<"query", E["query"]["Encoded"]> &
+  Part<"body", E["body"]["Encoded"]>;
 
 /** Build the request path (with query string) for an endpoint. */
 export function endpointPath(
@@ -106,21 +115,31 @@ export function endpointPath(
 // Reusable field schemas
 // ---------------------------------------------------------------------------
 
-/** A campus week number. Accepts a number or a numeric string (path and query values arrive as strings). */
-export const campusWeekNumber = z
-  .union([z.number(), z.string().regex(/^\d+$/, "must be a whole number")])
-  .transform(Number)
-  .pipe(z.number().int().min(1, "must be a campus week number of 1 or more"));
+const WHOLE_NUMBER = "must be a whole number";
 
-/** A Scholar ID (University ID). */
-export const scholarId = z.string().trim().min(1, "is required").max(50, "must be 50 characters or fewer");
+/** A campus week number. Accepts a number or a numeric string (path and query values arrive as strings). */
+export const campusWeekNumber = Schema.Union([
+  Schema.Number,
+  Schema.String.check(Schema.isPattern(/^\d+$/, { message: WHOLE_NUMBER })).pipe(
+    Schema.decodeTo(Schema.Number, SchemaTransformation.numberFromString),
+  ),
+]).check(
+  Schema.isInt({ message: WHOLE_NUMBER }),
+  Schema.isGreaterThanOrEqualTo(1, { message: "must be a campus week number of 1 or more" }),
+);
+
+/** A Scholar ID (University ID), trimmed. */
+export const scholarId = Schema.Trim.check(
+  Schema.isMinLength(1, { message: "is required" }),
+  Schema.isMaxLength(50, { message: "must be 50 characters or fewer" }),
+);
 
 // ---------------------------------------------------------------------------
 // Validation helpers — so the apps never import the schema library themselves
 // ---------------------------------------------------------------------------
 
-/** What a handler may return: anything the endpoint's output schema accepts. */
-export type EndpointResult<E extends Endpoint> = z.input<E["output"]>;
+/** What a handler may return: anything that encodes to the endpoint's output. */
+export type EndpointResult<E extends Endpoint> = E["output"]["Type"];
 
 export interface ValidationIssue {
   readonly field: string;
@@ -139,12 +158,17 @@ export type Validated<T> =
       readonly issues: readonly ValidationIssue[];
     };
 
+const toIssues = SchemaIssue.makeFormatterStandardSchemaV1({
+  // Messages are read as "<field> <message>", so a missing field "is required".
+  leafHook: (issue) => (issue._tag === "MissingKey" ? "is required" : SchemaIssue.defaultLeafHook(issue)),
+});
+
 /** Validate one value against a contract schema, reporting the first problem and all of them. */
-export function validate<S extends z.ZodType>(schema: S, value: unknown): Validated<z.output<S>> {
-  const result = schema.safeParse(value);
-  if (result.success) return { ok: true, data: result.data };
-  const issues = result.error.issues.map((issue) => ({
-    field: issue.path.length ? issue.path.join(".") : "",
+export function validate<S extends ContractSchema>(schema: S, value: unknown): Validated<S["Type"]> {
+  const result = Schema.decodeUnknownResult(schema, { errors: "all" })(value);
+  if (Result.isSuccess(result)) return { ok: true, data: result.success };
+  const issues = toIssues(result.failure.issue).issues.map((issue) => ({
+    field: (issue.path ?? []).map((key) => String(typeof key === "object" ? key.key : key)).join("."),
     message: issue.message,
   }));
   return { ok: false, field: issues[0]?.field ?? "", message: issues[0]?.message ?? "is invalid", issues };

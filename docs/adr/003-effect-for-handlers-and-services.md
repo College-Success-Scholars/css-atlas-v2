@@ -1,11 +1,11 @@
 # ADR 003: Effect for backend handlers and services
 
 **Status:** Accepted (rolling out; `upsertExcuse` is the reference)
-**Date:** 2026-11-19
+**Date:** 2026-11-19 (amended 2026-11-20: contracts moved from zod to Effect Schema)
 
 ## Decision
 
-Backend handlers and services return Effects (`effect` 4.x):
+Backend handlers and services return Effects (`effect` `~4.1`, tilde-pinned so patch fixes arrive):
 
 ```ts
 Effect.Effect<Output, DomainError, CurrentCaller>
@@ -15,7 +15,7 @@ Effect.Effect<Output, DomainError, CurrentCaller>
 - **The request is a service.** `CurrentCaller` (`context/current-caller.ts`) carries `actorId`, `asOf` and the profiles. `http/endpoint.ts` provides it on every request; tests provide it with `Effect.provideService`.
 - **Effects run only at the edge.** `http/endpoint.ts` is the only backend code that runs one (lint: `atlas/no-effect-run`).
 - **The compiler enforces the edge.** `implement()` accepts only handlers whose failures are domain errors and whose requirements are `CurrentCaller`.
-- **Contracts stay in zod**, in `shared/`, so the frontend never depends on Effect.
+- **Contracts use Effect Schema**, in `shared/`. Both apps import `Schema` from `@css-atlas/shared/contract` (never from `effect`) and decode only with its `validate()`. `shared` depends on effect itself, so a schema must not be handed to another copy's decoder; lint rule `atlas/no-schema-library` enforces this.
 
 Promise handlers and services remain valid during migration and may throw the same domain errors.
 
@@ -28,3 +28,4 @@ A service's signature now states what it produces, how it can fail, and that it 
 - **Two styles coexist until migration ends.** This is the nuance the guardrails exist to remove, so the migration should finish rather than stall. New services use Effect; a Promise service is migrated when it is next changed.
 - **Learning curve** for developers new to Effect. The rules in `docs/dev/backend/src/controllers/README.md` cover the subset in use: `Effect.gen`, `yield*`, domain errors, `CurrentCaller`, `Effect.promise`, `Effect.die`.
 - **The request token still lives in AsyncLocalStorage** (`supabase/client.ts`). It was verified to survive Effect's scheduling under concurrent requests; moving the Supabase client into an Effect service is a later step.
+- **Two installed copies of effect** (shared's and the backend's) until the repo uses npm workspaces. Both are `~4.1`, and nothing passes Effect values between them: `shared` only exposes schemas and `validate()`.

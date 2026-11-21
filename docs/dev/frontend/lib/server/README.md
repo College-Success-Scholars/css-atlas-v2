@@ -60,7 +60,7 @@ Do not call `backendGet` / `backendFetch` directly in pages — add a typed wrap
 - **Add new endpoints to `data.ts`** — when a new backend endpoint is created, add a corresponding typed function in `data.ts` rather than calling `backendGet` directly from pages.
 - **No React imports** — this is plain TypeScript, not a component module.
 - **Server Actions go in `actions.ts`** — do not add `"use server"` functions to other files.
-- **Public traffic check-in** — `recordTrafficEntry` is intentionally unauthenticated; validate with Zod, force `traffic_type: "entry"`, never trust client `created_at`. Pair with Supabase INSERT-only RLS (`docs/dev/supabase/004_traffic_public_insert.sql`).
+- **Public traffic check-in** — `recordTrafficEntry` is intentionally unauthenticated; validate with Effect Schema (`validate()` from `@css-atlas/shared/contract`), force `traffic_type: "entry"`, never trust client `created_at`. Pair with Supabase INSERT-only RLS (`docs/dev/supabase/004_traffic_public_insert.sql`).
 - **Error handling** — `backendFetch` throws on non-OK responses. Pages and actions should handle errors with try/catch or error boundaries.
 
 <!-- AUTO-API-REFERENCE:START -->

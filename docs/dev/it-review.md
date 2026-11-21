@@ -177,7 +177,7 @@ Reviewers can audit these against the running system and the repo:
 - Developer “act as” personas send a `dev_test_profiles.id`, not a raw roster UID; many writes are denylisted while acting.
 - Schema / RLS / RPC changes ship as `supabase/migrations/` PRs. Dashboard SQL is emergency-only.
 - CI: Vitest (frontend and backend), ESLint, production builds, Docker Compose smoke (`GET /` health, auth-gated `401`s, CORS).
-- Public kiosk: Zod-validated insert, no client-supplied timestamps, INSERT-only RLS preferred ([traffic README](frontend/app/traffic/README.md)).
+- Public kiosk: schema-validated insert, no client-supplied timestamps, INSERT-only RLS preferred ([traffic README](frontend/app/traffic/README.md)).
 
 ---
 
