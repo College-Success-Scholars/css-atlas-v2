@@ -25,15 +25,15 @@ import { backendGet, backendPost, backendPut, backendPatch, backendDelete, backe
 import type { EndpointRequest } from "@css-atlas/shared/contract";
 import * as attendance from "@css-atlas/shared/contracts/attendance";
 import { getEffectiveScholarId } from "@css-atlas/shared/auth";
+import * as sessionLogs from "@css-atlas/shared/contracts/session-logs";
+import * as users from "@css-atlas/shared/contracts/users";
+import type { ScholarInRoom, ScholarNoShow, ScholarWithCompletedSession, SessionLogRow } from "@css-atlas/shared/contracts/session-logs";
+import type { MemoUserRow, TeamLeaderRow } from "@css-atlas/shared/contracts/users";
 import type {
-  SessionLogRow,
   SessionType,
   CleanedAndErroredResult,
   CleanedAndErroredOptions,
-  ScholarInRoom,
   ScholarsInRoomOptions,
-  ScholarNoShow,
-  ScholarWithCompletedSession,
 } from "@/lib/types/session-log";
 import type {
   AttendanceKind,
@@ -155,51 +155,12 @@ export async function fetchMenteeMcfPrefill(uid: string): Promise<McfPrefill> {
   return backendGet<McfPrefill>(`/api/auth/mentees/${encodeURIComponent(uid)}/mcf-prefill`);
 }
 
-export type MemoUserRow = {
-  uid: string;
-  first_name: string | null;
-  last_name: string | null;
-  cohort: number | null;
-  program_role: string | null;
-  app_role: string | null;
-  fd_required: number | null;
-  ss_required: number | null;
-  status: string | null;
-};
-
-export type TeamLeaderRow = Omit<MemoUserRow, "app_role"> & {
-  mentee_count: number | null;
-};
-
-export async function fetchScholarNamesByUids(uids: string[]): Promise<Map<string, string>> {
-  if (uids.length === 0) return new Map();
-  const data = await backendPost<Record<string, string>>("/api/users/scholar-names", { uids });
-  return new Map(Object.entries(data));
-}
-
-export async function fetchRequiredHoursByUids(
-  uids: string[]
-): Promise<Map<string, { fd_required: number | null; ss_required: number | null }>> {
-  if (uids.length === 0) return new Map();
-  const data = await backendPost<Record<string, { fd_required: number | null; ss_required: number | null }>>("/api/users/required-hours", { uids });
-  return new Map(Object.entries(data));
-}
-
-export async function fetchEligibleScholarUids(uids: string[]): Promise<Set<string>> {
-  if (uids.length === 0) return new Set();
-  return new Set(await backendPost<string[]>("/api/users/eligible-scholars", { uids }));
-}
-
-export async function fetchAllUserUids(): Promise<string[]> {
-  return backendGet<string[]>("/api/users/all-uids");
-}
-
-export async function fetchAllUsersForMemo(): Promise<MemoUserRow[]> {
-  return backendGet<MemoUserRow[]>("/api/users/memo-users");
+export async function fetchAllUsersForMemo(): Promise<readonly MemoUserRow[]> {
+  return callEndpoint(users.getMemoUsers);
 }
 
 export async function getUserByUid(uid: string): Promise<MemoUserRow | null> {
-  return backendGet<MemoUserRow | null>(`/api/users/${encodeURIComponent(uid)}`);
+  return callEndpoint(users.getUser, { params: { uid } });
 }
 
 export type { RosterRow } from "@/lib/types/roster";
@@ -208,12 +169,8 @@ export async function getRosterByUid(uid: string): Promise<RosterRow | null> {
   return backendGet<RosterRow | null>(`/api/dev/roster/${encodeURIComponent(uid)}`);
 }
 
-export async function fetchTeamLeaders(): Promise<TeamLeaderRow[]> {
-  return backendGet<TeamLeaderRow[]>("/api/users/team-leaders");
-}
-
-export async function fetchScholarUids(): Promise<string[]> {
-  return backendGet<string[]>("/api/users/scholar-uids");
+export async function fetchTeamLeaders(): Promise<readonly TeamLeaderRow[]> {
+  return callEndpoint(users.getTeamLeaders);
 }
 
 // ---------------------------------------------------------------------------
@@ -222,70 +179,68 @@ export async function fetchScholarUids(): Promise<string[]> {
 
 export async function fetchFrontDeskLogs(options?: {
   startDate?: Date; endDate?: Date; scholarUids?: string[]; sessionType?: SessionType | string;
-}): Promise<SessionLogRow[]> {
-  return backendPost<SessionLogRow[]>("/api/session-logs/front-desk", dateOpts(options));
+}): Promise<readonly SessionLogRow[]> {
+  return callEndpoint(sessionLogs.getFrontDeskLogs, { body: dateOpts(options) });
 }
 
 export async function fetchStudySessionLogs(options?: {
   startDate?: Date; endDate?: Date; scholarUids?: string[]; sessionType?: SessionType | string;
-}): Promise<SessionLogRow[]> {
-  return backendPost<SessionLogRow[]>("/api/session-logs/study", dateOpts(options));
+}): Promise<readonly SessionLogRow[]> {
+  return callEndpoint(sessionLogs.getStudyLogs, { body: dateOpts(options) });
 }
 
 export async function getFrontDeskCleanedAndErrored(
   options?: { startDate?: Date; endDate?: Date; scholarUids?: string[]; sessionType?: SessionType | string; } & CleanedAndErroredOptions
-) {
-  const raw = await backendPost<{ byScholarUid: Record<string, { cleaned: unknown[]; errored: unknown[]; scholarName: string | null }>; allCleaned: unknown[]; allErrored: unknown[] }>(
-    "/api/session-logs/front-desk/cleaned",
-    { ...dateOpts(options), treatUnclosedEntryAsError: options?.treatUnclosedEntryAsError }
-  );
-  return { byScholarUid: new Map(Object.entries(raw.byScholarUid)), allCleaned: raw.allCleaned, allErrored: raw.allErrored } as CleanedAndErroredResult;
+): Promise<CleanedAndErroredResult> {
+  const raw = await callEndpoint(sessionLogs.getFrontDeskCleaned, {
+    body: { ...dateOpts(options), treatUnclosedEntryAsError: options?.treatUnclosedEntryAsError },
+  });
+  return { ...raw, byScholarUid: new Map(Object.entries(raw.byScholarUid)) };
 }
 
 export async function getFrontDeskScholarsInRoom(
   options?: ScholarsInRoomOptions & { startDate?: Date; endDate?: Date; scholarUids?: string[] }
-): Promise<ScholarInRoom[]> {
-  return backendPost<ScholarInRoom[]>("/api/session-logs/front-desk/in-room", {
-    ...dateOpts(options), asOf: options?.asOf?.toISOString(),
+): Promise<readonly ScholarInRoom[]> {
+  return callEndpoint(sessionLogs.getFrontDeskInRoom, {
+    body: { ...dateOpts(options), asOf: options?.asOf?.toISOString() },
   });
 }
 
 export async function getFrontDeskCompletedSessions(options?: {
   startDate?: Date; endDate?: Date; scholarUids?: string[]; sessionType?: SessionType | string;
-}): Promise<ScholarWithCompletedSession[]> {
-  return backendPost<ScholarWithCompletedSession[]>("/api/session-logs/front-desk/completed", dateOpts(options));
+}): Promise<readonly ScholarWithCompletedSession[]> {
+  return callEndpoint(sessionLogs.getFrontDeskCompleted, { body: dateOpts(options) });
 }
 
 export async function getStudySessionCleanedAndErrored(
   options?: { startDate?: Date; endDate?: Date; scholarUids?: string[]; sessionType?: string; } & CleanedAndErroredOptions
-) {
-  const raw = await backendPost<{ byScholarUid: Record<string, unknown>; allCleaned: unknown[]; allErrored: unknown[] }>(
-    "/api/session-logs/study/cleaned",
-    { ...dateOpts(options), treatUnclosedEntryAsError: options?.treatUnclosedEntryAsError }
-  );
-  return { byScholarUid: new Map(Object.entries(raw.byScholarUid)), allCleaned: raw.allCleaned, allErrored: raw.allErrored } as CleanedAndErroredResult;
+): Promise<CleanedAndErroredResult> {
+  const raw = await callEndpoint(sessionLogs.getStudyCleaned, {
+    body: { ...dateOpts(options), treatUnclosedEntryAsError: options?.treatUnclosedEntryAsError },
+  });
+  return { ...raw, byScholarUid: new Map(Object.entries(raw.byScholarUid)) };
 }
 
 export async function getStudySessionScholarsInRoom(
   options?: ScholarsInRoomOptions & { startDate?: Date; endDate?: Date; scholarUids?: string[] }
-): Promise<ScholarInRoom[]> {
-  return backendPost<ScholarInRoom[]>("/api/session-logs/study/in-room", {
-    ...dateOpts(options), asOf: options?.asOf?.toISOString(),
+): Promise<readonly ScholarInRoom[]> {
+  return callEndpoint(sessionLogs.getStudyInRoom, {
+    body: { ...dateOpts(options), asOf: options?.asOf?.toISOString() },
   });
 }
 
 export async function getStudySessionCompletedSessions(options?: {
   startDate?: Date; endDate?: Date; scholarUids?: string[]; sessionType?: string;
-}): Promise<ScholarWithCompletedSession[]> {
-  return backendPost<ScholarWithCompletedSession[]>("/api/session-logs/study/completed", dateOpts(options));
+}): Promise<readonly ScholarWithCompletedSession[]> {
+  return callEndpoint(sessionLogs.getStudyCompleted, { body: dateOpts(options) });
 }
 
-export async function getStudySessionNoShows(): Promise<ScholarNoShow[]> {
-  return backendGet<ScholarNoShow[]>("/api/session-logs/study/no-shows");
+export async function getStudySessionNoShows(): Promise<readonly ScholarNoShow[]> {
+  return callEndpoint(sessionLogs.getStudyNoShows);
 }
 
-export async function getFrontDeskNoShows(): Promise<ScholarNoShow[]> {
-  return backendGet<ScholarNoShow[]>("/api/session-logs/front-desk/no-shows");
+export async function getFrontDeskNoShows(): Promise<readonly ScholarNoShow[]> {
+  return callEndpoint(sessionLogs.getFrontDeskNoShows);
 }
 
 // ---------------------------------------------------------------------------

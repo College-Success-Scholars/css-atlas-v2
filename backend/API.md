@@ -180,63 +180,6 @@ Each `${section}` uses `{ ok: true, data, loadedAt }` or `{ ok: false, error: { 
 
 All routes under `/api/users` require **requireAuth**.
 
-### `POST /api/users/scholar-names`
-
-**Auth:** requireAuth
-**Description:** Given an array of UIDs, returns a map of UID to scholar display name.
-**Request Body:**
-```json
-{ "uids": ["uid1", "uid2"] }
-```
-**Response:**
-```json
-{ "data": { "uid1": "Name One", "uid2": "Name Two" } }
-```
-
----
-
-### `POST /api/users/required-hours`
-
-**Auth:** requireAuth
-**Description:** Given an array of UIDs, returns a map of UID to required hours.
-**Request Body:**
-```json
-{ "uids": ["uid1", "uid2"] }
-```
-**Response:**
-```json
-{ "data": { "uid1": 10, "uid2": 8 } }
-```
-
----
-
-### `POST /api/users/eligible-scholars`
-
-**Auth:** requireAuth
-**Description:** Filters the given UIDs to enrolled freshman/sophomore scholars with required hours.
-**Request Body:**
-```json
-{ "uids": ["uid1", "uid2"] }
-```
-**Response:**
-```json
-{ "data": ["uid1"] }
-```
-
----
-
-### `GET /api/users/all-uids`
-
-**Auth:** requireAuth
-**Description:** Returns all user UIDs in the system.
-**Request:** None
-**Response:**
-```json
-{ "data": ["uid1", "uid2", "..."] }
-```
-
----
-
 ### `GET /api/users/memo-users`
 
 **Auth:** requireAuth
@@ -261,14 +204,25 @@ All routes under `/api/users` require **requireAuth**.
 
 ---
 
-### `GET /api/users/scholar-uids`
+### `GET /api/users/directory`
 
 **Auth:** requireAuth
-**Description:** Returns UIDs for scholars whose `user_roster.status` is enrolled. Inactive and graduated roster rows are omitted.
-**Request:** None
+**Description:** Searchable, paged people directory. Every query parameter is optional: `view` (`flat` or `grouped`, default `flat`), `search` (up to 100 characters), `sort` (`asc` or `desc`), `team`, `programRole` and `cohort` (a value, comma-separated values, or a repeated parameter), `limit` (1 to 24, default 24), `cursor` (opaque, from `pagination.nextCursor`), `group` (one team, grouped view only; required with `cursor` in the grouped view).
 **Response:**
 ```json
-{ "data": ["uid1", "uid2", "..."] }
+{ "data": { "view": "flat", "members": [ /* people */ ], "pagination": { "total": 0, "range": { "start": 0, "end": 0 }, "hasNext": false, "nextCursor": null } } }
+```
+The grouped view answers `{ "view": "grouped", "total": 0, "groups": [{ "team": "", "members": [], "pagination": {} }] }`. Returns `400` for an invalid query or cursor.
+
+---
+
+### `GET /api/users/directory/facets`
+
+**Auth:** requireAuth
+**Description:** Distinct team, program role and cohort values for the directory filters.
+**Response:**
+```json
+{ "data": { "teams": [], "programRoles": [], "cohorts": [] } }
 ```
 
 ---
@@ -288,7 +242,18 @@ Returns `404` if user not found.
 
 ## Session Logs
 
-All routes under `/api/session-logs` require **requireAuth**. All endpoints use POST with an optional filter body.
+All routes under `/api/session-logs` require **requireAuth**, except the two `no-shows` routes, which need a team leader or above. The POST endpoints take an optional filter body.
+
+### `GET /api/session-logs/front-desk/no-shows` and `GET /api/session-logs/study/no-shows`
+
+**Auth:** requireTeamLeaderOrAbove
+**Description:** Scholars who missed a shift today and have not checked in.
+**Response:**
+```json
+{ "data": [{ "scholarId": "", "scholarName": "", "phoneNumber": null, "scheduledStart": "", "scheduledEnd": "" }] }
+```
+
+---
 
 ### `POST /api/session-logs/front-desk`
 
@@ -327,7 +292,7 @@ All routes under `/api/session-logs` require **requireAuth**. All endpoints use 
 ```json
 {
   "data": {
-    "byScholarUid": { "uid1": [ /* cleaned entries */ ] },
+    "byScholarUid": { "uid1": { "cleaned": [], "errored": [], "scholarName": "Name" } },
     "allCleaned": [ /* all valid entries */ ],
     "allErrored": [ /* all errored entries */ ]
   }
@@ -414,7 +379,7 @@ All routes under `/api/session-logs` require **requireAuth**. All endpoints use 
 ```json
 {
   "data": {
-    "byScholarUid": { "uid1": [ /* cleaned entries */ ] },
+    "byScholarUid": { "uid1": { "cleaned": [], "errored": [], "scholarName": "Name" } },
     "allCleaned": [ /* all valid entries */ ],
     "allErrored": [ /* all errored entries */ ]
   }

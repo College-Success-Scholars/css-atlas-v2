@@ -104,8 +104,7 @@ describe("findFrontDeskNoShows", () => {
   });
 
   it("accepts entries without a session-type field", () => {
-    const row = entry("13:45");
-    delete row.session_type;
+    const { session_type: _sessionType, ...row } = entry("13:45");
     expect(ids(findFrontDeskNoShows([frontDeskAssignment], [row], at("14:20")))).toEqual([]);
     expect(
       ids(findFrontDeskNoShows([frontDeskAssignment], [entry("14:19", "Front Desk")], at("14:20"))),

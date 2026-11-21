@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import type { ScholarInRoom } from "@/lib/types/session-log"
+import type { ScholarInRoom } from "@css-atlas/shared/contracts/session-logs"
 import { filterRoomScholarsByName } from "../_lib/filter-room-scholars"
 import { formatDurationShort, formatEnteredTime } from "../_lib/room-format"
 

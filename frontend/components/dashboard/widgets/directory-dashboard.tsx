@@ -3,7 +3,15 @@
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, Filter, Search } from "lucide-react";
-import { backendGet } from "@/lib/client/api-client";
+import { callEndpoint } from "@/lib/client/api-client";
+import {
+  getDirectory,
+  getDirectoryFacets,
+  type DirectoryFacets,
+  type DirectoryPagination,
+  type DirectoryPerson,
+  type DirectoryResponse,
+} from "@css-atlas/shared/contracts/users";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -13,7 +21,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import {
   activeFilterCount,
   directoryMenteePath,
-  directoryPath,
+  directoryQuery,
   initialDirectoryState,
   type DirectoryFilters,
   type DirectoryState,
@@ -23,32 +31,6 @@ import { directoryTeamFilterOptions, directoryTeamPresentationFor } from "./dire
 const PAGE_SIZE = 10;
 const ALL_VALUE = "all";
 
-type DirectoryPerson = {
-  id: string;
-  name: string;
-  uid: string | null;
-  cohort: number | null;
-  email: string | null;
-  phoneNumber: string | null;
-  teams: string[];
-  programRole: string | null;
-  /** Team-leader viewers see this; RLS returns false for everyone else. */
-  isMentee: boolean;
-};
-
-type Pagination = {
-  total: number;
-  range: { start: number; end: number };
-  hasNext: boolean;
-  nextCursor: string | null;
-};
-
-type DirectoryGroup = { team: string; members: DirectoryPerson[]; pagination: Pagination };
-type DirectoryFlatResponse = { view: "flat"; members: DirectoryPerson[]; pagination: Pagination };
-type DirectoryGroupedResponse = { view: "grouped"; total: number; groups: DirectoryGroup[] };
-type DirectoryResponse = DirectoryFlatResponse | DirectoryGroupedResponse;
-
-type DirectoryFacets = { teams: string[]; programRoles: string[]; cohorts: number[] };
 const emptyFacets: DirectoryFacets = { teams: [], programRoles: [], cohorts: [] };
 
 const LARGE_GROUP_THRESHOLD = 50;
@@ -296,7 +278,7 @@ function Pager({
   onPrevious,
   onNext,
 }: {
-  pagination: Pagination;
+  pagination: DirectoryPagination;
   currentPage: number;
   onPrevious: () => void;
   onNext: () => void;
@@ -382,7 +364,7 @@ export function DirectoryDashboard() {
   const effectiveState = { ...state, search: debouncedSearch };
 
   useEffect(() => {
-    backendGet<DirectoryFacets>("/api/users/directory/facets").then((result) => {
+    callEndpoint(getDirectoryFacets).then((result) => {
       if (result.ok) setFacets(result.data);
     });
   }, []);
@@ -391,7 +373,7 @@ export function DirectoryDashboard() {
     let cancelled = false;
     const run = async () => {
       setLoading(true);
-      const result = await backendGet<DirectoryResponse>(directoryPath(effectiveState, flatPage.currentCursor, undefined, PAGE_SIZE));
+      const result = await callEndpoint(getDirectory, { query: directoryQuery(effectiveState, flatPage.currentCursor, undefined, PAGE_SIZE) });
       if (cancelled) return;
       if (result.ok) {
         setResponse(result.data);
@@ -420,7 +402,7 @@ export function DirectoryDashboard() {
 
   const loadGroupPage = async (team: string, cursor: string | null) => {
     setLoading(true);
-    const result = await backendGet<DirectoryResponse>(directoryPath(effectiveState, cursor, team, PAGE_SIZE));
+    const result = await callEndpoint(getDirectory, { query: directoryQuery(effectiveState, cursor, team, PAGE_SIZE) });
     if (result.ok && result.data.view === "grouped") {
       const nextGroup = result.data.groups[0];
       setResponse((current) =>

@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { parseDirectoryQuery } from "../controllers/user.controller.js";
-import {
-  DirectoryCursorError,
-  mapDirectoryPerson,
-  queryDirectoryRows,
-} from "../services/user.service.js";
+import { validate } from "@css-atlas/shared/contract";
+import { directoryQuery } from "@css-atlas/shared/contracts/users";
+import { mapDirectoryPerson, queryDirectoryRows } from "../services/user.service.js";
+import { ValidationError } from "../utils/domain-error.js";
 import type { DirectoryQuery } from "../models/user.model.js";
 
 const rows = [
@@ -118,30 +116,33 @@ describe("directory query contract", () => {
   });
 
   it("rejects malformed and stale opaque cursors", () => {
-    expect(() => queryDirectoryRows(rows, query({ cursor: "not-a-cursor" }))).toThrow(DirectoryCursorError);
-    expect(() => queryDirectoryRows(rows, query({ cursor: "eyJuYW1lIjoiTWlzc2luZyIsImlkIjoiOTk5In0" }))).toThrow(DirectoryCursorError);
+    expect(() => queryDirectoryRows(rows, query({ cursor: "not-a-cursor" }))).toThrow(ValidationError);
+    expect(() => queryDirectoryRows(rows, query({ cursor: "eyJuYW1lIjoiTWlzc2luZyIsImlkIjoiOTk5In0" }))).toThrow(ValidationError);
   });
 });
 
-describe("parseDirectoryQuery", () => {
-  it("defaults page size to 24 and parses repeated facets", () => {
-    expect(parseDirectoryQuery({ view: "grouped", team: ["Blue", "Engineering"], cohort: "2024" })).toEqual({
-      view: "grouped",
-      search: "",
-      sort: "asc",
-      teams: ["Blue", "Engineering"],
-      programRoles: [],
-      cohorts: [2024],
-      limit: 24,
-      cursor: null,
-      group: null,
+describe("directory query contract validation", () => {
+  it("parses repeated and comma-separated facets and leaves defaults to the handler", () => {
+    expect(validate(directoryQuery, { view: "grouped", team: ["Blue", "Engineering"], cohort: "2024" })).toEqual({
+      ok: true,
+      data: { view: "grouped", team: ["Blue", "Engineering"], cohort: [2024] },
     });
+    expect(validate(directoryQuery, { team: "Study, Front Desk,Study" })).toMatchObject({
+      ok: true,
+      data: { team: ["Study", "Front Desk"] },
+    });
+    expect(validate(directoryQuery, {})).toEqual({ ok: true, data: {} });
   });
 
   it("rejects invalid limits, cursors, and grouped cursors without a group", () => {
-    expect(parseDirectoryQuery({ limit: "25" })).toBeNull();
-    expect(parseDirectoryQuery({ cursor: ["one", "two"] })).toBeNull();
-    expect(parseDirectoryQuery({ view: "grouped", cursor: "opaque" })).toBeNull();
-    expect(parseDirectoryQuery({ search: { nested: "value" } })).toBeNull();
+    expect(validate(directoryQuery, { limit: "25" }).ok).toBe(false);
+    expect(validate(directoryQuery, { limit: "24" }).ok).toBe(true);
+    expect(validate(directoryQuery, { cursor: ["one", "two"] }).ok).toBe(false);
+    expect(validate(directoryQuery, { view: "grouped", cursor: "opaque" }).ok).toBe(false);
+    expect(validate(directoryQuery, { view: "grouped", cursor: "opaque", group: "Blue" }).ok).toBe(true);
+    expect(validate(directoryQuery, { group: "Blue" }).ok).toBe(false);
+    expect(validate(directoryQuery, { search: { nested: "value" } }).ok).toBe(false);
+    expect(validate(directoryQuery, { cohort: "1800" }).ok).toBe(false);
+    expect(validate(directoryQuery, { team: "Blue,,Gold" }).ok).toBe(false);
   });
 });

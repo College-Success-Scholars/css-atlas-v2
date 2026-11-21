@@ -44,8 +44,8 @@ check "GET / health check" "200" "$STATUS"
 for ROUTE in \
   "/api/auth/me" \
   "/api/memo/page-data" \
-  "/api/users" \
-  "/api/session-logs" \
+  "/api/users/memo-users" \
+  "/api/session-logs/study/no-shows" \
   "/api/attendance/week/1?kind=front_desk" \
   "/api/traffic/entry-count/1" \
   "/api/form-logs" \

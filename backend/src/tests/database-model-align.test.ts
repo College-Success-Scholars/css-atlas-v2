@@ -4,11 +4,14 @@
  */
 import { describe, expectTypeOf, it } from "vitest";
 import type { TutorReportLogRow } from "../models/tutor-report-log.model.js";
+import type { SessionLogRow } from "../models/session-log.model.js";
 import type { ProfilesRow } from "../models/user.model.js";
 import type { ScholarWeekExcuseRow } from "../models/attendance-week.model.js";
 import type { Database } from "../supabase/database.types.js";
 
 type ProfilesDbRow = Database["public"]["Tables"]["profiles"]["Row"];
+type FrontDeskLogDbRow = Database["public"]["Tables"]["front_desk_logs"]["Row"];
+type StudySessionLogDbRow = Database["public"]["Tables"]["study_session_logs"]["Row"];
 type TutorReportDbRow = Database["public"]["Tables"]["tutor_report_logs"]["Row"];
 type ScholarWeekExcuseDbRow = Database["public"]["Tables"]["scholar_week_excuses"]["Row"];
 
@@ -27,6 +30,15 @@ describe("Database ↔ model alignment", () => {
     // Contract arrays are readonly; the element type must still match the column.
     expectTypeOf<TutorReportLogRow["courses"]>().toEqualTypeOf<Readonly<TutorReportDbRow["courses"]>>();
     expectTypeOf<TutorReportLogRow["created_at"]>().toEqualTypeOf<TutorReportDbRow["created_at"]>();
+  });
+
+  it("SessionLogRow shared columns match front_desk_logs and study_session_logs Rows", () => {
+    expectTypeOf<SessionLogRow["id"]>().toEqualTypeOf<FrontDeskLogDbRow["id"]>();
+    expectTypeOf<SessionLogRow["scholar_uid"]>().toEqualTypeOf<FrontDeskLogDbRow["scholar_uid"]>();
+    expectTypeOf<SessionLogRow["action_type"]>().toEqualTypeOf<FrontDeskLogDbRow["action_type"]>();
+    expectTypeOf<SessionLogRow["id"]>().toEqualTypeOf<StudySessionLogDbRow["id"]>();
+    expectTypeOf<SessionLogRow["scholar_uid"]>().toEqualTypeOf<StudySessionLogDbRow["scholar_uid"]>();
+    expectTypeOf<SessionLogRow["action_type"]>().toEqualTypeOf<StudySessionLogDbRow["action_type"]>();
   });
 
   it("ScholarWeekExcuseRow columns match scholar_week_excuses Row", () => {

@@ -1,4 +1,4 @@
-import type { ScholarWithCompletedSession } from "@/lib/types/session-log"
+import type { ScholarWithCompletedSession } from "@css-atlas/shared/contracts/session-logs"
 import type { TrafficSession } from "@css-atlas/shared/contracts/traffic"
 import type { FormCompletionOverall } from "@/components/data-display/form-completion-overview-card"
 import type { MemoTutorReportRow } from "@/lib/types/tutor-report-log"

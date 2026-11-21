@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Clock } from "lucide-react"
 import { RoomNoShowsPanel } from "./room-no-shows-panel"
-import type { ScholarNoShow } from "@/lib/types/session-log"
+import type { ScholarNoShow } from "@css-atlas/shared/contracts/session-logs"
 
 const clockFormatter = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/New_York",
@@ -18,9 +18,9 @@ export function RoomNoShowsSection({
   frontDeskNoShows,
   frontDeskNoShowsError,
 }: {
-  studyNoShows: ScholarNoShow[]
+  studyNoShows: readonly ScholarNoShow[]
   studyNoShowsError: string | null
-  frontDeskNoShows: ScholarNoShow[]
+  frontDeskNoShows: readonly ScholarNoShow[]
   frontDeskNoShowsError: string | null
 }) {
   const [now, setNow] = useState<Date | null>(null)

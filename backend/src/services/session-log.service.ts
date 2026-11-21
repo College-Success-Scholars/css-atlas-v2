@@ -28,6 +28,7 @@ import {
   getEasternDayOfWeek,
   getStartOfDayEastern,
 } from "./time.service.js";
+import { ValidationError } from "../utils/domain-error.js";
 import { fetchScholarNamesByUids } from "./user.service.js";
 import { easternTimestamp } from "./shift-occurrence.service.js";
 import {
@@ -63,14 +64,15 @@ import type {
 function requireDateOrUidLimit(options?: {
   startDate?: Date;
   endDate?: Date;
-  scholarUids?: string[];
+  scholarUids?: ReadonlyArray<string>;
 }): void {
   const hasDateRange = options?.startDate != null || options?.endDate != null;
   const hasUids = (options?.scholarUids?.length ?? 0) > 0;
   if (!hasDateRange && !hasUids) {
-    throw new Error(
-      "At least one of startDate, endDate, or scholarUids (non-empty) is required to limit the search."
-    );
+    throw new ValidationError({
+      field: "",
+      message: "At least one of startDate, endDate, or scholarUids (non-empty) is required to limit the search.",
+    });
   }
 }
 
@@ -109,7 +111,7 @@ function toSessionLogRowStudy(row: StudySessionLogRow): SessionLogRow {
 export async function fetchFrontDeskLogs(options?: {
   startDate?: Date;
   endDate?: Date;
-  scholarUids?: string[];
+  scholarUids?: ReadonlyArray<string>;
   sessionType?: SessionType | string;
 }): Promise<SessionLogRow[]> {
   requireDateOrUidLimit(options);
@@ -129,7 +131,7 @@ export async function fetchFrontDeskLogs(options?: {
 export async function fetchStudySessionLogs(options?: {
   startDate?: Date;
   endDate?: Date;
-  scholarUids?: string[];
+  scholarUids?: ReadonlyArray<string>;
   sessionType?: SessionType | string;
 }): Promise<SessionLogRow[]> {
   requireDateOrUidLimit(options);
@@ -721,7 +723,7 @@ export async function getFrontDeskCleanedAndErrored(
   options?: {
     startDate?: Date;
     endDate?: Date;
-    scholarUids?: string[];
+    scholarUids?: ReadonlyArray<string>;
     sessionType?: SessionType | string;
   } & CleanedAndErroredOptions
 ) {
@@ -736,7 +738,7 @@ export async function getFrontDeskCleanedAndErrored(
 }
 
 export async function getFrontDeskScholarsInRoom(
-  options?: ScholarsInRoomOptions & { startDate?: Date; endDate?: Date; scholarUids?: string[] }
+  options?: ScholarsInRoomOptions & { startDate?: Date; endDate?: Date; scholarUids?: ReadonlyArray<string> }
 ) {
   const rows = await fetchFrontDeskLogs(options);
   const result = getScholarsCurrentlyInRoom(rows, undefined, {
@@ -750,7 +752,7 @@ export async function getFrontDeskScholarsInRoom(
 export async function getFrontDeskCompletedSessions(options?: {
   startDate?: Date;
   endDate?: Date;
-  scholarUids?: string[];
+  scholarUids?: ReadonlyArray<string>;
   sessionType?: SessionType | string;
 }) {
   const rows = await fetchFrontDeskLogs(options);
@@ -769,7 +771,7 @@ export async function getStudySessionCleanedAndErrored(
   options?: {
     startDate?: Date;
     endDate?: Date;
-    scholarUids?: string[];
+    scholarUids?: ReadonlyArray<string>;
     sessionType?: string;
   } & CleanedAndErroredOptions
 ) {
@@ -784,7 +786,7 @@ export async function getStudySessionCleanedAndErrored(
 }
 
 export async function getStudySessionScholarsInRoom(
-  options?: ScholarsInRoomOptions & { startDate?: Date; endDate?: Date; scholarUids?: string[] }
+  options?: ScholarsInRoomOptions & { startDate?: Date; endDate?: Date; scholarUids?: ReadonlyArray<string> }
 ) {
   const rows = await fetchStudySessionLogs(options);
   const result = getScholarsCurrentlyInRoom(rows, undefined, options ?? {});
@@ -795,7 +797,7 @@ export async function getStudySessionScholarsInRoom(
 export async function getStudySessionCompletedSessions(options?: {
   startDate?: Date;
   endDate?: Date;
-  scholarUids?: string[];
+  scholarUids?: ReadonlyArray<string>;
   sessionType?: string;
 }) {
   const rows = await fetchStudySessionLogs(options);

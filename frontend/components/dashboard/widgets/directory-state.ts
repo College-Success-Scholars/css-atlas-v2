@@ -37,14 +37,17 @@ export function directoryMenteePath(
   return cohort != null && Number.isFinite(cohort) ? `${path}?cohort=${cohort}` : path;
 }
 
-export function directoryPath(state: DirectoryState, cursor?: string | null, group?: string, limit?: number) {
-  const params = new URLSearchParams({ view: state.view, sort: state.sort });
-  if (state.search) params.set("search", state.search);
-  if (state.team) params.set("team", state.team);
-  if (state.programRole) params.set("programRole", state.programRole);
-  if (state.cohort) params.set("cohort", state.cohort);
-  if (cursor) params.set("cursor", cursor);
-  if (group) params.set("group", group);
-  if (limit) params.set("limit", String(limit));
-  return `/api/users/directory?${params.toString()}`;
+/** The /api/users/directory query for the current filters, in the shape `callEndpoint` takes. */
+export function directoryQuery(state: DirectoryState, cursor?: string | null, group?: string, limit?: number) {
+  return {
+    view: state.view,
+    sort: state.sort,
+    ...(state.search ? { search: state.search } : {}),
+    ...(state.team ? { team: state.team } : {}),
+    ...(state.programRole ? { programRole: state.programRole } : {}),
+    ...(state.cohort ? { cohort: state.cohort } : {}),
+    ...(cursor ? { cursor } : {}),
+    ...(group ? { group } : {}),
+    ...(limit ? { limit } : {}),
+  };
 }

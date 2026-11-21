@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import type { ScholarWithCompletedSession } from "@/lib/types/session-log";
+import type { ScholarWithCompletedSession } from "@css-atlas/shared/contracts/session-logs";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Card,
@@ -18,8 +18,8 @@ const HOURS = Array.from({ length: 12 }, (_, i) => i + 8); // 8–19
 type ViewMode = "front-desk" | "study-session" | "both";
 
 interface SessionHeatMapProps {
-  completedStudy: ScholarWithCompletedSession[];
-  completedFd: ScholarWithCompletedSession[];
+  completedStudy: readonly ScholarWithCompletedSession[];
+  completedFd: readonly ScholarWithCompletedSession[];
 }
 
 function parseET(iso: string): { dayOfWeek: number; hour: number } {
@@ -68,8 +68,8 @@ function addSessionToGrid(
 }
 
 function aggregate(
-  completedStudy: ScholarWithCompletedSession[],
-  completedFd: ScholarWithCompletedSession[]
+  completedStudy: readonly ScholarWithCompletedSession[],
+  completedFd: readonly ScholarWithCompletedSession[]
 ) {
   const study: number[][] = Array.from({ length: 5 }, () =>
     Array(12).fill(0)

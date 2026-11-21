@@ -7,7 +7,7 @@ import {
 } from "@/components/data-display/scholar-data-table";
 import type { DataTableFilter } from "@/components/data-display/data-table";
 import { Badge } from "@/components/ui/badge";
-import type { MemoUserRow } from "@/lib/server/data";
+import type { MemoUserRow } from "@css-atlas/shared/contracts/users";
 
 function displayName(row: MemoUserRow): string {
   const name = [row.first_name, row.last_name].filter(Boolean).join(" ").trim();
@@ -30,7 +30,7 @@ const statusFilterBar: DataTableFilter<MemoUserRow>[] = [
   },
 ];
 
-export function ProfilesUserTable({ users }: { users: MemoUserRow[] }) {
+export function ProfilesUserTable({ users }: { users: readonly MemoUserRow[] }) {
   const columns: ScholarDataTableColumn<MemoUserRow>[] = [
     {
       id: "name",

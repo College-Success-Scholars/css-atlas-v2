@@ -2,252 +2,79 @@
  * @file session-log.controller.ts
  * @module backend/controllers
  *
- * Request handlers for raw session check-in/out log endpoints (/api/session-logs/*).
- * Handles both front-desk and study-session log variants including raw fetch,
- * cleaned/errored pairs, in-room open sessions, and completed sessions.
- *
- * ## Responsibilities
- * - Parse date and scholarUids from request bodies
- * - Delegate to session-log.service.ts functions
- * - Return structured { data } or { error } JSON responses
- *
- * ## What belongs here
- * - Handler functions for /api/session-logs/* routes
- *
- * ## What does NOT belong here
- * - Session log parsing or cleaning logic (that's in session-log.service.ts)
- * - Supabase queries
+ * Handlers for /api/session-logs, bound to @css-atlas/shared/contracts/session-logs.
+ * Each handler turns the validated body into service options and returns the
+ * service result. The cleaned endpoints answer `byScholarUid` as a record.
  */
-import type { Response } from "express";
-import { getStudySessionNoShows, getFrontDeskNoShows } from "../services/session-no-shows.service.js";
-import type { AuthenticatedRequest } from "../middleware/auth.middleware.js";
+import * as contract from "@css-atlas/shared/contracts/session-logs";
+import { implement } from "../http/endpoint.js";
 import {
   fetchFrontDeskLogs,
   fetchStudySessionLogs,
   getFrontDeskCleanedAndErrored,
-  getFrontDeskScholarsInRoom,
   getFrontDeskCompletedSessions,
+  getFrontDeskScholarsInRoom,
   getStudySessionCleanedAndErrored,
-  getStudySessionScholarsInRoom,
   getStudySessionCompletedSessions,
+  getStudySessionScholarsInRoom,
 } from "../services/session-log.service.js";
+import { getFrontDeskNoShows, getStudySessionNoShows } from "../services/session-no-shows.service.js";
+import type { CleanedAndErroredResult } from "../models/session-log.model.js";
 
-function parseDateOrUndefined(val: unknown): Date | undefined {
-  if (val == null || val === "") return undefined;
-  const d = new Date(val as string);
-  return Number.isNaN(d.getTime()) ? undefined : d;
+/** Blank or unparseable dates mean "no limit", as they always have. */
+function parseDateOrUndefined(value: string | null | undefined): Date | undefined {
+  if (value == null || value === "") return undefined;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
-// POST /api/session-logs/front-desk
-export async function fetchFrontDesk(req: AuthenticatedRequest, res: Response) {
-  try {
-    const { startDate, endDate, scholarUids } = req.body as {
-      startDate?: string;
-      endDate?: string;
-      scholarUids?: string[];
-    };
-    const data = await fetchFrontDeskLogs({
-      startDate: parseDateOrUndefined(startDate),
-      endDate: parseDateOrUndefined(endDate),
-      scholarUids,
-    });
-    res.json({ data });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: e instanceof Error ? e.message : "Failed to fetch front desk logs" });
-  }
+function range(body: typeof contract.logRangeInput.Type) {
+  return {
+    startDate: parseDateOrUndefined(body.startDate),
+    endDate: parseDateOrUndefined(body.endDate),
+    scholarUids: body.scholarUids,
+    sessionType: body.sessionType,
+  };
 }
 
-// POST /api/session-logs/study
-export async function fetchStudy(req: AuthenticatedRequest, res: Response) {
-  try {
-    const { startDate, endDate, scholarUids, sessionType } = req.body as {
-      startDate?: string;
-      endDate?: string;
-      scholarUids?: string[];
-      sessionType?: string;
-    };
-    const data = await fetchStudySessionLogs({
-      startDate: parseDateOrUndefined(startDate),
-      endDate: parseDateOrUndefined(endDate),
-      scholarUids,
-      sessionType,
-    });
-    res.json({ data });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: e instanceof Error ? e.message : "Failed to fetch study session logs" });
-  }
+function inRoom(body: typeof contract.inRoomInput.Type) {
+  return { ...range(body), asOf: parseDateOrUndefined(body.asOf) };
 }
 
-// POST /api/session-logs/front-desk/cleaned
-export async function frontDeskCleaned(req: AuthenticatedRequest, res: Response) {
-  try {
-    const { startDate, endDate, scholarUids, sessionType, treatUnclosedEntryAsError } = req.body as {
-      startDate?: string;
-      endDate?: string;
-      scholarUids?: string[];
-      sessionType?: string;
-      treatUnclosedEntryAsError?: boolean;
-    };
-    const result = await getFrontDeskCleanedAndErrored({
-      startDate: parseDateOrUndefined(startDate),
-      endDate: parseDateOrUndefined(endDate),
-      scholarUids,
-      sessionType,
-      treatUnclosedEntryAsError,
-    });
-    res.json({
-      data: {
-        byScholarUid: Object.fromEntries(result.byScholarUid),
-        allCleaned: result.allCleaned,
-        allErrored: result.allErrored,
-      },
-    });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: e instanceof Error ? e.message : "Failed to fetch cleaned front desk logs" });
-  }
+function cleanedBody(result: CleanedAndErroredResult) {
+  return {
+    byScholarUid: Object.fromEntries(result.byScholarUid),
+    allCleaned: result.allCleaned,
+    allErrored: result.allErrored,
+  };
 }
 
-// POST /api/session-logs/front-desk/in-room
-export async function frontDeskInRoom(req: AuthenticatedRequest, res: Response) {
-  try {
-    const { startDate, endDate, scholarUids, sessionType, asOf } = req.body as {
-      startDate?: string;
-      endDate?: string;
-      scholarUids?: string[];
-      sessionType?: string;
-      asOf?: string;
-    };
-    const data = await getFrontDeskScholarsInRoom({
-      startDate: parseDateOrUndefined(startDate),
-      endDate: parseDateOrUndefined(endDate),
-      scholarUids,
-      sessionType,
-      asOf: parseDateOrUndefined(asOf),
-    });
-    res.json({ data });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: e instanceof Error ? e.message : "Failed to fetch scholars in room" });
-  }
-}
+export const sessionLogEndpoints = [
+  // Front desk
+  implement(contract.getFrontDeskNoShows, () => getFrontDeskNoShows()),
+  implement(contract.getFrontDeskLogs, ({ body }) => fetchFrontDeskLogs(range(body))),
+  implement(contract.getFrontDeskCleaned, async ({ body }) =>
+    cleanedBody(
+      await getFrontDeskCleanedAndErrored({
+        ...range(body),
+        treatUnclosedEntryAsError: body.treatUnclosedEntryAsError,
+      }),
+    ),
+  ),
+  implement(contract.getFrontDeskInRoom, ({ body }) => getFrontDeskScholarsInRoom(inRoom(body))),
+  implement(contract.getFrontDeskCompleted, ({ body }) => getFrontDeskCompletedSessions(range(body))),
 
-// POST /api/session-logs/front-desk/completed
-export async function frontDeskCompleted(req: AuthenticatedRequest, res: Response) {
-  try {
-    const { startDate, endDate, scholarUids, sessionType } = req.body as {
-      startDate?: string;
-      endDate?: string;
-      scholarUids?: string[];
-      sessionType?: string;
-    };
-    const data = await getFrontDeskCompletedSessions({
-      startDate: parseDateOrUndefined(startDate),
-      endDate: parseDateOrUndefined(endDate),
-      scholarUids,
-      sessionType,
-    });
-    res.json({ data });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: e instanceof Error ? e.message : "Failed to fetch completed sessions" });
-  }
-}
-
-// POST /api/session-logs/study/cleaned
-export async function studyCleaned(req: AuthenticatedRequest, res: Response) {
-  try {
-    const { startDate, endDate, scholarUids, sessionType, treatUnclosedEntryAsError } = req.body as {
-      startDate?: string;
-      endDate?: string;
-      scholarUids?: string[];
-      sessionType?: string;
-      treatUnclosedEntryAsError?: boolean;
-    };
-    const result = await getStudySessionCleanedAndErrored({
-      startDate: parseDateOrUndefined(startDate),
-      endDate: parseDateOrUndefined(endDate),
-      scholarUids,
-      sessionType,
-      treatUnclosedEntryAsError,
-    });
-    res.json({
-      data: {
-        byScholarUid: Object.fromEntries(result.byScholarUid),
-        allCleaned: result.allCleaned,
-        allErrored: result.allErrored,
-      },
-    });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: e instanceof Error ? e.message : "Failed to fetch cleaned study logs" });
-  }
-}
-
-// POST /api/session-logs/study/in-room
-export async function studyInRoom(req: AuthenticatedRequest, res: Response) {
-  try {
-    const { startDate, endDate, scholarUids, sessionType, asOf } = req.body as {
-      startDate?: string;
-      endDate?: string;
-      scholarUids?: string[];
-      sessionType?: string;
-      asOf?: string;
-    };
-    const data = await getStudySessionScholarsInRoom({
-      startDate: parseDateOrUndefined(startDate),
-      endDate: parseDateOrUndefined(endDate),
-      scholarUids,
-      sessionType,
-      asOf: parseDateOrUndefined(asOf),
-    });
-    res.json({ data });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: e instanceof Error ? e.message : "Failed to fetch scholars in room" });
-  }
-}
-
-// POST /api/session-logs/study/completed
-export async function studyCompleted(req: AuthenticatedRequest, res: Response) {
-  try {
-    const { startDate, endDate, scholarUids, sessionType } = req.body as {
-      startDate?: string;
-      endDate?: string;
-      scholarUids?: string[];
-      sessionType?: string;
-    };
-    const data = await getStudySessionCompletedSessions({
-      startDate: parseDateOrUndefined(startDate),
-      endDate: parseDateOrUndefined(endDate),
-      scholarUids,
-      sessionType,
-    });
-    res.json({ data });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: e instanceof Error ? e.message : "Failed to fetch completed study sessions" });
-  }
-}
-
-// GET /api/session-logs/study/no-shows (team leaders and above).
-export async function studyNoShows(_req: AuthenticatedRequest, res: Response) {
-  try {
-    res.json({ data: await getStudySessionNoShows() });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Unable to load study session no-shows" });
-  }
-}
-
-// GET /api/session-logs/front-desk/no-shows (team leaders and above).
-export async function frontDeskNoShows(_req: AuthenticatedRequest, res: Response) {
-  try {
-    res.json({ data: await getFrontDeskNoShows() });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Unable to load front desk no-shows" });
-  }
-}
+  // Study session
+  implement(contract.getStudyNoShows, () => getStudySessionNoShows()),
+  implement(contract.getStudyLogs, ({ body }) => fetchStudySessionLogs(range(body))),
+  implement(contract.getStudyCleaned, async ({ body }) =>
+    cleanedBody(
+      await getStudySessionCleanedAndErrored({
+        ...range(body),
+        treatUnclosedEntryAsError: body.treatUnclosedEntryAsError,
+      }),
+    ),
+  ),
+  implement(contract.getStudyInRoom, ({ body }) => getStudySessionScholarsInRoom(inRoom(body))),
+  implement(contract.getStudyCompleted, ({ body }) => getStudySessionCompletedSessions(range(body))),
+];

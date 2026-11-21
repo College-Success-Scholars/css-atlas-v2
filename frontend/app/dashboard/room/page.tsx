@@ -6,7 +6,7 @@ import {
   getFrontDeskNoShows,
 } from "@/lib/server/data"
 import { getStartOfDayEastern } from "@/lib/format/time"
-import type { ScholarInRoom } from "@/lib/types/session-log"
+import type { ScholarInRoom } from "@css-atlas/shared/contracts/session-logs"
 import { RoomPageToolbar } from "./_components/room-page-toolbar"
 import { RoomSummaryCards } from "./_components/room-summary-cards"
 import { RoomSessionPanel } from "./_components/room-session-panel"

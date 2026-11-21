@@ -30,23 +30,24 @@ export type ProfilesRow = {
   [key: string]: unknown;
 };
 
+// auth.middleware.ts reaches this file before any other backend code that uses `effect`.
+// Loading domain-error first makes the type checker keep the backend's copy of `effect`
+// instead of the shared package's; without it the contract re-exports below fail with TS2742.
+import type {} from "../utils/domain-error.js";
+
 export { APP_ROLE_ORDER, type AppRole } from "@css-atlas/shared/auth";
 
-export type MemoUserRow = {
-  uid: string;
-  first_name: string | null;
-  last_name: string | null;
-  cohort: number | null;
-  program_role: string | null;
-  app_role: string | null;
-  fd_required: number | null;
-  ss_required: number | null;
-  status: string | null;
-};
-
-export type TeamLeaderRow = Omit<MemoUserRow, "app_role"> & {
-  mentee_count: number | null;
-};
+export type {
+  DirectoryFacets,
+  DirectoryFlatResponse,
+  DirectoryGroup,
+  DirectoryGroupedResponse,
+  DirectoryPagination,
+  DirectoryPerson,
+  DirectoryResponse,
+  MemoUserRow,
+  TeamLeaderRow,
+} from "@css-atlas/shared/contracts/users";
 
 export type RosterRow = {
   id: number;
@@ -90,63 +91,15 @@ export type RosterPatch = {
 export type DirectoryView = "flat" | "grouped";
 export type DirectorySort = "asc" | "desc";
 
-/** The only person fields exposed by the directory endpoint. */
-export type DirectoryPerson = {
-  id: string;
-  name: string;
-  uid: string | null;
-  cohort: number | null;
-  email: string | null;
-  phoneNumber: string | null;
-  teams: string[];
-  programRole: string | null;
-  /** True when `mentor_mentee` has at least one assignment. RLS hides this from non-leaders. */
-  isMentee: boolean;
-};
-
-/** Distinct filter-facet values for the Directory page's team/role/cohort dropdowns. */
-export type DirectoryFacets = {
-  teams: string[];
-  programRoles: string[];
-  cohorts: number[];
-};
-
 export type DirectoryQuery = {
   view: DirectoryView;
   search: string;
   sort: DirectorySort;
-  teams: string[];
-  programRoles: string[];
-  cohorts: number[];
+  teams: ReadonlyArray<string>;
+  programRoles: ReadonlyArray<string>;
+  cohorts: ReadonlyArray<number>;
   limit: number;
   cursor: string | null;
   /** A single team group to page after it has been expanded. */
   group: string | null;
 };
-
-export type DirectoryPagination = {
-  total: number;
-  range: { start: number; end: number };
-  hasNext: boolean;
-  nextCursor: string | null;
-};
-
-export type DirectoryFlatResponse = {
-  view: "flat";
-  members: DirectoryPerson[];
-  pagination: DirectoryPagination;
-};
-
-export type DirectoryGroup = {
-  team: string;
-  members: DirectoryPerson[];
-  pagination: DirectoryPagination;
-};
-
-export type DirectoryGroupedResponse = {
-  view: "grouped";
-  total: number;
-  groups: DirectoryGroup[];
-};
-
-export type DirectoryResponse = DirectoryFlatResponse | DirectoryGroupedResponse;

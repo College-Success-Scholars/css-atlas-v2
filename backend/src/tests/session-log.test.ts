@@ -3,8 +3,8 @@ import { describe, it, expect } from "vitest";
 import { app } from "../app.js";
 
 describe("Session log routes — auth gating", () => {
-  it("GET /api/session-logs returns 401 without token", async () => {
-    const res = await request(app).get("/api/session-logs");
+  it("GET /api/session-logs/study/no-shows returns 401 without token", async () => {
+    const res = await request(app).get("/api/session-logs/study/no-shows");
     expect(res.status).toBe(401);
   });
 

@@ -61,8 +61,8 @@ app.get("/", (_req, res) => {
 app.use("/api/dev", devRoutes);
 app.use("/api/memo", memoRoutes);
 app.use("/api/auth", authRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/session-logs", sessionLogRoutes);
+app.use(userRoutes);
+app.use(sessionLogRoutes);
 app.use(trafficRoutes);
 app.use("/api/form-logs", formLogRoutes);
 app.use(activityRoutes);
