@@ -11,6 +11,8 @@ npm --prefix frontend run guardrails
 
 CI runs both. A red guardrail is fixed by changing the code, never by widening a baseline.
 
+The frontend run also type-checks every file, tests included (`npm run typecheck`): `next build` only checks app code, so test fixtures used to drift from the real types unnoticed.
+
 ## Banned patterns (ESLint, `tools/eslint-plugin-atlas`)
 
 | Rule | Applies to | Do this instead |
