@@ -26,22 +26,6 @@ export type ShiftComplianceByKind = {
   dates: ShiftCompliancePerDate[]
 }
 
-/** Response shape when calling break-week helpers (backend maps RPC / semester APIs). */
-export type WeekBreakRpcRow = {
-  break_days: number | null
-  is_break_week: boolean | null
-  breaks: unknown[] | null
-}
-
-/** Response row from daily-activity APIs (`/api/daily-activity/…`). */
-export type ActivityRow = {
-    scholar_uid: string
-    activity_date: string
-    week_num: number
-    log_source: "front_desk_logs" | "study_session_logs"
-    duration_minutes: number
-}
-
 import type { WahfFormLogRow, McfFormLogRow, WplFormLogRow } from "@css-atlas/shared/contracts/form-logs"
 import type { AttendanceForUids } from "@css-atlas/shared/contracts/attendance"
 
@@ -59,15 +43,6 @@ export type TutoringRow = {
   start_time: string
   end_time: string
   courses: string[]
-}
-
-/** Traffic kiosk / analytics row from traffic APIs. */
-export type TrafficRow = {
-  id: number
-  created_at: string
-  uid: string | null
-  traffic_type: string | null
-  duration_min: number | null
 }
 
 /**

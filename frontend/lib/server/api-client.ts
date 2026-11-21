@@ -9,11 +9,7 @@
  *
  * ## Responsibilities
  * - getAccessToken(): extract JWT from @supabase/ssr chunked auth cookies
- * - backendFetch<T>(path, options): authenticated fetch to backend, unwraps data
- * - backendGet<T>(path): GET shorthand
- * - backendPost<T>(path, body): POST shorthand
- * - backendPatch<T>(path, body): PATCH shorthand
- * - backendDelete<T>(path): DELETE shorthand
+ * - callEndpoint(contract, request): the only way server code calls the backend; types come from the contract
  * - backendDownload(path): authenticated binary GET (no JSON unwrap)
  * - callEndpoint(contract, request): typed call to a contract-backed endpoint (preferred)
  *
@@ -126,7 +122,7 @@ async function getAccessToken(): Promise<string | null> {
   }
 }
 
-export async function backendFetch<T>(
+async function backendFetch<T>(
   path: string,
   options?: { method?: string; body?: unknown }
 ): Promise<T> {
@@ -182,26 +178,6 @@ export async function callEndpoint<E extends Endpoint>(contract: E, ...[request]
   });
 }
 
-export async function backendGet<T>(path: string): Promise<T> {
-  return backendFetch<T>(path);
-}
-
-export async function backendPost<T>(path: string, body: unknown): Promise<T> {
-  return backendFetch<T>(path, { method: "POST", body });
-}
-
-export async function backendPut<T>(path: string, body: unknown): Promise<T> {
-  return backendFetch<T>(path, { method: "PUT", body });
-}
-
-export async function backendPatch<T>(path: string, body: unknown): Promise<T> {
-  return backendFetch<T>(path, { method: "PATCH", body });
-}
-
-export async function backendDelete<T>(path: string): Promise<T> {
-  return backendFetch<T>(path, { method: "DELETE" });
-}
-
 /**
  * Fetch a contract-backed download (e.g. a PDF export) and return the raw
  * Response, so a route handler can stream it or forward its error status.
@@ -212,7 +188,7 @@ export async function downloadEndpoint<E extends Endpoint>(contract: E, ...[requ
 }
 
 /** Authenticated binary GET. Forwards non-OK responses so callers can proxy status. */
-export async function backendDownload(path: string): Promise<Response> {
+async function backendDownload(path: string): Promise<Response> {
   const requestUrl = buildBackendRequestUrl(BACKEND_URL, path);
   const start = Date.now();
   logApiRequest("server", "GET", requestUrl);

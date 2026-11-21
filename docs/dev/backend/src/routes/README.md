@@ -35,18 +35,17 @@ All routers are mounted in [`backend/src/app.ts`](https://github.com/College-Suc
 
 ---
 
-## Auth Middleware Reference
+## Access levels
 
-| Middleware | Who can call |
-|-----------|-------------|
-| `requireAuth` | Any authenticated user (any role) |
-| `requireTeamLeaderOrAbove` | `team_leader` or `developer` (verifies JWT) |
-| `requireTeamLeaderRole` | `team_leader` or `developer` — use after `requireAuth` |
-| `requireDeveloper` | `developer` only |
-| `requireSelfOrTeamLeader` | Own `:uid` (`student_id`), or `team_leader`/`developer` — use after `requireAuth` |
-| `requireSelfScholarIdOrTeamLeader` | Own body `scholarId`, or `team_leader`/`developer` — use after `requireAuth` |
+| Contract `access` | Who can call |
+|-------------------|-------------|
+| `"authenticated"` | Any signed-in user (any role) |
+| `"team_leader"` | `team_leader` or `developer` |
+| `"developer"` | `developer` only |
+| `{ selfOrTeamLeader: "params.uid" }` | The scholar whose Scholar ID is at that field of the validated input, or `team_leader`/`developer`. A missing value is let through; the handler decides what it means. |
 
-All auth middleware is exported from `controllers/auth.controller.ts`.
+Every route declares its `access` in its contract (`shared/contracts/<domain>.ts`); `http/endpoint.ts` enforces it. No route attaches auth middleware by hand. Every non-health route answering 401 without a token is enforced by `src/tests/route-gating.test.ts`.
+
 
 ---
 

@@ -51,9 +51,6 @@ const auth = await import("../../middleware/auth.middleware.js");
 const ACCESS = new Map<unknown, [number, string]>([
   [auth.requireAuth, [1, "authenticated"]],
   [auth.requireTeamLeaderOrAbove, [3, "team_leader"]],
-  [auth.requireTeamLeaderRole, [3, "team_leader"]],
-  [auth.requireSelfOrTeamLeader, [2, "self_or_team_leader(params.uid)"]],
-  [auth.requireSelfScholarIdOrTeamLeader, [2, "self_or_team_leader(body.scholarId)"]],
   [auth.requireDeveloper, [4, "developer"]],
 ]);
 

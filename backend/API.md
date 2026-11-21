@@ -4,11 +4,12 @@ Base URL: `/api`
 
 All endpoints require a valid Supabase JWT in the `Authorization: Bearer <token>` header unless otherwise noted. Auth levels:
 
-- **requireAuth** -- Any authenticated user.
-- **requireTeamLeaderOrAbove** / **requireTeamLeaderRole** -- User must have `app_role` of `team_leader` or higher. `requireTeamLeaderRole` is the same check after `requireAuth` already ran.
-- **requireSelfOrTeamLeader** -- Own roster uid (`:uid`) or team_leader+.
-- **requireSelfScholarIdOrTeamLeader** -- Own body `scholarId` / `studentId` or team_leader+. Missing id is allowed (empty result).
-- **requireDeveloper** -- User must have `app_role` of `developer`.
+- **authenticated** -- Any signed-in user.
+- **team_leader** -- `app_role` of `team_leader` or higher.
+- **self_or_team_leader** -- The scholar named by the route's Scholar ID field (`:uid` or body `scholarId`), or team_leader+. A missing id is let through.
+- **developer** -- `app_role` of `developer`.
+
+Each endpoint's level is declared in its contract (`shared/contracts/<domain>.ts`), which is the source of truth for paths and shapes.
 
 All error responses follow the shape `{ error: string }`.
 
@@ -20,7 +21,7 @@ All routes under `/api/auth` require **requireAuth**.
 
 ### `GET /api/auth/me`
 
-**Auth:** requireAuth
+**Auth:** authenticated
 **Description:** Returns the authenticated user's identity and full profile (merged with user_roster data).
 **Request:** None
 **Response:**
@@ -38,7 +39,7 @@ For a developer, `data` also carries `realProfile`, `activeTestProfileId` and `i
 
 ### `GET /api/auth/profile`
 
-**Auth:** requireAuth
+**Auth:** authenticated
 **Description:** Returns the raw profile row for the authenticated user from the `profiles` table.
 **Request:** None
 **Response:**
@@ -51,7 +52,7 @@ For a developer, `data` also carries `realProfile`, `activeTestProfileId` and `i
 
 ### `POST /api/auth/profile`
 
-**Auth:** requireAuth
+**Auth:** authenticated
 **Description:** Self-service scholar onboarding — creates a `profiles` row for the authenticated user. Requires a UMD email (`@umd.edu` or `@terpmail.umd.edu`). Sets `program_role: "scholar"`, `app_role: null`, `full_name`, and explicit defaults for all other profile columns (see `buildScholarProfileInsertRow` in `user.service.ts`).
 **Request Body:**
 ```json
@@ -73,7 +74,7 @@ For a developer, `data` also carries `realProfile`, `activeTestProfileId` and `i
 
 ### `GET /api/auth/mentees`
 
-**Auth:** requireAuth
+**Auth:** authenticated
 **Description:** Returns the current user's assigned mentees from `mentor_mentee` + `user_roster` table queries (not the obsolete `get_my_mentees` RPC).
 **Request:** None
 **Response:**
@@ -85,7 +86,7 @@ For a developer, `data` also carries `realProfile`, `activeTestProfileId` and `i
 
 ### `GET /api/auth/mentees/:uid/review?week=<n>`
 
-**Auth:** requireAuth (assigned team leader, plus existing higher-role mentee-page access; assignment and role are rechecked in the service and by RLS)
+**Auth:** authenticated (assigned team leader, plus existing higher-role mentee-page access; assignment and role are rechecked in the service and by RLS)
 **Description:** Composes the full weekly review for one mentee from real records: semester calendar, semester week grid, selected-week requirement summaries, grades from all WAHF submissions in the current and previous Eastern Monday–Sunday calendar weeks through `asOf`, and the caller's own meeting preference. Recent grades are independent of the selected review week; older submissions are used only for grade comparisons. The current campus week is the default. Future weeks are rejected. Sections are independently recoverable: a failed source returns a section error instead of empty data, while the rest of the review still renders. Authorization is never downgraded to a partial success.
 **Query:**
 - `week` (integer, optional) — actual campus week number to review; must be `<=` the current campus week.
@@ -115,7 +116,7 @@ Each `${section}` uses `{ ok: true, data, loadedAt }` or `{ ok: false, error: { 
 
 ### `GET /api/auth/mentees/:uid/directory-review?week=<n>`
 
-**Auth:** requireTeamLeaderRole
+**Auth:** team_leader
 **Description:** Team-leader+ read used by the directory scholar detail page. Returns the same review DTO for any scholar with a `mentor_mentee` assignment, not only the caller's own mentees. Read-only: it never grants another TL's preference write access. Current-week default, future-week rejection, and section envelopes match `/review`.
 **Errors:** `400` invalid or future `week`; `404` mentee not found; `401` no auth.
 
@@ -123,7 +124,7 @@ Each `${section}` uses `{ ok: true, data, loadedAt }` or `{ ok: false, error: { 
 
 ### `PUT /api/auth/mentees/:uid/meeting-preference`
 
-**Auth:** requireAuth; requires an active `mentor_mentee` pairing and team-leader-or-above role. The owner is the authenticated profile id, never a request-body id, so an administrator cannot overwrite another TL's setting.
+**Auth:** authenticated; requires an active `mentor_mentee` pairing and team-leader-or-above role. The owner is the authenticated profile id, never a request-body id, so an administrator cannot overwrite another TL's setting.
 **Description:** Atomically upserts the caller's optional weekday/time for this TL–mentee pair. Both fields are required; a failed save preserves the previous value. The setting affects no other pairing and does not attest that a meeting occurred.
 **Request Body:**
 ```json
@@ -140,7 +141,7 @@ Each `${section}` uses `{ ok: true, data, loadedAt }` or `{ ok: false, error: { 
 
 ### `GET /api/auth/mentees/:uid/mcf-prefill`
 
-**Auth:** requireAuth (assigned pair)
+**Auth:** authenticated (assigned pair)
 **Description:** Builds a fresh, click-time prefill URL for the **current** program-local week, using newly read attendance, WAHF, and tutoring evidence plus the caller's saved meeting preference. The page never submits the form and never accepts a browser-supplied form host or entry map. If a required source read fails, prefill is blocked rather than turned into a fabricated `No`. Response is private and must not be cached.
 **Response headers:** `Cache-Control: private, no-store`
 **Response:** `200`
@@ -159,7 +160,7 @@ Each `${section}` uses `{ ok: true, data, loadedAt }` or `{ ok: false, error: { 
 
 ### `GET /api/auth/semester`
 
-**Auth:** requireAuth
+**Auth:** authenticated
 **Description:** Returns the currently active semester from the Supabase `semesters` table.
 
 **Use sparingly.** Prefer the server-owned time frame — the shared campus week calendar (`shared/time-config.ts` / `shared/campus-calendar`) — for week bounds, navigation, and data queries. Use this endpoint when the server-owned time frame does not make sense (e.g. looking at historical data, or the collection year has not started yet), or when you need the DB semester row (e.g. `semester_id` or legacy ISO-week clamping) — not as the primary calendar source for the current collection year.
@@ -178,7 +179,7 @@ All routes under `/api/users` require **requireAuth**.
 
 ### `GET /api/users/memo-users`
 
-**Auth:** requireAuth
+**Auth:** authenticated
 **Description:** Returns all users relevant for memo generation.
 **Request:** None
 **Response:**
@@ -190,7 +191,7 @@ All routes under `/api/users` require **requireAuth**.
 
 ### `GET /api/users/team-leaders`
 
-**Auth:** requireAuth
+**Auth:** authenticated
 **Description:** Returns roster rows whose `program_role` is not scholar or Coordinator and whose `user_roster.status` is enrolled (team leader performance / form stats). Inactive and graduated rows are omitted. Program Coordinator still appears.
 **Request:** None
 **Response:**
@@ -202,7 +203,7 @@ All routes under `/api/users` require **requireAuth**.
 
 ### `GET /api/users/directory`
 
-**Auth:** requireAuth
+**Auth:** authenticated
 **Description:** Searchable, paged people directory. Every query parameter is optional: `view` (`flat` or `grouped`, default `flat`), `search` (up to 100 characters), `sort` (`asc` or `desc`), `team`, `programRole` and `cohort` (a value, comma-separated values, or a repeated parameter), `limit` (1 to 24, default 24), `cursor` (opaque, from `pagination.nextCursor`), `group` (one team, grouped view only; required with `cursor` in the grouped view).
 **Response:**
 ```json
@@ -214,7 +215,7 @@ The grouped view answers `{ "view": "grouped", "total": 0, "groups": [{ "team": 
 
 ### `GET /api/users/directory/facets`
 
-**Auth:** requireAuth
+**Auth:** authenticated
 **Description:** Distinct team, program role and cohort values for the directory filters.
 **Response:**
 ```json
@@ -225,7 +226,7 @@ The grouped view answers `{ "view": "grouped", "total": 0, "groups": [{ "team": 
 
 ### `GET /api/users/:uid`
 
-**Auth:** requireAuth
+**Auth:** authenticated
 **Description:** Returns the user profile for a specific UID.
 **Request Params:** `uid` (string) -- The user's UID.
 **Response:**
@@ -242,7 +243,7 @@ All routes under `/api/session-logs` require **requireAuth**, except the two `no
 
 ### `GET /api/session-logs/front-desk/no-shows` and `GET /api/session-logs/study/no-shows`
 
-**Auth:** requireTeamLeaderOrAbove
+**Auth:** team_leader
 **Description:** Scholars who missed a shift today and have not checked in.
 **Response:**
 ```json
@@ -253,7 +254,7 @@ All routes under `/api/session-logs` require **requireAuth**, except the two `no
 
 ### `POST /api/session-logs/front-desk`
 
-**Auth:** requireAuth
+**Auth:** authenticated
 **Description:** Fetches raw front desk session logs with optional date range and scholar UID filters.
 **Request Body:**
 ```json
@@ -272,7 +273,7 @@ All routes under `/api/session-logs` require **requireAuth**, except the two `no
 
 ### `POST /api/session-logs/front-desk/cleaned`
 
-**Auth:** requireAuth
+**Auth:** authenticated
 **Description:** Returns front desk logs cleaned and separated into valid vs errored entries, grouped by scholar UID.
 **Request Body:**
 ```json
@@ -299,7 +300,7 @@ All routes under `/api/session-logs` require **requireAuth**, except the two `no
 
 ### `POST /api/session-logs/front-desk/in-room`
 
-**Auth:** requireAuth
+**Auth:** authenticated
 **Description:** Returns scholars currently checked into front desk (open sessions without checkout).
 **Request Body:**
 ```json
@@ -319,7 +320,7 @@ All routes under `/api/session-logs` require **requireAuth**, except the two `no
 
 ### `POST /api/session-logs/front-desk/completed`
 
-**Auth:** requireAuth
+**Auth:** authenticated
 **Description:** Returns completed front desk sessions (checked in and checked out).
 **Request Body:**
 ```json
@@ -339,7 +340,7 @@ All routes under `/api/session-logs` require **requireAuth**, except the two `no
 
 ### `POST /api/session-logs/study`
 
-**Auth:** requireAuth
+**Auth:** authenticated
 **Description:** Fetches raw study session logs with optional filters.
 **Request Body:**
 ```json
@@ -359,7 +360,7 @@ All routes under `/api/session-logs` require **requireAuth**, except the two `no
 
 ### `POST /api/session-logs/study/cleaned`
 
-**Auth:** requireAuth
+**Auth:** authenticated
 **Description:** Returns study session logs cleaned and separated into valid vs errored entries, grouped by scholar UID.
 **Request Body:**
 ```json
@@ -386,7 +387,7 @@ All routes under `/api/session-logs` require **requireAuth**, except the two `no
 
 ### `POST /api/session-logs/study/in-room`
 
-**Auth:** requireAuth
+**Auth:** authenticated
 **Description:** Returns scholars currently checked into study sessions.
 **Request Body:**
 ```json
@@ -406,7 +407,7 @@ All routes under `/api/session-logs` require **requireAuth**, except the two `no
 
 ### `POST /api/session-logs/study/completed`
 
-**Auth:** requireAuth
+**Auth:** authenticated
 **Description:** Returns completed study sessions.
 **Request Body:**
 ```json
@@ -442,7 +443,7 @@ These endpoints are **contract-backed**: paths, request shapes, response shapes 
 
 ### `GET /api/attendance/week/:weekNum`
 
-**Auth:** requireTeamLeaderOrAbove  
+**Auth:** team_leader  
 **Description:** Week board for eligible scholars (enrolled freshman/sophomore with required hours for the kind). Includes Mon–Fri minutes, logged total, excuse, description, and completion %.  
 **Request Params:** `weekNum` (integer, >= 1)  
 **Query:** `kind` = `front_desk` | `study_session` (required)
@@ -485,7 +486,7 @@ These endpoints are **contract-backed**: paths, request shapes, response shapes 
 
 ### `POST /api/attendance/week/:weekNum/by-uids`
 
-**Auth:** requireTeamLeaderOrAbove
+**Auth:** team_leader
 **Description:** Campus-week FD and SS minutes for the given scholar UIDs, using the same compute-on-read tickets + `scholar_week_excuses` math as Weekly Memo. Returns one front_desk row and one study_session row per UID (zeros when there are no tickets or excuse). `required_min` and `completion_pct` are null — callers use roster requirements.
 **Request Params:** `weekNum` (integer, >= 1)
 **Request Body:**
@@ -524,7 +525,7 @@ These endpoints are **contract-backed**: paths, request shapes, response shapes 
 
 ### `PATCH /api/attendance/excuse`
 
-**Auth:** requireTeamLeaderOrAbove  
+**Auth:** team_leader  
 **Description:** Upserts excuse minutes + description for a scholar/week/kind into `scholar_week_excuses`. `week_start` is derived from `weekNum` via the campus calendar (not client-supplied). Description is required when `excuse_min > 0`.  
 **Request Body:**
 ```json
@@ -550,7 +551,7 @@ All routes under `/api/tutor-reports` require **requireTeamLeaderOrAbove**. Week
 
 ### `GET /api/tutor-reports/week/:weekNum`
 
-**Auth:** requireTeamLeaderOrAbove  
+**Auth:** team_leader  
 **Description:** Tutor report rows for a campus week, with `scholar_name` resolved from `user_roster` (`EMPTY SESSION` for empty-session uids; raw uid when no roster name) and `day_of_week` from the session date. Used by `/dashboard/teams/tutoring`.  
 **Request Params:** `weekNum` (integer, >= 1)  
 **Response:**
@@ -560,7 +561,7 @@ All routes under `/api/tutor-reports` require **requireTeamLeaderOrAbove**. Week
 
 ### `DELETE /api/tutor-reports/:id`
 
-**Auth:** requireTeamLeaderOrAbove (blocked while acting as a test profile)  
+**Auth:** team_leader (blocked while acting as a test profile)  
 **Description:** Deletes one `tutor_report_logs` row with the caller JWT. RLS policy `team_leader_delete_tutor_logs` (`is_team_leader_or_above()`) must be applied; admin/staff keep `admin_delete_tutor_logs`. A Google Forms resubmit can re-insert the row.  
 **Request Params:** `id` (positive integer)  
 **Response:** `200 { "data": { "id": 1 } }`, `400` invalid id, `404` no row deleted.
@@ -573,7 +574,7 @@ All routes under `/api/traffic` require **requireAuth**.
 
 ### `GET /api/traffic/sessions/:week_num`
 
-**Auth:** requireAuth
+**Auth:** authenticated
 **Description:** Returns all traffic session entries (check-in/check-out pairs) for a specific week.
 **Request Params:** `week_num` (integer, >= 1)
 **Response:**
@@ -585,7 +586,7 @@ All routes under `/api/traffic` require **requireAuth**.
 
 ### `GET /api/traffic/entry-count/:week_num`
 
-**Auth:** requireAuth
+**Auth:** authenticated
 **Description:** Returns the total number of entry events for a specific week.
 **Request Params:** `week_num` (integer, >= 1)
 **Response:**
@@ -597,7 +598,7 @@ All routes under `/api/traffic` require **requireAuth**.
 
 ### `POST /api/traffic/entry-counts`
 
-**Auth:** requireAuth
+**Auth:** authenticated
 **Description:** Returns entry counts for multiple weeks in a single request.
 **Request Body:**
 ```json
@@ -634,7 +635,7 @@ All routes under `/api/daily-activity` require **requireAuth**.
 
 ### `GET /api/daily-activity/minutes`
 
-**Auth:** requireAuth
+**Auth:** authenticated
 **Description:** Returns total activity minutes for a mentee for a specific week and log source.
 **Query Params:**
 - `menteeUid` (string, required) -- The mentee's UID
@@ -654,7 +655,7 @@ All routes under `/api/dev` require **requireDeveloper**.
 
 ### `GET /api/dev/test`
 
-**Auth:** requireDeveloper
+**Auth:** developer
 **Description:** Simple health check / connectivity test for developer API.
 **Request:** None
 **Response:**
@@ -666,7 +667,7 @@ All routes under `/api/dev` require **requireDeveloper**.
 
 ### `GET /api/dev/me`
 
-**Auth:** requireDeveloper
+**Auth:** developer
 **Description:** Returns the authenticated developer's identity and role, and whether they are acting as a test profile.
 **Request:** None
 **Response:**
@@ -685,7 +686,7 @@ All routes under `/api/dev` require **requireDeveloper**.
 
 ### `GET /api/dev/test-profiles`
 
-**Auth:** requireDeveloper
+**Auth:** developer
 **Description:** Active rows of `dev_test_profiles` (personas a developer can act as), ordered by label.
 **Request:** None
 **Response:**
@@ -697,7 +698,7 @@ All routes under `/api/dev` require **requireDeveloper**.
 
 ### `POST /api/dev/active-profile`
 
-**Auth:** requireDeveloper
+**Auth:** developer
 **Description:** Checks that a test profile exists before the client sets the active-profile cookie. A null or missing `testProfileId` stops acting as a test profile. Allowed while acting.
 **Request Body:** `{ "testProfileId": "uuid" | null }`
 **Response:**
@@ -719,7 +720,7 @@ All routes under `/api/dev` require **requireDeveloper**.
 
 ### `GET /api/dev/schedule-board`
 
-**Auth:** requireDeveloper
+**Auth:** developer
 **Description:** Schedule board payload for `/dev/schedule-views`. Returns hour-eligible enrolled scholars (current freshman/sophomore cohorts with `fd_required` or `ss_required` > 0) plus their active standing rows from `scholar_shift_assignments` (`front_desk` / `study_session`, day of week, start/end as `HH:MM`).
 **Request:** None
 **Response:**
@@ -753,7 +754,7 @@ All routes under `/api/dev` require **requireDeveloper**.
 
 ### `PUT /api/dev/schedule-board/:uid`
 
-**Auth:** requireDeveloper
+**Auth:** developer
 **Description:** Replace every active standing FD/SS assignment for one scholar in the active semester. Soft-deactivates current active rows (`is_active = false`), then inserts the replacement set — same pattern as `scripts/update-scholar-schedule.py`. An empty `shifts` array clears the scholar’s active schedule. Returns the new active rows with database ids.
 **Request:**
 ```json
@@ -792,7 +793,7 @@ All routes under `/api/dev` require **requireDeveloper**.
 
 ### `GET /api/dev/freshman-grades`
 
-**Auth:** requireDeveloper
+**Auth:** developer
 **Description:** Temporary FD, SS, and WAHF completion for enrolled freshmen and sophomores who owe hours (`cohort` = current freshman or sophomore year, `user_roster.status` = enrolled, `fd_required` or `ss_required` > 0). Both classes use the same weekly cap. Scholars are ordered freshman cohort first, then sophomore, and by name within a cohort. Scored weeks run from campus week 2 through the previous week: when the current week is 6, `scoredWeeks` is `{ fromWeek: 2, throughWeek: 5 }`. Campus week 1 and the current week are ignored, so current week 2 has `scoredWeeks` null. Each week’s hours percent is logged plus excuse minutes versus that requirement, capped at 100% before averaging (0% one week and 200% the next is 50%, not 100%). A week with null or non-positive required minutes is omitted from that component. WAHF is the latest form log that week: missing = 0%, on-time or late = 100%. Each scholar includes `scholarId` (roster uid), `mentor` (name from `mentor_mentee`, or `Unassigned`), `cohort`, and `weeks` (each scored week: logged, excuse, effective, required, raw percent, capped percent, and WAHF status). `weights` labels the 10/10/10 in-app slices and the 70% out-of-app placeholder. The payload has no semester total. Minutes use the same ticket plus `scholar_week_excuses` path as Memo, not `daily_scholar_activity` or `*_records_legacy`.
 **Request:** None
 **Response:**
@@ -831,7 +832,7 @@ All routes under `/api/dev` require **requireDeveloper**.
 
 ### `GET /api/dev/roster/:uid`
 
-**Auth:** requireDeveloper
+**Auth:** developer
 **Description:** Returns the full `user_roster` row for a scholar UID (including invite timestamps). Used by `/dev/profiles/:uid`.
 **Request Params:** `uid` (string)
 **Response:**
@@ -843,7 +844,7 @@ All routes under `/api/dev` require **requireDeveloper**.
 
 ### `PATCH /api/dev/roster/:uid`
 
-**Auth:** requireDeveloper
+**Auth:** developer
 **Description:** Updates editable `user_roster` fields and dual-writes the matching `profiles` row (`student_id = uid`) when one exists. `mentee_uids` also replaces `mentor_mentee` rows for that profile. `uid` and `app_role` are not writable. `status` is `enrolled`, `inactive`, or `graduated`. Blocked while acting as a test profile.
 **Request Params:** `uid` (string)
 **Request Body:** any subset of `first_name`, `last_name`, `phone_number`, `email`, `cohort`, `status`, `program_role`, `fd_required`, `ss_required`, `majors`, `minors`, `teams`, `mentee_uids`
@@ -872,7 +873,7 @@ Routes under `/api/memo` require **requireTeamLeaderOrAbove** unless noted other
 
 ### `GET /api/memo/pdf`
 
-**Auth:** requireTeamLeaderOrAbove
+**Auth:** team_leader
 **Description:** Renders the weekly memo printout as a PDF. FD/SS roster and Needs Attention completion match the memo page: logged minutes plus `scholar_week_excuses`, integer percent, including values above 100. The memo page still caps Full attendance detail at 100. Program Snapshot FD/SS bars count a scholar complete at 80% or more (same hours math), not the page pie’s 100% threshold. Snapshot FD/SS rows and appendix roster group headings use class-year labels (Sophomore, Freshman), not entering cohort numbers. Study-session and front-desk appendix rosters are grouped by class year and sorted by completed minutes descending. The masthead and footer include an Eastern `Printed` timestamp. `Content-Disposition` uses `weekly-memo-week-{weekNumber}-{YYYY-MM-DD-HHmm}.pdf` in America/New_York. Response has `Cache-Control: no-store`. Returns `503` if Chromium/PDF rendering fails.
 **Query Params:**
 - `weekNumber` (integer >= 1; legacy `weekNum` accepted; defaults to current campus week if omitted)
@@ -887,7 +888,7 @@ All routes under `/api/hours-benchmark` require **requireDeveloper**.
 
 ### `GET /api/hours-benchmark`
 
-**Auth:** requireDeveloper
+**Auth:** developer
 **Description:** Multi-week CSS Hours Benchmark Report for enrolled hour-eligible scholars. Scored weeks run from campus week 2 through the previous week (current week and week 1 are ignored). Completion uses logged minutes plus `scholar_week_excuses` (`effective / required`, rounded). `heatmapScholars` are those with at least one front-desk or study-session week at 50% or lower; `allHeatmapScholars` is every enrolled hour-eligible scholar (name-sorted). Cells at 80% or more are treated as met. Response has `Cache-Control: no-store`.
 **Request:** None
 **Response:**
@@ -919,7 +920,7 @@ All routes under `/api/hours-benchmark` require **requireDeveloper**.
 
 ### `GET /api/hours-benchmark/pdf`
 
-**Auth:** requireDeveloper
+**Auth:** developer
 **Description:** Renders the Hours Benchmark Report as a landscape PDF (KPIs, heatmap, team-leader rollup, detail list). `scope=low` (default) prints the ≤50% heatmap; `scope=all` prints every hour-eligible scholar. `Content-Disposition` uses `hours-benchmark-weeks-{from}-{through}[-all]-{YYYY-MM-DD-HHmm}.pdf` in America/New_York. Response has `Cache-Control: no-store`. Returns `503` if Chromium/PDF rendering fails.
 **Query Params:**
 - `scope` (`low` | `all`, optional; default `low`)

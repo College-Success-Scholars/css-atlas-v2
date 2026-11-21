@@ -8,6 +8,7 @@
     "shared/eastern-time.ts",
     "shared/campus-calendar.ts",
     "shared/contract.ts",
+    "shared/form-status.ts",
     "shared/contracts",
     "backend/src/http",
     "backend/src/utils/domain-error.ts",

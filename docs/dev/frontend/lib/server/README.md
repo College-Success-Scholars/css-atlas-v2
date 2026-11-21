@@ -19,7 +19,7 @@ Server-only modules for the frontend. All files here include `import "server-onl
 
 | File | Source Link | Description |
 |------|-------------|-------------|
-| `api-client.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/lib/server/api-client.ts) | Backend HTTP client — reads JWT from auth cookies, calls backend `/api/*` endpoints, unwraps `{ data }` responses. Exports: `backendFetch`, `backendGet`, `backendPost`, `backendPatch`, `backendDownload` (binary GET, no JSON unwrap) |
+| `api-client.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/lib/server/api-client.ts) | Backend HTTP client — reads JWT from auth cookies, calls backend `/api/*` endpoints, unwraps `{ data }` responses. Exports: `callEndpoint(contract, request)` (typed JSON call) and `downloadEndpoint(contract, request)` (raw Response for files). There is no untyped call. |
 | `data.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/lib/server/data.ts) | Typed wrapper functions for every backend endpoint — the preferred way for pages to fetch data |
 | `actions.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/lib/server/actions.ts) | Next.js Server Actions for form submissions and mutations |
 | `queries.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/lib/server/queries.ts) | Query parameter builders / URL helpers for backend endpoints |
@@ -50,14 +50,14 @@ export default async function Page() {
 }
 ```
 
-Do not call `backendGet` / `backendFetch` directly in pages — add a typed wrapper to `data.ts` instead.
+Pages call a typed wrapper in `data.ts`; wrappers call `callEndpoint` with the endpoint's contract.
 
 ---
 
 ## Standards
 
 - **`import "server-only"` is required** in every file in this directory — verify it's the first import.
-- **Add new endpoints to `data.ts`** — when a new backend endpoint is created, add a corresponding typed function in `data.ts` rather than calling `backendGet` directly from pages.
+- **Add new endpoints to `data.ts`** — when a new backend endpoint is created, add a corresponding typed function in `data.ts` that calls `callEndpoint` with the endpoint's contract.
 - **No React imports** — this is plain TypeScript, not a component module.
 - **Server Actions go in `actions.ts`** — do not add `"use server"` functions to other files.
 - **Public traffic check-in** — `recordTrafficEntry` is intentionally unauthenticated; validate with Effect Schema (`validate()` from `@css-atlas/shared/contract`), force `traffic_type: "entry"`, never trust client `created_at`. Pair with Supabase INSERT-only RLS (`docs/dev/supabase/004_traffic_public_insert.sql`).

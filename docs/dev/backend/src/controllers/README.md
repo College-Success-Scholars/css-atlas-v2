@@ -50,7 +50,7 @@ What a handler never does (each is a lint error in new files):
 - query Supabase — call a service
 - run an Effect
 
-Controllers that still export `(req, res)` functions predate this and are grandfathered in `backend/eslint-baseline.json`. Do not copy them; migrate them.
+Every controller follows this shape; `atlas/no-express-import` and `atlas/no-try-catch` have no grandfathered files.
 
 <!-- AUTO-API-REFERENCE:START -->
 

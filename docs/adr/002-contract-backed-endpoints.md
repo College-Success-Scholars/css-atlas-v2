@@ -26,5 +26,5 @@ Alternatives considered:
 
 - A contract field has exactly one name. Aliases (`uid`/`scholar_uid`, `weekNum`/`week_num`) are removed as endpoints migrate; `/api/attendance/excuse` already changed.
 - Responses are validated against the output schema. Fields a handler returns that the contract does not declare are dropped; a response that breaks the contract is a 500.
-- Unmigrated controllers are grandfathered in `backend/eslint-baseline.json` (`atlas/no-express-import`, `atlas/no-try-catch`). New controllers cannot use the old shape.
+- Every controller is migrated (2026-11-21): `atlas/no-express-import` and `atlas/no-try-catch` have no grandfathered files, and the frontend reaches the API only through `callEndpoint` / `downloadEndpoint`. Endpoints nothing called were deleted rather than migrated (29 of 88).
 - `backend/API.md` stays hand-written until every endpoint is migrated; it can then be generated from the contracts.

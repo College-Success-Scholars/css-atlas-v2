@@ -4,7 +4,7 @@
  *
  * Typed wrapper functions for every backend API endpoint.
  * This is the preferred way for Server Components and pages to fetch domain data.
- * Each function calls backendGet/backendPost/backendPatch/backendDelete/backendDownload from api-client.ts
+ * Each function calls callEndpoint / downloadEndpoint (api-client.ts) with a contract from @css-atlas/shared/contracts
  * and returns a strongly-typed result.
  *
  * ## Responsibilities
@@ -21,7 +21,7 @@
  * - Client-side data fetching (that's lib/client/api-client.ts)
  */
 import "server-only";
-import { backendGet, backendPost, backendPatch, backendDelete, backendDownload, callEndpoint, downloadEndpoint } from "./api-client";
+import { callEndpoint, downloadEndpoint } from "./api-client";
 import type { EndpointRequest } from "@css-atlas/shared/contract";
 import * as attendance from "@css-atlas/shared/contracts/attendance";
 import { getEffectiveScholarId } from "@css-atlas/shared/auth";

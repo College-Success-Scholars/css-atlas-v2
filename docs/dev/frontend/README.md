@@ -68,7 +68,7 @@ npm run check:theme-safety  # Fail on theme-unsafe patterns in scanned paths (al
 All imports use the `@/` alias which resolves to `frontend/` root:
 
 ```typescript
-import { backendGet } from "@/lib/server/api-client";
+import { callEndpoint } from "@/lib/server/api-client";
 import { Button } from "@/components/ui/button";
 ```
 

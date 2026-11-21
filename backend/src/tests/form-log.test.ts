@@ -1,47 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import request from "supertest";
-import type { Response, NextFunction } from "express";
 import { app } from "../app.js";
-import {
-  requireSelfOrTeamLeader,
-  requireSelfScholarIdOrTeamLeader,
-  requireTeamLeaderRole,
-  type AuthenticatedRequest,
-} from "../middleware/auth.middleware.js";
 import {
   buildTeamLeaderFormStatsForWeek,
   countableFormRequired,
   NO_MENTEE_RELATIONSHIP,
 } from "../services/form-log.service.js";
 import type { FormLogRowWithLate, McfFormLogRow } from "../models/form-log.model.js";
-
-function mockRes() {
-  const res = {
-    statusCode: 200,
-    body: undefined as unknown,
-    status(code: number) {
-      this.statusCode = code;
-      return this;
-    },
-    json(payload: unknown) {
-      this.body = payload;
-      return this;
-    },
-  };
-  return res as unknown as Response & { statusCode: number; body: unknown };
-}
-
-function scholarReq(overrides: {
-  profile?: { student_id?: string | null; app_role?: string | null };
-  params?: Record<string, string>;
-  body?: unknown;
-} = {}): AuthenticatedRequest {
-  return {
-    profile: { student_id: "12345", app_role: null, ...overrides.profile },
-    params: overrides.params ?? {},
-    body: overrides.body ?? {},
-  } as AuthenticatedRequest;
-}
 
 describe("Form log routes — unauthenticated", () => {
   it("GET /api/form-logs/mcf/week/1/with-late returns 401 without token", async () => {
@@ -57,94 +22,6 @@ describe("Form log routes — unauthenticated", () => {
   it("POST /api/form-logs/recent-submissions returns 401 without token", async () => {
     const res = await request(app).post("/api/form-logs/recent-submissions").send({ scholarId: "12345" });
     expect(res.status).toBe(401);
-  });
-});
-
-describe("requireTeamLeaderRole", () => {
-  it("allows team_leader and developer", () => {
-    for (const app_role of ["team_leader", "developer"]) {
-      const next = vi.fn() as unknown as NextFunction;
-      const res = mockRes();
-      requireTeamLeaderRole(scholarReq({ profile: { app_role } }), res, next);
-      expect(next).toHaveBeenCalledOnce();
-      expect(res.statusCode).toBe(200);
-    }
-  });
-
-  it("forbids scholars", () => {
-    const next = vi.fn() as unknown as NextFunction;
-    const res = mockRes();
-    requireTeamLeaderRole(scholarReq(), res, next);
-    expect(next).not.toHaveBeenCalled();
-    expect(res.statusCode).toBe(403);
-  });
-});
-
-describe("requireSelfOrTeamLeader", () => {
-  it("allows a scholar to read their own uid", () => {
-    const next = vi.fn() as unknown as NextFunction;
-    const res = mockRes();
-    requireSelfOrTeamLeader(scholarReq({ params: { uid: "12345" } }), res, next);
-    expect(next).toHaveBeenCalledOnce();
-  });
-
-  it("forbids a scholar from reading another uid", () => {
-    const next = vi.fn() as unknown as NextFunction;
-    const res = mockRes();
-    requireSelfOrTeamLeader(scholarReq({ params: { uid: "99999" } }), res, next);
-    expect(next).not.toHaveBeenCalled();
-    expect(res.statusCode).toBe(403);
-  });
-
-  it("allows team leaders to read any uid", () => {
-    const next = vi.fn() as unknown as NextFunction;
-    const res = mockRes();
-    requireSelfOrTeamLeader(
-      scholarReq({ profile: { app_role: "team_leader", student_id: "12345" }, params: { uid: "99999" } }),
-      res,
-      next,
-    );
-    expect(next).toHaveBeenCalledOnce();
-  });
-
-  it("returns 400 when uid is missing", () => {
-    const next = vi.fn() as unknown as NextFunction;
-    const res = mockRes();
-    requireSelfOrTeamLeader(scholarReq({ params: {} }), res, next);
-    expect(next).not.toHaveBeenCalled();
-    expect(res.statusCode).toBe(400);
-  });
-});
-
-describe("requireSelfScholarIdOrTeamLeader", () => {
-  it("allows a scholar to request their own scholarId", () => {
-    const next = vi.fn() as unknown as NextFunction;
-    const res = mockRes();
-    requireSelfScholarIdOrTeamLeader(
-      scholarReq({ body: { scholarId: "12345" } }),
-      res,
-      next,
-    );
-    expect(next).toHaveBeenCalledOnce();
-  });
-
-  it("forbids a scholar from requesting another scholarId", () => {
-    const next = vi.fn() as unknown as NextFunction;
-    const res = mockRes();
-    requireSelfScholarIdOrTeamLeader(
-      scholarReq({ body: { scholarId: "99999" } }),
-      res,
-      next,
-    );
-    expect(next).not.toHaveBeenCalled();
-    expect(res.statusCode).toBe(403);
-  });
-
-  it("allows a missing scholarId (handler returns empty)", () => {
-    const next = vi.fn() as unknown as NextFunction;
-    const res = mockRes();
-    requireSelfScholarIdOrTeamLeader(scholarReq({ body: {} }), res, next);
-    expect(next).toHaveBeenCalledOnce();
   });
 });
 

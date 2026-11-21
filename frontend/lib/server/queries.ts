@@ -11,7 +11,7 @@
  * - Ensure the same data is not fetched multiple times per request
  *
  * ## What belongs here
- * - cache()-wrapped calls to backendGet or lib/supabase/server.ts helpers
+ * - cache()-wrapped calls to callEndpoint or lib/supabase/server.ts helpers
  * - Queries called from multiple layout/page components in the same request
  *
  * ## What does NOT belong here

@@ -10,9 +10,6 @@
  * ## Responsibilities
  * - getAccessToken(): get JWT from browser Supabase session
  * - backendFetch<T>(path, options): authenticated browser fetch to backend
- * - backendGet<T>(path): GET shorthand
- * - backendPost<T>(path, body): POST shorthand
- * - backendPatch<T>(path, body): PATCH shorthand
  * - callEndpoint(contract, request): typed call to a contract-backed endpoint (preferred)
  *
  * ## What belongs here
@@ -54,7 +51,7 @@ async function getAccessToken(): Promise<string | null> {
   }
 }
 
-export async function backendFetch<T>(
+async function backendFetch<T>(
   path: string,
   options?: { method?: string; body?: unknown }
 ): Promise<{ data: T; ok: true } | { error: string; ok: false; status: number }> {
@@ -128,18 +125,3 @@ export async function callEndpoint<E extends Endpoint>(contract: E, ...[request]
   });
 }
 
-export async function backendGet<T>(path: string) {
-  return backendFetch<T>(path);
-}
-
-export async function backendPost<T>(path: string, body: unknown) {
-  return backendFetch<T>(path, { method: "POST", body });
-}
-
-export async function backendPatch<T>(path: string, body: unknown) {
-  return backendFetch<T>(path, { method: "PATCH", body });
-}
-
-export async function backendPut<T>(path: string, body: unknown) {
-  return backendFetch<T>(path, { method: "PUT", body });
-}
