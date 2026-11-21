@@ -171,10 +171,10 @@ export async function backendFetch<T>(
  * type all come from the contract in @css-atlas/shared/contracts/*, so there
  * is nothing to restate here or in lib/types.
  */
-export async function callEndpoint<E extends Endpoint>(
-  contract: E,
-  ...[request]: Record<string, never> extends EndpointRequest<E> ? [request?: EndpointRequest<E>] : [request: EndpointRequest<E>]
-): Promise<EndpointOutput<E>> {
+type RequestArgs<E extends Endpoint> =
+  Record<string, never> extends EndpointRequest<E> ? [request?: EndpointRequest<E>] : [request: EndpointRequest<E>];
+
+export async function callEndpoint<E extends Endpoint>(contract: E, ...[request]: RequestArgs<E>): Promise<EndpointOutput<E>> {
   const { params, query, body } = (request ?? {}) as { params?: unknown; query?: unknown; body?: unknown };
   return backendFetch<EndpointOutput<E>>(endpointPath(contract, { params, query }), {
     method: contract.method,
@@ -200,6 +200,15 @@ export async function backendPatch<T>(path: string, body: unknown): Promise<T> {
 
 export async function backendDelete<T>(path: string): Promise<T> {
   return backendFetch<T>(path, { method: "DELETE" });
+}
+
+/**
+ * Fetch a contract-backed download (e.g. a PDF export) and return the raw
+ * Response, so a route handler can stream it or forward its error status.
+ */
+export async function downloadEndpoint<E extends Endpoint>(contract: E, ...[request]: RequestArgs<E>): Promise<Response> {
+  const { params, query } = (request ?? {}) as { params?: unknown; query?: unknown };
+  return backendDownload(endpointPath(contract, { params, query }));
 }
 
 /** Authenticated binary GET. Forwards non-OK responses so callers can proxy status. */

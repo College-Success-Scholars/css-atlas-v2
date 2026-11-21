@@ -13,6 +13,7 @@
  * - backendGet<T>(path): GET shorthand
  * - backendPost<T>(path, body): POST shorthand
  * - backendPatch<T>(path, body): PATCH shorthand
+ * - callEndpoint(contract, request): typed call to a contract-backed endpoint (preferred)
  *
  * ## What belongs here
  * - Client-side authenticated fetch to the backend
@@ -25,6 +26,12 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
+import {
+  endpointPath,
+  type Endpoint,
+  type EndpointOutput,
+  type EndpointRequest,
+} from "@css-atlas/shared/contract";
 import {
   buildBackendRequestUrl,
   logApiError,
@@ -102,6 +109,23 @@ export async function backendFetch<T>(
     logApiError("client", method, requestUrl, 0, error, durationMs);
     return { error, ok: false, status: 0 };
   }
+}
+
+/** The request a caller sends to a contract; omittable when every part is empty. */
+type RequestArgs<E extends Endpoint> =
+  Record<string, never> extends EndpointRequest<E> ? [request?: EndpointRequest<E>] : [request: EndpointRequest<E>];
+
+/**
+ * Call a contract-backed endpoint from a Client Component. Path, method,
+ * request shape and result type all come from the contract. Never rejects:
+ * resolves to `{ ok: false, error, status }` on any failure.
+ */
+export async function callEndpoint<E extends Endpoint>(contract: E, ...[request]: RequestArgs<E>) {
+  const { params, query, body } = (request ?? {}) as { params?: unknown; query?: unknown; body?: unknown };
+  return backendFetch<EndpointOutput<E>>(endpointPath(contract, { params, query }), {
+    method: contract.method,
+    ...(contract.method === "GET" ? {} : { body: body ?? {} }),
+  });
 }
 
 export async function backendGet<T>(path: string) {

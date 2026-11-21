@@ -23,11 +23,30 @@ export type ContractSchema = Schema.Codec<unknown, unknown>;
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
-/** Minimum role allowed to call an endpoint. Every endpoint requires a signed-in user. */
-export type Access = "authenticated" | "team_leader" | "developer";
+/**
+ * Who may call an endpoint. Every endpoint requires a signed-in user.
+ *
+ * - "authenticated" / "team_leader" / "developer": that role or above.
+ * - `{ selfOrTeamLeader: "params.uid" }`: a team leader, or the scholar whose
+ *   Scholar ID is at that path of the validated input. A missing value is
+ *   allowed through; the handler decides what an absent ID means.
+ */
+export type Access =
+  | "authenticated"
+  | "team_leader"
+  | "developer"
+  | { readonly selfOrTeamLeader: `${"params" | "query" | "body"}.${string}` };
+
+/** One line describing an endpoint's access, e.g. for the route inventory. */
+export function accessLabel(access: Access): string {
+  return typeof access === "string" ? access : `self_or_team_leader(${access.selfOrTeamLeader})`;
+}
 
 const empty = Schema.Struct({});
 type Empty = typeof empty;
+
+/** A JSON endpoint answers `{ data }`; a download answers a file. */
+export type EndpointKind = "json" | "download";
 
 export interface Endpoint<
   P extends ContractSchema = ContractSchema,
@@ -35,6 +54,7 @@ export interface Endpoint<
   B extends ContractSchema = ContractSchema,
   O extends ContractSchema = ContractSchema,
 > {
+  readonly kind: EndpointKind;
   readonly method: HttpMethod;
   /** Full path with Express-style params, e.g. "/api/attendance/week/:week_num". */
   readonly path: string;
@@ -43,32 +63,65 @@ export interface Endpoint<
   readonly query: Q;
   readonly body: B;
   readonly output: O;
+  /** Success status. Defaults to 200. */
+  readonly status: number;
+  /** Extra response headers, e.g. Cache-Control. */
+  readonly headers: Readonly<Record<string, string>>;
 }
 
-/** Describe one endpoint. Omitted `params`, `query` and `body` mean "none". */
-export function endpoint<
-  O extends ContractSchema,
-  P extends ContractSchema = Empty,
-  Q extends ContractSchema = Empty,
-  B extends ContractSchema = Empty,
->(definition: {
+interface Definition<P, Q, B> {
   method: HttpMethod;
   path: string;
   access: Access;
   params?: P;
   query?: Q;
   body?: B;
-  output: O;
-}): Endpoint<P, Q, B, O> {
+  status?: number;
+  headers?: Record<string, string>;
+}
+
+function define<P extends ContractSchema, Q extends ContractSchema, B extends ContractSchema, O extends ContractSchema>(
+  kind: EndpointKind,
+  definition: Definition<P, Q, B>,
+  output: O,
+): Endpoint<P, Q, B, O> {
   return {
+    kind,
     method: definition.method,
     path: definition.path,
     access: definition.access,
     params: (definition.params ?? empty) as P,
     query: (definition.query ?? empty) as Q,
     body: (definition.body ?? empty) as B,
-    output: definition.output,
+    output,
+    status: definition.status ?? 200,
+    headers: definition.headers ?? {},
   };
+}
+
+/** Describe one JSON endpoint. Omitted `params`, `query` and `body` mean "none". */
+export function endpoint<
+  O extends ContractSchema,
+  P extends ContractSchema = Empty,
+  Q extends ContractSchema = Empty,
+  B extends ContractSchema = Empty,
+>(definition: Definition<P, Q, B> & { output: O }): Endpoint<P, Q, B, O> {
+  return define("json", definition, definition.output);
+}
+
+/** A file the handler produces: sent as-is with these headers, not wrapped in `{ data }`. */
+export const downloadFile = Schema.Struct({
+  contentType: Schema.String,
+  filename: Schema.String,
+  body: Schema.Uint8Array,
+});
+export type DownloadFile = typeof downloadFile.Type;
+
+/** Describe an endpoint that answers with a file (PDF export and the like). */
+export function download<P extends ContractSchema = Empty, Q extends ContractSchema = Empty>(
+  definition: Omit<Definition<P, Q, Empty>, "body">,
+): Endpoint<P, Q, Empty, typeof downloadFile> {
+  return define("download", definition, downloadFile);
 }
 
 /** What a handler receives: the request after validation. */

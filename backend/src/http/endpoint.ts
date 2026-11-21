@@ -19,9 +19,12 @@
  */
 import { Router, type NextFunction, type RequestHandler, type Response } from "express";
 import { Effect } from "effect";
+import { canAccessRequestedScholarId } from "@css-atlas/shared/auth";
 import {
+  accessLabel,
   validate,
   type Access,
+  type DownloadFile,
   type Endpoint,
   type EndpointInput,
   type EndpointResult,
@@ -33,7 +36,7 @@ import {
   requireTeamLeaderOrAbove,
   type AuthenticatedRequest,
 } from "../middleware/auth.middleware.js";
-import { ValidationError, type DomainError } from "../utils/domain-error.js";
+import { ForbiddenError, ValidationError, type DomainError } from "../utils/domain-error.js";
 
 export type { Caller } from "../context/current-caller.js";
 
@@ -54,11 +57,47 @@ export interface BoundEndpoint {
   readonly handle: RequestHandler;
 }
 
-const AUTH: Record<Access, RequestHandler> = {
+const ROLE_GATE: Record<Extract<Access, string>, RequestHandler> = {
   authenticated: requireAuth as RequestHandler,
   team_leader: requireTeamLeaderOrAbove as RequestHandler,
   developer: requireDeveloper as RequestHandler,
 };
+
+/** Role gates run before validation; self-or-team-leader also needs the validated input, so it is checked after. */
+const gateFor = (access: Access): RequestHandler =>
+  typeof access === "string" ? ROLE_GATE[access] : (requireAuth as RequestHandler);
+
+/** Rank and label for the route inventory (scripts/route-inventory.ts). */
+const RANK: Record<Extract<Access, string>, number> = { authenticated: 1, team_leader: 3, developer: 4 };
+const inventoryTag = (access: Access): [number, string] => [
+  typeof access === "string" ? RANK[access] : 2,
+  accessLabel(access),
+];
+
+function scholarIdAt(input: EndpointInput<Endpoint>, path: string): string | null {
+  const [part, ...keys] = path.split(".");
+  let value: unknown = input[part as keyof typeof input];
+  for (const key of keys) value = (value as Record<string, unknown> | undefined)?.[key];
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+const SELF_ONLY = new ForbiddenError({ reason: "Forbidden: Can only access your own data" });
+
+function send(res: Response, contract: Endpoint, data: unknown) {
+  res.status(contract.status).set(contract.headers);
+  if (contract.kind === "download") {
+    const file = data as DownloadFile;
+    const body = Buffer.from(file.body.buffer, file.body.byteOffset, file.body.byteLength);
+    res.set({
+      "Content-Type": file.contentType,
+      "Content-Disposition": `attachment; filename="${file.filename}"`,
+      "Content-Length": String(body.length),
+    });
+    res.send(body);
+    return;
+  }
+  res.json({ data });
+}
 
 function callerFrom(req: AuthenticatedRequest, asOf: Date): Caller {
   const userId = req.authUser?.id ?? "";
@@ -102,6 +141,11 @@ export function implement<E extends Endpoint, Err extends DomainError = DomainEr
         body: yield* parsePart<EndpointInput<E>["body"]>(contract.body, "body", req.body),
       };
 
+      if (typeof contract.access !== "string") {
+        const requested = scholarIdAt(input, contract.access.selfOrTeamLeader);
+        if (requested && !canAccessRequestedScholarId(caller.profile, requested)) return yield* SELF_ONLY;
+      }
+
       const outcome = run(input, caller);
       const result: EndpointResult<E> = Effect.isEffect(outcome)
         ? yield* outcome
@@ -120,9 +164,9 @@ export function implement<E extends Endpoint, Err extends DomainError = DomainEr
     );
 
     // Failures and defects reject with the original error; error-handler.ts maps it.
-    Effect.runPromise(program).then((data) => res.json({ data }), next);
+    Effect.runPromise(program).then((data) => send(res, contract, data), next);
   };
-  return { contract, handle: handle as RequestHandler };
+  return { contract, handle: Object.assign(handle, { access: inventoryTag(contract.access) }) as RequestHandler };
 }
 
 /** Mount bound endpoints at the paths and methods their contracts declare. */
@@ -130,7 +174,7 @@ export function toRouter(endpoints: readonly BoundEndpoint[]): Router {
   const router = Router();
   for (const { contract, handle } of endpoints) {
     const method = contract.method.toLowerCase() as "get" | "post" | "put" | "patch" | "delete";
-    router[method](contract.path, AUTH[contract.access], handle);
+    router[method](contract.path, gateFor(contract.access), handle);
   }
   return router;
 }
