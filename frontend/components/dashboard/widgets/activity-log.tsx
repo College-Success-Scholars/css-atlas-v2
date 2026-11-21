@@ -1,9 +1,9 @@
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Clock } from "lucide-react"
-import type { RecentFormSubmission } from "@/lib/types/form-log"
+import type { RecentFormSubmission } from "@css-atlas/shared/contracts/form-logs"
 import { ActivityLogClient } from "./activity-log-client"
 
-export function ActivityLog({ entries }: { entries: RecentFormSubmission[] }) {
+export function ActivityLog({ entries }: { entries: readonly RecentFormSubmission[] }) {
   return (
     <Card>
       <CardHeader>

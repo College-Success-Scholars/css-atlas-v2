@@ -33,7 +33,7 @@ export type WeekBreakRpcRow = {
   breaks: unknown[] | null
 }
 
-/** Response row from daily-activity APIs (`/api/form-logs/daily-activity/…`). */
+/** Response row from daily-activity APIs (`/api/daily-activity/…`). */
 export type ActivityRow = {
     scholar_uid: string
     activity_date: string
@@ -42,7 +42,7 @@ export type ActivityRow = {
     duration_minutes: number
 }
 
-import { WahfFormLogRow, McfFormLogRow, WplFormLogRow } from "./form-log"
+import type { WahfFormLogRow, McfFormLogRow, WplFormLogRow } from "@css-atlas/shared/contracts/form-logs"
 import type { AttendanceForUids } from "@css-atlas/shared/contracts/attendance"
 
 export type WahfRow = WahfFormLogRow
@@ -97,9 +97,9 @@ export type ProfileRow = {
 
 export interface PersonalClientProps {
   profile: ProfileRow
-  wahf: WahfRow[]
-  mcf: McfRow[]
-  wpl: WplRow[]
+  wahf: readonly WahfRow[]
+  mcf: readonly McfRow[]
+  wpl: readonly WplRow[]
   mentees: ReadonlyArray<MenteeRow>
   /** Campus week from `dateToCampusWeek`; null before Fall start. */
   currentCampusWeek: number | null

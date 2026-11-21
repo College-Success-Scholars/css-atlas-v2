@@ -11,7 +11,7 @@ const AUTH_PROTECTED_ROUTES = [
   "/api/auth/mentees",
   "/api/users/memo-users",
   "/api/traffic/entry-count/1",
-  "/api/form-logs",
+  "/api/form-logs/mcf/week/1/with-late",
   "/api/daily-activity/minutes?menteeUid=1&weekNum=1&logSource=front_desk",
 ] as const;
 

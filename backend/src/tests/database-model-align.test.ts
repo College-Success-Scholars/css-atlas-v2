@@ -10,6 +10,7 @@ import type { ProfilesRow, RosterRow } from "../models/user.model.js";
 import type { ScholarWeekExcuseRow } from "../models/attendance-week.model.js";
 import type { ActiveSemesterRow } from "@css-atlas/shared/contracts/auth";
 import type { MenteeRow } from "@css-atlas/shared/contracts/mentees";
+import type { McfFormLogRow, WahfFormLogRow, WplFormLogRow } from "@css-atlas/shared/contracts/form-logs";
 import type { Database } from "../supabase/database.types.js";
 
 type ProfilesDbRow = Database["public"]["Tables"]["profiles"]["Row"];
@@ -19,6 +20,10 @@ type UserRosterDbRow = Database["public"]["Tables"]["user_roster"]["Row"];
 type DevTestProfileDbRow = Database["public"]["Tables"]["dev_test_profiles"]["Row"];
 type TutorReportDbRow = Database["public"]["Tables"]["tutor_report_logs"]["Row"];
 type SemesterDbRow = Database["public"]["Tables"]["semesters"]["Row"];
+type McfFormLogDbRow = Database["public"]["Tables"]["mcf_form_logs"]["Row"];
+type WahfFormLogDbRow = Database["public"]["Tables"]["whaf_form_logs"]["Row"];
+type WplFormLogDbRow = Database["public"]["Tables"]["wpl_form_logs"]["Row"];
+type Writable<T> = { -readonly [K in keyof T]: T[K] };
 type ScholarWeekExcuseDbRow = Database["public"]["Tables"]["scholar_week_excuses"]["Row"];
 
 describe("Database ↔ model alignment", () => {
@@ -121,6 +126,14 @@ describe("Database ↔ model alignment", () => {
     expectTypeOf<MenteeRow["email"]>().toEqualTypeOf<UserRosterDbRow["email"]>();
     expectTypeOf<MenteeRow["fd_required"]>().toEqualTypeOf<UserRosterDbRow["fd_required"]>();
     expectTypeOf<MenteeRow["ss_required"]>().toEqualTypeOf<UserRosterDbRow["ss_required"]>();
+  });
+
+  it("form log rows match their tables (JSON columns excluded)", () => {
+    expectTypeOf<Writable<McfFormLogRow>>().toEqualTypeOf<McfFormLogDbRow>();
+    expectTypeOf<Writable<Omit<WahfFormLogRow, "assignment_grades">>>().toEqualTypeOf<
+      Omit<WahfFormLogDbRow, "assignment_grades">
+    >();
+    expectTypeOf<Writable<Omit<WplFormLogRow, "projects">>>().toEqualTypeOf<Omit<WplFormLogDbRow, "projects">>();
   });
 
   it("profiles Insert omits generated full_name in ScholarProfileInsert pattern", () => {

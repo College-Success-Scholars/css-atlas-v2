@@ -48,7 +48,7 @@ for ROUTE in \
   "/api/session-logs/study/no-shows" \
   "/api/attendance/week/1?kind=front_desk" \
   "/api/traffic/entry-count/1" \
-  "/api/form-logs" \
+  "/api/form-logs/mcf/week/1/with-late" \
   "/api/daily-activity/minutes?menteeUid=1&weekNum=1&logSource=front_desk" \
   "/api/tutor-reports/week/1"
 do

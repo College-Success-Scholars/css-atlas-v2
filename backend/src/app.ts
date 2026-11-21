@@ -64,7 +64,7 @@ app.use(authRoutes);
 app.use(userRoutes);
 app.use(sessionLogRoutes);
 app.use(trafficRoutes);
-app.use("/api/form-logs", formLogRoutes);
+app.use(formLogRoutes);
 app.use(activityRoutes);
 app.use(tutorReportRoutes);
 app.use(attendanceRoutes); // contract-backed: paths come from @css-atlas/shared/contracts/attendance

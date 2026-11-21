@@ -15,7 +15,7 @@ import {
   getMcfFormLogsByUid,
   getWplFormLogsByUid,
 } from "@/lib/server/data";
-import type { McfFormLogRow, WahfFormLogRow, WplFormLogRow } from "@/lib/types/form-log";
+import type { McfFormLogRow, WahfFormLogRow, WplFormLogRow } from "@css-atlas/shared/contracts/form-logs";
 import { CampusWeekCard } from "@/components/data-display/campus-week-card";
 import { BackButton } from "../back-button";
 import {

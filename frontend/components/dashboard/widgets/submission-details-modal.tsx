@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { CheckCircle2, CircleX } from "lucide-react"
-import type { RecentFormSubmission } from "@/lib/types/form-log"
+import type { RecentFormSubmission } from "@css-atlas/shared/contracts/form-logs"
 import {
   formatValue,
   isEmptyValue,

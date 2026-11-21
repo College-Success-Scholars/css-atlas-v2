@@ -1,4 +1,4 @@
-import type { RecentFormSubmission } from "@/lib/types/form-log";
+import type { RecentFormSubmission } from "@css-atlas/shared/contracts/form-logs";
 
 function isWahfFormType(formType: string): boolean {
   const normalized = formType.trim().toUpperCase();
@@ -11,7 +11,7 @@ function isWahfFormType(formType: string): boolean {
  * WPL/MCF (mentor forms) must not render.
  */
 export function toScholarHomeActivityEntries(
-  entries: RecentFormSubmission[],
+  entries: readonly RecentFormSubmission[],
 ): RecentFormSubmission[] {
   return entries
     .filter((entry) => isWahfFormType(entry.formType))

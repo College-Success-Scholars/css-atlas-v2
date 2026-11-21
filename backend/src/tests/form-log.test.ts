@@ -44,8 +44,8 @@ function scholarReq(overrides: {
 }
 
 describe("Form log routes — unauthenticated", () => {
-  it("GET /api/form-logs/mcf/week/1 returns 401 without token", async () => {
-    const res = await request(app).get("/api/form-logs/mcf/week/1");
+  it("GET /api/form-logs/mcf/week/1/with-late returns 401 without token", async () => {
+    const res = await request(app).get("/api/form-logs/mcf/week/1/with-late");
     expect(res.status).toBe(401);
   });
 
@@ -177,7 +177,7 @@ describe("assembleRecentFormSubmissions", () => {
       ],
     });
     expect(result).toEqual([
-      { id: "WHAF-w1", formType: "WHAF", submittedAt: "2026-09-01T12:00:00.000Z" },
+      { id: "WAHF-w1", formType: "WAHF", submittedAt: "2026-09-01T12:00:00.000Z" },
     ]);
     expect(result[0]).not.toHaveProperty("assignment_grades");
   });

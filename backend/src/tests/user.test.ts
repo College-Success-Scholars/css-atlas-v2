@@ -23,8 +23,8 @@ describe("User routes — auth gating", () => {
     expect(res.status).toBe(401);
   });
 
-  it("GET /api/form-logs returns 401 without token", async () => {
-    const res = await request(app).get("/api/form-logs");
+  it("GET /api/form-logs/mcf/week/1/with-late returns 401 without token", async () => {
+    const res = await request(app).get("/api/form-logs/mcf/week/1/with-late");
     expect(res.status).toBe(401);
   });
 });

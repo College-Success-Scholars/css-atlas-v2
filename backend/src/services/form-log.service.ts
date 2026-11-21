@@ -4,12 +4,12 @@
  *
  * Form submission log access and aggregation service.
  * Handles all three form types: MCF (Mentee Check-in Form),
- * WHAF (Weekly Hours Activity Form), and WPL (Weekly Performance Log).
+ * WAHF (Weekly Academic Health Form), and WPL (Weekly Performance Log).
  * Provides individual lookups, batch queries by multiple UIDs, late submission
  * filtering, and team leader performance stat aggregation.
  *
  * ## Responsibilities
- * - Fetch MCF/WHAF/WPL logs by weekNum, uid, or batch of uids
+ * - Fetch MCF/WAHF/WPL logs by weekNum, uid, or batch of uids
  * - Filter by late submission status
  * - Aggregate submission stats for team leaders
  * - Get recent form submissions for a scholar profile
@@ -128,23 +128,8 @@ export async function getMcfFormLogsByUid(uid: string): Promise<McfFormLogRow[]>
   return (data ?? []) as McfFormLogRow[];
 }
 
-export async function getMcfFormLogsByUidAndWeek(uid: string, weekNum: number): Promise<McfFormLogRow[]> {
-  const range = campusWeekToDateRange(weekNum);
-  if (!range) return [];
-  const supabase = getSupabaseClient();
-  const endDate = getWeekFetchEnd(range);
-  const { data, error } = await supabase
-    .from("mcf_form_logs").select("*")
-    .or(`mentor_uid.eq.${uid},mentee_uid.eq.${uid}`)
-    .gte("created_at", range.startDate.toISOString())
-    .lte("created_at", endDate.toISOString())
-    .order("created_at", { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as McfFormLogRow[];
-}
-
 // ---------------------------------------------------------------------------
-// Supabase fetch — WHAF
+// Supabase fetch — WAHF
 // ---------------------------------------------------------------------------
 
 export async function getWhafFormLogsForWeek(weekNum: number): Promise<WahfFormLogRow[]> {
@@ -199,21 +184,6 @@ export async function getWplFormLogsByUid(uid: string): Promise<WplFormLogRow[]>
   return (data ?? []) as WplFormLogRow[];
 }
 
-export async function getWplFormLogsByUidAndWeek(uid: string, weekNum: number): Promise<WplFormLogRow[]> {
-  const range = campusWeekToDateRange(weekNum);
-  if (!range) return [];
-  const supabase = getSupabaseClient();
-  const endDate = getWeekFetchEnd(range);
-  const { data, error } = await supabase
-    .from("wpl_form_logs").select("*")
-    .eq("scholar_uid", uid)
-    .gte("created_at", range.startDate.toISOString())
-    .lte("created_at", endDate.toISOString())
-    .order("created_at", { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as WplFormLogRow[];
-}
-
 // ---------------------------------------------------------------------------
 // With-late fetchers
 // ---------------------------------------------------------------------------
@@ -228,29 +198,9 @@ export async function getMcfFormLogsForWeekWithLate(weekNum: number) {
   return markFormLogsLate("MCF", rows, weekNum);
 }
 
-export async function getMcfFormLogsByUidWithLate(uid: string) {
-  const rows = await getMcfFormLogsByUid(uid);
-  return markFormLogsLate("MCF", rows);
-}
-
-export async function getMcfFormLogsByUidAndWeekWithLate(uid: string, weekNum: number) {
-  const rows = await getMcfFormLogsByUidAndWeek(uid, weekNum);
-  return markFormLogsLate("MCF", rows);
-}
-
 export async function getWplFormLogsForWeekWithLate(weekNum: number) {
   const rows = await getWplFormLogsForWeek(weekNum);
   return markFormLogsLate("WPL", rows, weekNum);
-}
-
-export async function getWplFormLogsByUidWithLate(uid: string) {
-  const rows = await getWplFormLogsByUid(uid);
-  return markFormLogsLate("WPL", rows);
-}
-
-export async function getWplFormLogsByUidAndWeekWithLate(uid: string, weekNum: number) {
-  const rows = await getWplFormLogsByUidAndWeek(uid, weekNum);
-  return markFormLogsLate("WPL", rows);
 }
 
 // ---------------------------------------------------------------------------
@@ -358,7 +308,7 @@ export function buildTeamLeaderFormStatsForWeek(
 // Batch fetch by UIDs
 // ---------------------------------------------------------------------------
 
-export async function getWhafFormLogsByUids(uids: string[]): Promise<WahfFormLogRow[]> {
+export async function getWhafFormLogsByUids(uids: ReadonlyArray<string>): Promise<WahfFormLogRow[]> {
   if (!uids.length) return [];
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
@@ -368,7 +318,7 @@ export async function getWhafFormLogsByUids(uids: string[]): Promise<WahfFormLog
 }
 
 export async function getMcfFormLogsByUids(
-  uids: string[],
+  uids: ReadonlyArray<string>,
   field: "mentor_uid" | "mentee_uid" = "mentor_uid"
 ): Promise<McfFormLogRow[]> {
   if (!uids.length) return [];
@@ -379,7 +329,7 @@ export async function getMcfFormLogsByUids(
   return (data ?? []) as McfFormLogRow[];
 }
 
-export async function getWplFormLogsByUids(uids: string[]): Promise<WplFormLogRow[]> {
+export async function getWplFormLogsByUids(uids: ReadonlyArray<string>): Promise<WplFormLogRow[]> {
   if (!uids.length) return [];
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
@@ -428,7 +378,7 @@ function sortByCreatedAtDesc<T extends { created_at: string | null }>(rows: T[])
 
 function mapWhafRow(row: WahfFormLogRow): RecentFormSubmission {
   return {
-    id: `WHAF-${row.id}`, formType: "WHAF", submittedAt: row.created_at,
+    id: `WAHF-${row.id}`, formType: "WAHF", submittedAt: row.created_at,
     assignment_grades: row.assignment_grades, course_changes: row.course_changes,
     missed_classes: row.missed_classes, missed_assignments: row.missed_assignments,
     course_change_details: row.course_change_details,
@@ -438,8 +388,8 @@ function mapWhafRow(row: WahfFormLogRow): RecentFormSubmission {
 /** Scholar home: WAHF id + timestamp only — no grades or team-leader form payloads. */
 export function mapWhafSummaryRow(row: WahfFormLogRow): RecentFormSubmission {
   return {
-    id: `WHAF-${row.id}`,
-    formType: "WHAF",
+    id: `WAHF-${row.id}`,
+    formType: "WAHF",
     submittedAt: row.created_at,
   };
 }

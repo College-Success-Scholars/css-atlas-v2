@@ -49,14 +49,14 @@ import * as traffic from "@css-atlas/shared/contracts/traffic";
 import type { TrafficSession, WeekEntryCount } from "@css-atlas/shared/contracts/traffic";
 import * as dailyActivity from "@css-atlas/shared/contracts/daily-activity";
 import * as hoursBenchmark from "@css-atlas/shared/contracts/hours-benchmark";
+import * as formLogs from "@css-atlas/shared/contracts/form-logs";
 import type {
   McfFormLogRow,
-  WahfFormLogRow,
-  WplFormLogRow,
-  FormLogRowWithLate,
   RecentFormSubmission,
   TeamLeaderFormStatsRow,
-} from "@/lib/types/form-log";
+  WahfFormLogRow,
+  WplFormLogRow,
+} from "@css-atlas/shared/contracts/form-logs";
 import * as memo from "@css-atlas/shared/contracts/memo";
 import * as tutorReports from "@css-atlas/shared/contracts/tutor-reports";
 import type { TutorReportWeekRow } from "@css-atlas/shared/contracts/tutor-reports";
@@ -270,31 +270,30 @@ export async function getTrafficEntryCountsForWeeks(weekNumbers: ReadonlyArray<n
 // Form logs
 // ---------------------------------------------------------------------------
 
-export type WahfFormLogRowWithLate = FormLogRowWithLate<WahfFormLogRow>;
-export type McfFormLogRowWithLate = FormLogRowWithLate<McfFormLogRow>;
-export type WplFormLogRowWithLate = FormLogRowWithLate<WplFormLogRow>;
+export async function getMcfFormLogsByUid(uid: string): Promise<readonly McfFormLogRow[]> {
+  return callEndpoint(formLogs.getMcfByUid, { params: { uid } });
+}
+export async function getWhafFormLogsByUid(uid: string): Promise<readonly WahfFormLogRow[]> {
+  return callEndpoint(formLogs.getWahfByUid, { params: { uid } });
+}
+export async function getWplFormLogsByUid(uid: string): Promise<readonly WplFormLogRow[]> {
+  return callEndpoint(formLogs.getWplByUid, { params: { uid } });
+}
 
-export async function getMcfFormLogsForWeek(weekNum: number) { return backendGet<McfFormLogRow[]>(`/api/form-logs/mcf/week/${weekNum}`); }
-export async function getMcfFormLogsByUid(uid: string) { return backendGet<McfFormLogRow[]>(`/api/form-logs/mcf/uid/${encodeURIComponent(uid)}`); }
-export async function getMcfFormLogsByUidAndWeek(uid: string, weekNum: number) { return backendGet<McfFormLogRow[]>(`/api/form-logs/mcf/uid/${encodeURIComponent(uid)}/week/${weekNum}`); }
-export async function getWhafFormLogsForWeek(weekNum: number) { return backendGet<WahfFormLogRow[]>(`/api/form-logs/whaf/week/${weekNum}`); }
-export async function getWhafFormLogsByUid(uid: string) { return backendGet<WahfFormLogRow[]>(`/api/form-logs/whaf/uid/${encodeURIComponent(uid)}`); }
-export async function getWplFormLogsForWeek(weekNum: number) { return backendGet<WplFormLogRow[]>(`/api/form-logs/wpl/week/${weekNum}`); }
-export async function getWplFormLogsByUid(uid: string) { return backendGet<WplFormLogRow[]>(`/api/form-logs/wpl/uid/${encodeURIComponent(uid)}`); }
-export async function getWplFormLogsByUidAndWeek(uid: string, weekNum: number) { return backendGet<WplFormLogRow[]>(`/api/form-logs/wpl/uid/${encodeURIComponent(uid)}/week/${weekNum}`); }
-
-export async function getWhafFormLogsForWeekWithLate(weekNum: number) { return backendGet<WahfFormLogRowWithLate[]>(`/api/form-logs/whaf/week/${weekNum}/with-late`); }
-export async function getMcfFormLogsForWeekWithLate(weekNum: number) { return backendGet<McfFormLogRowWithLate[]>(`/api/form-logs/mcf/week/${weekNum}/with-late`); }
-export async function getMcfFormLogsByUidWithLate(uid: string) { return backendGet<McfFormLogRowWithLate[]>(`/api/form-logs/mcf/uid/${encodeURIComponent(uid)}/with-late`); }
-export async function getMcfFormLogsByUidAndWeekWithLate(uid: string, weekNum: number) { return backendGet<McfFormLogRowWithLate[]>(`/api/form-logs/mcf/uid/${encodeURIComponent(uid)}/week/${weekNum}/with-late`); }
-export async function getWplFormLogsForWeekWithLate(weekNum: number) { return backendGet<WplFormLogRowWithLate[]>(`/api/form-logs/wpl/week/${weekNum}/with-late`); }
-export async function getWplFormLogsByUidWithLate(uid: string) { return backendGet<WplFormLogRowWithLate[]>(`/api/form-logs/wpl/uid/${encodeURIComponent(uid)}/with-late`); }
-export async function getWplFormLogsByUidAndWeekWithLate(uid: string, weekNum: number) { return backendGet<WplFormLogRowWithLate[]>(`/api/form-logs/wpl/uid/${encodeURIComponent(uid)}/week/${weekNum}/with-late`); }
+export async function getMcfFormLogsForWeekWithLate(weekNum: number) {
+  return callEndpoint(formLogs.getMcfWeekWithLate, { params: { week_num: weekNum } });
+}
+export async function getWhafFormLogsForWeekWithLate(weekNum: number) {
+  return callEndpoint(formLogs.getWahfWeekWithLate, { params: { week_num: weekNum } });
+}
+export async function getWplFormLogsForWeekWithLate(weekNum: number) {
+  return callEndpoint(formLogs.getWplWeekWithLate, { params: { week_num: weekNum } });
+}
 
 export type { TeamLeaderFormStatsRow };
 
-export async function getTeamLeaderFormStatsForWeek(weekNumber: number): Promise<TeamLeaderFormStatsRow[]> {
-  return backendPost("/api/form-logs/team-leader-stats", { weekNumber });
+export async function getTeamLeaderFormStatsForWeek(weekNumber: number): Promise<readonly TeamLeaderFormStatsRow[]> {
+  return callEndpoint(formLogs.getTeamLeaderStats, { body: { week_num: weekNumber } });
 }
 
 export function scholarIdFromProfile(profile: { student_id?: unknown } | null): string | null {
@@ -306,10 +305,10 @@ export const scholarUidFromProfile = scholarIdFromProfile;
 
 export async function getRecentFormSubmissions(params: {
   profile: { student_id?: string | null } | null;
-}): Promise<RecentFormSubmission[]> {
+}): Promise<readonly RecentFormSubmission[]> {
   const scholarId = scholarIdFromProfile(params.profile);
   if (!scholarId) return [];
-  return backendPost("/api/form-logs/recent-submissions", { scholarId });
+  return callEndpoint(formLogs.getRecentSubmissions, { body: { scholarId } });
 }
 
 // ---------------------------------------------------------------------------

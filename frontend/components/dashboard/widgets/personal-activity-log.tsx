@@ -5,13 +5,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import type { RecentFormSubmission } from "@/lib/types/form-log"
+import type { RecentFormSubmission } from "@css-atlas/shared/contracts/form-logs"
 import { PersonalActivityLogClient } from "./personal-activity-log-client"
 
 export function PersonalActivityLog({
   entries,
 }: {
-  entries: RecentFormSubmission[]
+  entries: readonly RecentFormSubmission[]
 }) {
   return (
     <Card className="gap-4 py-5">
