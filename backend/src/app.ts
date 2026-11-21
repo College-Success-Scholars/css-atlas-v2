@@ -63,12 +63,12 @@ app.use("/api/memo", memoRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/session-logs", sessionLogRoutes);
-app.use("/api/traffic", trafficRoutes);
+app.use(trafficRoutes);
 app.use("/api/form-logs", formLogRoutes);
-app.use("/api/daily-activity", activityRoutes);
+app.use(activityRoutes);
 app.use(tutorReportRoutes);
 app.use(attendanceRoutes); // contract-backed: paths come from @css-atlas/shared/contracts/attendance
-app.use("/api/hours-benchmark", hoursBenchmarkRoutes);
+app.use(hoursBenchmarkRoutes);
 
 app.use(errorHandler);
 

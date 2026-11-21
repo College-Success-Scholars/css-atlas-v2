@@ -2,24 +2,10 @@
  * @file activity.routes.ts
  * @module backend/routes
  *
- * Express Router for /api/daily-activity/* endpoints.
- * All routes require requireAuth. Covers daily activity minutes
- * query by menteeUid, weekNum, and logSource.
- *
- * ## What belongs here
- * - Route declarations for daily activity endpoints
- *
- * ## What does NOT belong here
- * - Business logic (that's controllers/activity.controller.ts)
+ * /api/daily-activity. Paths, methods and minimum roles are declared in
+ * @css-atlas/shared/contracts/daily-activity; this file only mounts them.
  */
-import { Router } from "express";
-import { requireAuth } from "../middleware/auth.middleware.js";
-import * as activityController from "../controllers/activity.controller.js";
+import { toRouter } from "../http/endpoint.js";
+import { activityEndpoints } from "../controllers/activity.controller.js";
 
-const router = Router();
-
-router.use(requireAuth);
-
-router.get("/minutes", activityController.minutes);
-
-export default router;
+export default toRouter(activityEndpoints);

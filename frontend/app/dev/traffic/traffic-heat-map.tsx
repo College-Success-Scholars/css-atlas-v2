@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import type { TrafficSession } from "@/lib/types/traffic";
+import type { TrafficSession } from "@css-atlas/shared/contracts/traffic";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Card,
@@ -88,7 +88,7 @@ function addSessionToGrid(
 }
 
 function aggregate(
-  sessions: TrafficSession[],
+  sessions: readonly TrafficSession[],
   slotMinutes: number
 ): number[][] {
   const numSlots = slotsPerDay(slotMinutes);
@@ -127,7 +127,7 @@ export const SLOT_MINUTES_OPTIONS = [15, 30, 60] as const;
 export type SlotMinutesOption = (typeof SLOT_MINUTES_OPTIONS)[number];
 
 interface TrafficHeatMapProps {
-  sessions: TrafficSession[];
+  sessions: readonly TrafficSession[];
   /** Time slot size in minutes (default 15). Use 15, 30, or 60. */
   slotMinutes?: number;
 }

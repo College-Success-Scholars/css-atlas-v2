@@ -11,9 +11,9 @@ const AUTH_PROTECTED_ROUTES = [
   "/api/auth/mentees/compliance",
   "/api/users",
   "/api/session-logs",
-  "/api/traffic",
+  "/api/traffic/entry-count/1",
   "/api/form-logs",
-  "/api/daily-activity",
+  "/api/daily-activity/minutes?menteeUid=1&weekNum=1&logSource=front_desk",
 ] as const;
 
 const TEAM_LEADER_ROUTES = [

@@ -206,7 +206,7 @@ export async function getTrafficEntryCountForWeekThrough(
 }
 
 export async function getTrafficEntryCountsForWeeks(
-  weekNumbers: number[]
+  weekNumbers: ReadonlyArray<number>
 ): Promise<WeekEntryCount[]> {
   if (weekNumbers.length === 0) return [];
   const counts = await Promise.all(

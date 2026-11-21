@@ -35,7 +35,6 @@ import type {
   ScholarNoShow,
   ScholarWithCompletedSession,
 } from "@/lib/types/session-log";
-import type { HoursBenchmarkReport } from "@/app/dashboard/hours-benchmark/types";
 import type {
   AttendanceKind,
   AttendanceWeekBoard,
@@ -51,10 +50,10 @@ import type {
   MenteeOption,
   MenteeReview,
 } from "@/lib/types/mentee-review";
-import type {
-  TrafficSession,
-  WeekEntryCount,
-} from "@/lib/types/traffic";
+import * as traffic from "@css-atlas/shared/contracts/traffic";
+import type { TrafficSession, WeekEntryCount } from "@css-atlas/shared/contracts/traffic";
+import * as dailyActivity from "@css-atlas/shared/contracts/daily-activity";
+import * as hoursBenchmark from "@css-atlas/shared/contracts/hours-benchmark";
 import type {
   McfFormLogRow,
   WahfFormLogRow,
@@ -334,17 +333,17 @@ export async function deleteTutorReport(id: number): Promise<{ readonly id: numb
 
 export type { WeekEntryCount };
 
-export async function getTrafficSessionsForWeek(weekNumber: number): Promise<TrafficSession[]> {
-  return backendGet(`/api/traffic/sessions/${weekNumber}`);
+export async function getTrafficSessionsForWeek(weekNumber: number): Promise<readonly TrafficSession[]> {
+  return callEndpoint(traffic.getSessionsForWeek, { params: { week_num: weekNumber } });
 }
 
 export async function getTrafficEntryCountForWeek(weekNumber: number): Promise<number> {
-  return backendGet(`/api/traffic/entry-count/${weekNumber}`);
+  return callEndpoint(traffic.getEntryCountForWeek, { params: { week_num: weekNumber } });
 }
 
-export async function getTrafficEntryCountsForWeeks(weekNumbers: number[]): Promise<WeekEntryCount[]> {
+export async function getTrafficEntryCountsForWeeks(weekNumbers: ReadonlyArray<number>): Promise<readonly WeekEntryCount[]> {
   if (weekNumbers.length === 0) return [];
-  return backendPost("/api/traffic/entry-counts", { weekNumbers });
+  return callEndpoint(traffic.getEntryCountsForWeeks, { body: { weekNumbers } });
 }
 
 // ---------------------------------------------------------------------------
@@ -400,8 +399,7 @@ export async function getRecentFormSubmissions(params: {
 export async function getTotalMinutesForMenteeWeek(params: {
   menteeUid: string; weekNum: number; logSource: string;
 }): Promise<number> {
-  const { menteeUid, weekNum, logSource } = params;
-  return backendGet(`/api/daily-activity/minutes?menteeUid=${encodeURIComponent(menteeUid)}&weekNum=${weekNum}&logSource=${encodeURIComponent(logSource)}`);
+  return callEndpoint(dailyActivity.getMinutes, { query: params });
 }
 
 export async function getWeeklyMemoPdf(weekNumber: number): Promise<Response> {
@@ -409,10 +407,5 @@ export async function getWeeklyMemoPdf(weekNumber: number): Promise<Response> {
 }
 
 export async function getHoursBenchmarkReport() {
-  return backendGet<HoursBenchmarkReport>("/api/hours-benchmark");
-}
-
-export async function getHoursBenchmarkPdf(scope: "low" | "all" = "low"): Promise<Response> {
-  const query = new URLSearchParams({ scope });
-  return backendDownload(`/api/hours-benchmark/pdf?${query}`);
+  return callEndpoint(hoursBenchmark.getReport);
 }

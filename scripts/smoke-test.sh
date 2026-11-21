@@ -47,9 +47,9 @@ for ROUTE in \
   "/api/users" \
   "/api/session-logs" \
   "/api/attendance/week/1?kind=front_desk" \
-  "/api/traffic" \
+  "/api/traffic/entry-count/1" \
   "/api/form-logs" \
-  "/api/daily-activity" \
+  "/api/daily-activity/minutes?menteeUid=1&weekNum=1&logSource=front_desk" \
   "/api/tutor-reports/week/1"
 do
   STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL$ROUTE")

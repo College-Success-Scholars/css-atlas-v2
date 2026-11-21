@@ -610,23 +610,23 @@ All routes under `/api/tutor-reports` require **requireTeamLeaderOrAbove**. Week
 
 All routes under `/api/traffic` require **requireAuth**.
 
-### `GET /api/traffic/sessions/:weekNum`
+### `GET /api/traffic/sessions/:week_num`
 
 **Auth:** requireAuth
 **Description:** Returns all traffic session entries (check-in/check-out pairs) for a specific week.
-**Request Params:** `weekNum` (integer, >= 1)
+**Request Params:** `week_num` (integer, >= 1)
 **Response:**
 ```json
-{ "data": [ /* traffic session rows */ ] }
+{ "data": [ { "uid": "123", "entryAt": "...", "exitAt": "...", "durationMs": 3600000, "assumedExit": true } ] }
 ```
 
 ---
 
-### `GET /api/traffic/entry-count/:weekNum`
+### `GET /api/traffic/entry-count/:week_num`
 
 **Auth:** requireAuth
 **Description:** Returns the total number of entry events for a specific week.
-**Request Params:** `weekNum` (integer, >= 1)
+**Request Params:** `week_num` (integer, >= 1)
 **Response:**
 ```json
 { "data": 42 }
@@ -644,7 +644,7 @@ All routes under `/api/traffic` require **requireAuth**.
 ```
 **Response:**
 ```json
-{ "data": { /* week-to-count mapping or array */ } }
+{ "data": [ { "weekNumber": 1, "entryCount": 42 } ] }
 ```
 
 ---
@@ -987,7 +987,7 @@ All routes under `/api/daily-activity` require **requireAuth**.
 
 **Response:**
 ```json
-{ "data": { /* total minutes result */ } }
+{ "data": 90 }
 ```
 
 ---
@@ -1240,7 +1240,7 @@ All routes under `/api/hours-benchmark` require **requireDeveloper**.
 ### `GET /api/hours-benchmark/pdf`
 
 **Auth:** requireDeveloper
-**Description:** Renders the Hours Benchmark Report as a landscape PDF (KPIs, heatmap, team-leader rollup, detail list). `scope=low` (default) prints the ≤50% heatmap; `scope=all` prints every hour-eligible scholar. `Content-Disposition` uses `hours-benchmark-weeks-{from}-{through}[-all]-{YYYY-MM-DD-HHmm}.pdf` in America/New_York. Response has `Cache-Control: no-store`. Returns `503` if Chromium/PDF rendering fails.
+**Description:** Renders the Hours Benchmark Report as a landscape PDF (KPIs, heatmap, team-leader rollup, detail list). `scope=low` (default) prints the ≤50% heatmap; `scope=all` prints every hour-eligible scholar. `Content-Disposition` uses `hours-benchmark-weeks-{from}-{through}[-all]-{YYYY-MM-DD-HHmm}.pdf` in America/New_York. Response has `Cache-Control: no-store`. Returns `500` if Chromium/PDF rendering fails.
 **Query Params:**
 - `scope` (`low` | `all`, optional; default `low`)
 **Response:** PDF binary (`Content-Type: application/pdf`)

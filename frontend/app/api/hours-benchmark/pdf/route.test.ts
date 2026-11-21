@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-const getHoursBenchmarkPdf = vi.fn();
+const downloadEndpoint = vi.fn();
 
-vi.mock("@/lib/server/data", () => ({
-  getHoursBenchmarkPdf,
+vi.mock("@/lib/server/api-client", () => ({
+  downloadEndpoint,
 }));
 
 function request(scope?: string) {
@@ -15,11 +15,11 @@ function request(scope?: string) {
 
 describe("GET /api/hours-benchmark/pdf", () => {
   beforeEach(() => {
-    getHoursBenchmarkPdf.mockReset();
+    downloadEndpoint.mockReset();
   });
 
   it("forwards the backend PDF and filename", async () => {
-    getHoursBenchmarkPdf.mockResolvedValue(
+    downloadEndpoint.mockResolvedValue(
       new Response("pdf-bytes", {
         status: 200,
         headers: {
@@ -31,15 +31,17 @@ describe("GET /api/hours-benchmark/pdf", () => {
     );
     const { GET } = await import("./route");
     const response = await GET(request());
-    expect(getHoursBenchmarkPdf).toHaveBeenCalledWith("low");
+    expect(downloadEndpoint).toHaveBeenCalledWith(expect.objectContaining({ path: "/api/hours-benchmark/pdf" }), {
+      query: { scope: "low" },
+    });
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Type")).toBe("application/pdf");
     expect(response.headers.get("Content-Disposition")).toContain("hours-benchmark-weeks-2-8");
     expect(await response.text()).toBe("pdf-bytes");
   });
 
-  it("forwards scope=all to the backend download helper", async () => {
-    getHoursBenchmarkPdf.mockResolvedValue(
+  it("forwards scope=all to the contract download", async () => {
+    downloadEndpoint.mockResolvedValue(
       new Response("pdf-bytes", {
         status: 200,
         headers: {
@@ -51,12 +53,14 @@ describe("GET /api/hours-benchmark/pdf", () => {
     );
     const { GET } = await import("./route");
     const response = await GET(request("all"));
-    expect(getHoursBenchmarkPdf).toHaveBeenCalledWith("all");
+    expect(downloadEndpoint).toHaveBeenCalledWith(expect.objectContaining({ path: "/api/hours-benchmark/pdf" }), {
+      query: { scope: "all" },
+    });
     expect(response.status).toBe(200);
   });
 
   it("reports a failed launch as 503", async () => {
-    getHoursBenchmarkPdf.mockRejectedValueOnce(new Error("ECONNREFUSED"));
+    downloadEndpoint.mockRejectedValueOnce(new Error("ECONNREFUSED"));
     const { GET } = await import("./route");
     const down = await GET(request());
     expect(down.status).toBe(503);

@@ -13,13 +13,13 @@ describe("User routes — auth gating", () => {
     expect(res.status).toBe(401);
   });
 
-  it("GET /api/daily-activity returns 401 without token", async () => {
-    const res = await request(app).get("/api/daily-activity");
+  it("GET /api/daily-activity/minutes returns 401 without token", async () => {
+    const res = await request(app).get("/api/daily-activity/minutes?menteeUid=1&weekNum=1&logSource=front_desk");
     expect(res.status).toBe(401);
   });
 
-  it("GET /api/traffic returns 401 without token", async () => {
-    const res = await request(app).get("/api/traffic");
+  it("GET /api/traffic/entry-count/1 returns 401 without token", async () => {
+    const res = await request(app).get("/api/traffic/entry-count/1");
     expect(res.status).toBe(401);
   });
 
