@@ -36,9 +36,12 @@ import { upsertExcuse } from "../services/attendance-week.service.js";
 
 const caller: Caller = {
   userId: "auth-user-1",
+  email: "tl@terpmail.umd.edu",
   actorId: "117000001",
   profile: null,
   realProfile: null,
+  activeTestProfileId: null,
+  isActingAsTestProfile: false,
   asOf: new Date("2026-09-03T14:00:00.000Z"),
 };
 

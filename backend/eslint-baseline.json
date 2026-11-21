@@ -24,14 +24,11 @@
     "src/controllers/memo.controller.ts"
   ],
   "atlas/no-express-import": [
-    "src/controllers/activity.controller.ts",
     "src/controllers/auth.controller.ts",
     "src/controllers/dev.controller.ts",
     "src/controllers/form-log.controller.ts",
-    "src/controllers/hours-benchmark.controller.ts",
     "src/controllers/memo.controller.ts",
     "src/controllers/session-log.controller.ts",
-    "src/controllers/traffic.controller.ts",
     "src/controllers/user.controller.ts"
   ],
   "atlas/no-process-env": [
@@ -47,14 +44,11 @@
     "src/supabase/client.ts"
   ],
   "atlas/no-try-catch": [
-    "src/controllers/activity.controller.ts",
     "src/controllers/auth.controller.ts",
     "src/controllers/dev.controller.ts",
     "src/controllers/form-log.controller.ts",
-    "src/controllers/hours-benchmark.controller.ts",
     "src/controllers/memo.controller.ts",
     "src/controllers/session-log.controller.ts",
-    "src/controllers/traffic.controller.ts",
     "src/controllers/user.controller.ts"
   ]
 }

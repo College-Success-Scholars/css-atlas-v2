@@ -34,6 +34,34 @@ import {
 } from "./tutor-report-log.service.js";
 import { fetchAllUsersForMemo, isEligibleScholar } from "./user.service.js";
 import type { TutorReportWeekRow } from "../models/tutor-report-log.model.js";
+import type {
+  HoursBenchmarkArea,
+  HoursBenchmarkScoredWeeks,
+  HoursBenchmarkCell,
+  HoursBenchmarkScholarRow,
+  HoursBenchmarkTeamLeaderRow,
+  HoursBenchmarkLowEvent,
+  HoursBenchmarkSummary,
+  HoursBenchmarkHeatmapScope,
+  HoursBenchmarkTutoringSession,
+  HoursBenchmarkTutoringGroup,
+  HoursBenchmarkReport,
+} from "@css-atlas/shared/contracts/hours-benchmark";
+
+// Wire shapes are defined once, in the API contract.
+export type {
+  HoursBenchmarkArea,
+  HoursBenchmarkScoredWeeks,
+  HoursBenchmarkCell,
+  HoursBenchmarkScholarRow,
+  HoursBenchmarkTeamLeaderRow,
+  HoursBenchmarkLowEvent,
+  HoursBenchmarkSummary,
+  HoursBenchmarkHeatmapScope,
+  HoursBenchmarkTutoringSession,
+  HoursBenchmarkTutoringGroup,
+  HoursBenchmarkReport,
+} from "@css-atlas/shared/contracts/hours-benchmark";
 
 /** Campus week 1 is omitted; scoring starts the following week. */
 export const HOURS_BENCHMARK_FIRST_SCORED_WEEK = 2;
@@ -43,13 +71,6 @@ export const HOURS_BENCHMARK_AT_OR_BELOW_PERCENT = 50;
 
 /** Blank cells and “met” band; below this counts as missed 80%. */
 export const HOURS_BENCHMARK_MET_PERCENT = 80;
-
-export type HoursBenchmarkArea = "front_desk" | "study_session";
-
-export type HoursBenchmarkScoredWeeks = {
-  fromWeek: number;
-  throughWeek: number;
-};
 
 export type HoursBenchmarkWeekInput = {
   weekNum: number;
@@ -74,93 +95,11 @@ export type HoursBenchmarkScholarInput = {
   weeks: HoursBenchmarkWeekInput[];
 };
 
-export type HoursBenchmarkCell = {
-  weekNum: number;
-  /** Rounded completion %. Null when the scholar is not scored for that kind/week. */
-  completionPercent: number | null;
-  excuseApplied: boolean;
-};
-
-export type HoursBenchmarkScholarRow = {
-  scholarId: string;
-  scholarName: string;
-  isSophomore: boolean;
-  classYear: "Freshman" | "Sophomore" | null;
-  teamLeader: string;
-  /** Count of (week × area) events at ≤50%. */
-  atOrBelow50Count: number;
-  frontDeskByWeek: HoursBenchmarkCell[];
-  studySessionByWeek: HoursBenchmarkCell[];
-};
-
-export type HoursBenchmarkTeamLeaderRow = {
-  teamLeader: string;
-  atOrBelow50Events: number;
-  studentCount: number;
-};
-
-export type HoursBenchmarkLowEvent = {
-  weekNum: number;
-  weekDateLabel: string;
-  area: HoursBenchmarkArea;
-  areaLabel: string;
-  scholarName: string;
-  classYear: string;
-  teamLeader: string;
-  completionPercent: number;
-  excuseApplied: boolean;
-};
-
-export type HoursBenchmarkSummary = {
-  studentsAtOrBelow50AtLeastOnce: number;
-  atOrBelow50Events: number;
-  zeroPercentEvents: number;
-  studentsMissed80AtLeastOnce: number;
-};
-
-/** Which heatmap the PDF (and optional clients) should print. */
-export type HoursBenchmarkHeatmapScope = "low" | "all";
-
-export type HoursBenchmarkTutoringSession = {
-  id: number;
-  scholarId: string;
-  scholarName: string;
-  tutorName: string;
-  dayOfWeek: string;
-  /** Short Eastern date for multi-week disambiguation (e.g. "Sep 8"). */
-  dateLabel: string;
-  /** YYYY-MM-DD (Eastern) for stable within-group date sorting. */
-  dateKey: string;
-};
-
-export type HoursBenchmarkTutoringGroup = {
-  key: string;
-  title: string;
-  sessions: HoursBenchmarkTutoringSession[];
-};
-
 export type HoursBenchmarkTutoringBreakdowns = {
   tutoringByScholar: HoursBenchmarkTutoringGroup[];
   tutoringByTutor: HoursBenchmarkTutoringGroup[];
   tutoringByDay: HoursBenchmarkTutoringGroup[];
 };
-
-export type HoursBenchmarkReport = {
-  currentCampusWeek: number;
-  scoredWeeks: HoursBenchmarkScoredWeeks | null;
-  weekNumbers: number[];
-  weekRangeLabel: string;
-  dateRangeLabel: string;
-  preparedAtLabel: string;
-  printedAtSlug: string;
-  summary: HoursBenchmarkSummary;
-  /** Scholars with at least one ≤50% week×area event (default PDF / on-screen heatmap). */
-  heatmapScholars: HoursBenchmarkScholarRow[];
-  /** Every enrolled hour-eligible scholar for the scored weeks (all-scholars PDF). */
-  allHeatmapScholars: HoursBenchmarkScholarRow[];
-  byTeamLeader: HoursBenchmarkTeamLeaderRow[];
-  lowEvents: HoursBenchmarkLowEvent[];
-} & HoursBenchmarkTutoringBreakdowns;
 
 const DAY_SORT_ORDER: Record<string, number> = {
   Mon: 0,
@@ -224,7 +163,7 @@ function toTutoringSession(row: TutorReportWeekRow): HoursBenchmarkTutoringSessi
 }
 
 function sortSessionsInGroup(
-  sessions: HoursBenchmarkTutoringSession[],
+  sessions: readonly HoursBenchmarkTutoringSession[],
   counterpart: (session: HoursBenchmarkTutoringSession) => string,
 ): HoursBenchmarkTutoringSession[] {
   return [...sessions].sort((a, b) => {
@@ -236,13 +175,13 @@ function sortSessionsInGroup(
 }
 
 function groupTutoringSessions(
-  sessions: HoursBenchmarkTutoringSession[],
+  sessions: readonly HoursBenchmarkTutoringSession[],
   keyFor: (session: HoursBenchmarkTutoringSession) => string,
   titleFor: (session: HoursBenchmarkTutoringSession) => string,
   counterpart: (session: HoursBenchmarkTutoringSession) => string,
   sortGroups: (a: HoursBenchmarkTutoringGroup, b: HoursBenchmarkTutoringGroup) => number,
 ): HoursBenchmarkTutoringGroup[] {
-  const groups = new Map<string, HoursBenchmarkTutoringGroup>();
+  const groups = new Map<string, { key: string; title: string; sessions: HoursBenchmarkTutoringSession[] }>();
   for (const session of sessions) {
     const key = keyFor(session);
     const existing = groups.get(key);
@@ -416,7 +355,10 @@ function cellForKind(
   };
 }
 
-function emptySummary(): HoursBenchmarkSummary {
+/** The summary is tallied in place while scanning scholars, then returned read-only. */
+type SummaryTally = { -readonly [K in keyof HoursBenchmarkSummary]: HoursBenchmarkSummary[K] };
+
+function emptySummary(): SummaryTally {
   return {
     studentsAtOrBelow50AtLeastOnce: 0,
     atOrBelow50Events: 0,

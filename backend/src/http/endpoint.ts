@@ -104,9 +104,12 @@ function callerFrom(req: AuthenticatedRequest, asOf: Date): Caller {
   const studentId = req.profile?.student_id;
   return {
     userId,
+    email: req.authUser?.email ?? null,
     actorId: studentId != null ? String(studentId) : userId || null,
     profile: req.profile ?? null,
     realProfile: req.realProfile ?? null,
+    activeTestProfileId: req.activeTestProfileId ?? null,
+    isActingAsTestProfile: req.isActingAsTestProfile ?? false,
     asOf,
   };
 }

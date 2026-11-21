@@ -33,13 +33,19 @@ export class ConflictError extends Data.TaggedError("ConflictError")<{
   readonly message: string;
 }> {}
 
-export type DomainError = ValidationError | NotFoundError | ForbiddenError | ConflictError;
+/** A dependency (PDF renderer, external service) failed; retrying later may work. */
+export class UnavailableError extends Data.TaggedError("UnavailableError")<{
+  readonly message: string;
+}> {}
+
+export type DomainError = ValidationError | NotFoundError | ForbiddenError | ConflictError | UnavailableError;
 
 export function isDomainError(error: unknown): error is DomainError {
   return (
     error instanceof ValidationError ||
     error instanceof NotFoundError ||
     error instanceof ForbiddenError ||
-    error instanceof ConflictError
+    error instanceof ConflictError ||
+    error instanceof UnavailableError
   );
 }

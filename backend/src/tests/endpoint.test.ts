@@ -7,7 +7,7 @@ import { Context, Effect } from "effect";
 import { CurrentCaller } from "../context/current-caller.js";
 import { implement, type Caller, type Handler } from "../http/endpoint.js";
 import { errorHandler } from "../http/error-handler.js";
-import { ConflictError, ForbiddenError, NotFoundError } from "../utils/domain-error.js";
+import { ConflictError, ForbiddenError, NotFoundError, UnavailableError } from "../utils/domain-error.js";
 
 /** Mount a bound endpoint without the auth middleware, so only the request lifecycle is under test. */
 function appFor(bound: ReturnType<typeof implement>) {
@@ -167,6 +167,7 @@ describe("implement — Effect handlers", () => {
   it.each([
     [new ForbiddenError({ reason: "Only your own mentees" }), 403, "Only your own mentees"],
     [new ConflictError({ message: "The week is locked" }), 409, "The week is locked"],
+    [new UnavailableError({ message: "PDF generation failed. Please try again." }), 503, "PDF generation failed. Please try again."],
   ])("maps a typed failure to its status (%s)", async (failure, status, error) => {
     const bound = implement(attendance.getWeekBoard, () => Effect.fail(failure));
     const res = await request(appFor(bound)).get("/api/attendance/week/1?kind=front_desk");

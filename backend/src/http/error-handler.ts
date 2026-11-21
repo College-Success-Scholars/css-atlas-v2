@@ -18,6 +18,7 @@ const STATUS: Record<DomainError["_tag"], number> = {
   ForbiddenError: 403,
   NotFoundError: 404,
   ConflictError: 409,
+  UnavailableError: 503,
 };
 
 function describe(error: DomainError): string {
@@ -29,6 +30,7 @@ function describe(error: DomainError): string {
     case "ForbiddenError":
       return error.reason;
     case "ConflictError":
+    case "UnavailableError":
       return error.message;
   }
 }

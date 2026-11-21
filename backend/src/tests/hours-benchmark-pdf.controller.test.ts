@@ -101,10 +101,10 @@ describe("hours benchmark endpoints", () => {
     expect(renderHoursBenchmarkPdf).toHaveBeenCalledWith(report, "low");
   });
 
-  it("fails when rendering fails", async () => {
+  it("answers 503 with a retry message when rendering fails", async () => {
     renderHoursBenchmarkPdf.mockRejectedValue(new Error("Chromium unavailable"));
-    vi.spyOn(console, "error").mockImplementation(() => {});
     const res = await request(appForEndpoints()).get("/api/hours-benchmark/pdf");
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(503);
+    expect(res.body).toEqual({ error: "PDF generation failed. Please try again." });
   });
 });
