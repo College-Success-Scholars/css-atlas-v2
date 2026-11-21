@@ -18,7 +18,8 @@
     "lint:baseline": "node ../tools/lint-baseline.mjs --check",
     "deps": "depcruise src --config .dependency-cruiser.cjs --ignore-known",
     "deps:baseline": "depcruise-baseline src --config .dependency-cruiser.cjs",
-    "guardrails": "npm run lint && npm run lint:baseline && npm run deps"
+    "guardrails": "npm run lint && npm run lint:baseline && npm run deps",
+    "routes": "tsx scripts/route-inventory.ts"
   },
   "keywords": [],
   "author": "",
