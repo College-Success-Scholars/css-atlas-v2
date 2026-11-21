@@ -20,9 +20,6 @@
     "src/services/schedule-board.service.ts",
     "src/services/session-log.service.ts"
   ],
-  "atlas/no-express-import": [
-    "src/controllers/form-log.controller.ts"
-  ],
   "atlas/no-process-env": [
     "src/app.ts",
     "src/domains/notifications/channels/slack-channel.ts",
@@ -34,8 +31,5 @@
     "src/services/session-no-shows.service.ts",
     "src/services/weekly-memo-pdf.service.ts",
     "src/supabase/client.ts"
-  ],
-  "atlas/no-try-catch": [
-    "src/controllers/form-log.controller.ts"
   ]
 }
