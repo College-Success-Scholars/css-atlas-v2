@@ -16,6 +16,16 @@
  */
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+
+/**
+ * Responses that depend on who is asking must never be stored by the CDN in
+ * front of the frontend (.railway/railway.ts). Redirects carry no
+ * Cache-Control by default, so mark them explicitly.
+ */
+function uncacheable(response: NextResponse): NextResponse {
+  response.headers.set("Cache-Control", "private, no-store");
+  return response;
+}
 import { getSupabasePublicKey } from "./public-key";
 
 /**
@@ -95,8 +105,11 @@ export async function updateSession(request: NextRequest) {
     // no user, potentially respond by redirecting the user to the login page
     const url = request.nextUrl.clone();
     url.pathname = "/auth/login";
-    return NextResponse.redirect(url);
+    return uncacheable(NextResponse.redirect(url));
   }
+
+  // The email-confirm handler redirects based on a one-time token and sets session cookies.
+  if (pathname.startsWith("/auth/confirm")) uncacheable(supabaseResponse);
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is.
   // If you're creating a new response object with NextResponse.next() make sure to:
