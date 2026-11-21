@@ -291,11 +291,12 @@ describe("PUT /api/auth/mentees/:uid/meeting-preference", () => {
     expect(res.body).toEqual({ error: "You are not assigned to this mentee." });
   });
 
-  it("maps save_failed to an actionable 500", async () => {
+  it("maps save_failed to a retryable 503 that tells the team leader their setting was kept", async () => {
     const message = "Could not save the meeting preference. Your previous setting was preserved.";
     mocks.saveMeetingPreference.mockResolvedValue({ ok: false, error: { code: "save_failed", message } });
     const res = await put({ weekday: 2, meetingTime: "14:30" });
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(503);
+    expect(res.body).toEqual({ error: message });
   });
 });
 

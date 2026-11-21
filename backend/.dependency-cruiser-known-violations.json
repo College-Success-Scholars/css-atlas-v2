@@ -1,33 +1,5 @@
 [
   {
-    "type": "dependency",
-    "from": "src/controllers/auth.controller.ts",
-    "to": "src/supabase/client.ts",
-    "unresolvedTo": "../supabase/client.js",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "controllers-never-query-supabase"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/controllers/semester.controller.ts",
-    "to": "src/supabase/client.ts",
-    "unresolvedTo": "../supabase/client.js",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "controllers-never-query-supabase"
-    }
-  },
-  {
     "type": "cycle",
     "from": "src/middleware/auth.middleware.ts",
     "to": "src/middleware/reject-writes-when-acting.ts",

@@ -21,7 +21,6 @@
     "src/services/session-log.service.ts"
   ],
   "atlas/no-express-import": [
-    "src/controllers/auth.controller.ts",
     "src/controllers/form-log.controller.ts"
   ],
   "atlas/no-process-env": [
@@ -37,7 +36,6 @@
     "src/supabase/client.ts"
   ],
   "atlas/no-try-catch": [
-    "src/controllers/auth.controller.ts",
     "src/controllers/form-log.controller.ts"
   ]
 }

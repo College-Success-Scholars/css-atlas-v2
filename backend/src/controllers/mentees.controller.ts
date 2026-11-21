@@ -21,13 +21,7 @@ import {
 import { toWireMenteeReview } from "../services/mentee-review-wire.js";
 import { getMenteesByMentorKey } from "../services/mentee.service.js";
 import { dateToCampusWeek } from "../services/time.service.js";
-import {
-  ConflictError,
-  ForbiddenError,
-  NotFoundError,
-  UnavailableError,
-  ValidationError,
-} from "../utils/domain-error.js";
+import { ConflictError, ForbiddenError, NotFoundError, UnavailableError, ValidationError } from "../utils/domain-error.js";
 import { resolveMentorKey } from "../utils/mentor-key.js";
 
 /** Current week is the default; a future week is rejected. */
@@ -87,7 +81,8 @@ export const menteeEndpoints = [
     });
     if (result.ok) return result.data;
     if (result.error.code === "not_assigned") throw new ForbiddenError({ reason: result.error.message });
-    throw new Error(result.error.message);
+    // save_failed: the write did not happen and the old preference stands; say so, and invite a retry.
+    throw new UnavailableError({ message: result.error.message });
   }),
 
   // Fresh click-time prefill for the CURRENT week: recomposes evidence at
