@@ -8,7 +8,7 @@
 import { redirect } from "next/navigation";
 import { dateToCampusWeek } from "@/lib/format/time";
 import { getAttendanceWeekBoard } from "@/lib/server/data";
-import { parseWeekParam } from "@/app/dashboard/memo/_lib/week-navigation";
+import { parseWeekParam } from "@/lib/format/campus-week";
 import {
   TeamsAttendanceClient,
   TeamsPageFallback,

@@ -28,7 +28,7 @@ vi.mock("./memo-accordion-section", () => ({
 }))
 
 import { RecognitionBoardSection } from "./recognition-board-section"
-import type { RecognitionBoardSectionData } from "../types"
+import type { RecognitionBoardSectionData } from "@css-atlas/shared/contracts/memo"
 
 const censusData: RecognitionBoardSectionData = {
   badgeText: "3 grades",

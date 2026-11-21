@@ -3,10 +3,10 @@ import { TrendingUp } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
-import type { WeeklyKpiCard } from "../types"
+import type { WeeklyKpiCard } from "@css-atlas/shared/contracts/memo"
 
 type WeeklyKpiCardsProps = {
-  cards: WeeklyKpiCard[]
+  cards: readonly WeeklyKpiCard[]
 }
 
 /** Domain tokens from globals.css / cssColor: FD orange (`--front-desk`), SS blue (`--study`). */

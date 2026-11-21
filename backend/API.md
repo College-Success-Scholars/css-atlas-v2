@@ -1167,17 +1167,15 @@ All routes under `/api/dev` require **requireDeveloper**.
 
 Routes under `/api/memo` require **requireTeamLeaderOrAbove** unless noted otherwise.
 
-### `GET /api/memo/page-data`
+### `GET /api/memo`
 
-**Auth:** requireTeamLeaderOrAbove
-**Description:** Returns all processed data needed to render the memo page for a given week (aggregated in one call). Scholar rows and WAHF census (`wahfDonut`) include only enrolled freshman/sophomore scholars with required hours (`user_roster.status` = enrolled). `gradeBreakdown` is the Recognition board census: assignment grades parsed from the **latest WAHF per submitter that week** (scholars and team leaders; high ≥90%, mid 70–89%, low <70%) so resubmits do not duplicate; each band is sorted by percent descending. Team leader form stats (`teamLeaderFormStats`, `formCompletionOverall`, MCF rows) include only enrolled non-scholar, non-Coordinator roster rows. Inactive and graduated roster rows are omitted from scholar lists and TL form stats. FD/SS minutes are computed on read from cleaned tickets; excuses come from `scholar_week_excuses` (not `*_records`). Each scholar row includes `wahfStatus` (`on-time` | `late` | `missing`) and `wahfSubmittedAt` (latest weekly WAHF form-log `created_at`, or `null` if none) from that week's WAHF form logs. `teamLeader` is the mentor display name from `mentor_mentee` (`Unassigned` when the scholar has no row). Scholars owe WAHF only; WPL/MCF stay on team-leader form stats. `trafficComparableLastWeekCount` is prior-week entries through the same weekday and time when the selected week is the current campus week (not the full prior week).
+**Auth:** team_leader
+**Contract:** `getWeeklyMemo` in [`shared/contracts/memo.ts`](../shared/contracts/memo.ts) (source of truth for the shape).
+**Description:** The finished Weekly Memo for one Campus Week, assembled once on the backend (`services/weekly-memo.service.ts`): KPI cards, Team leader performance, Scholar follow-up, Tutoring log, Recognition board, Attendance detail and the week picker (`navigation`). The dashboard renders it as-is. Built from the memo page data (`services/memo-page.service.ts`): scholar rows and the WAHF census include only enrolled freshman/sophomore scholars with required hours; the Recognition board census uses the latest WAHF per submitter that week; team leader form stats include only enrolled non-scholar, non-Coordinator roster rows; FD/SS minutes are computed on read from cleaned tickets plus `scholar_week_excuses`; Form status follows `@css-atlas/shared/form-status`.
 **Query Params:**
-- `weekNumber` (integer >= 1; legacy `weekNum` accepted; defaults to current campus week if omitted)
+- `week_num` (integer >= 1, optional; defaults to the current campus week)
 
-**Response:**
-```json
-{ "data": { /* full memo page data object */ } }
-```
+**Response:** `{ "data": WeeklyMemo }`, or `{ "data": { "yearNotStarted": true } }` before the first campus week.
 
 ---
 
@@ -1238,32 +1236,3 @@ All routes under `/api/hours-benchmark` require **requireDeveloper**.
 
 ---
 
-### `POST /api/memo/sync`
-
-**Auth:** requireTeamLeaderOrAbove
-**Description:** No-op. Session-record sync is retired; Memo attendance is computed on read. Still requires `weekNumber`/`weekNum` and `mode` (`light`|`heavy`) for compatibility.
-**Request Body:**
-```json
-{
-  "weekNum": 1,          // required, integer >= 1
-  "mode": "light"        // required, "light" or "heavy"
-}
-```
-**Response:**
-```json
-{ "data": { /* sync result */ } }
-```
-
----
-
-### `GET /api/memo/traffic-count`
-
-**Auth:** requireTeamLeaderOrAbove
-**Description:** Returns the traffic entry count for a given week. Response has `Cache-Control: no-store`.
-**Query Params:**
-- `weekNumber` (integer >= 1, required; legacy `weekNum` query param accepted)
-
-**Response:**
-```json
-{ "data": { "weekNumber": 1, "entryCount": 42 } }
-```

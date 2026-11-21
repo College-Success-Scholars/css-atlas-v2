@@ -4,7 +4,6 @@
     "app/dashboard/hours-benchmark/_components/hours-benchmark-export-button.tsx",
     "app/dashboard/internship-board/page.tsx",
     "app/dashboard/memo/_components/weekly-memo-export-button.tsx",
-    "app/dashboard/memo/_lib/weekly-memo-assembler.ts",
     "app/dashboard/mentee/page.tsx",
     "app/dashboard/personal/page.tsx",
     "app/dashboard/room/_components/room-no-shows-section.tsx",

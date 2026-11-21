@@ -6,7 +6,7 @@ import { DataTable, type DataTableColumn } from "@/components/data-display/data-
 import { cn } from "@/lib/utils"
 import { MemoAccordionSection } from "./memo-accordion-section"
 import { ScholarNameLink } from "./scholar-name-link"
-import type { TutoringLogRow, TutoringLogSectionData } from "../types"
+import type { TutoringLogRow, TutoringLogSectionData } from "@css-atlas/shared/contracts/memo"
 
 type TutoringLogSectionProps = {
   data: TutoringLogSectionData

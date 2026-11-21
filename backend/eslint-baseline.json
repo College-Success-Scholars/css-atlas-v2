@@ -20,13 +20,9 @@
     "src/services/schedule-board.service.ts",
     "src/services/session-log.service.ts"
   ],
-  "atlas/no-dynamic-import": [
-    "src/controllers/memo.controller.ts"
-  ],
   "atlas/no-express-import": [
     "src/controllers/auth.controller.ts",
-    "src/controllers/form-log.controller.ts",
-    "src/controllers/memo.controller.ts"
+    "src/controllers/form-log.controller.ts"
   ],
   "atlas/no-process-env": [
     "src/app.ts",
@@ -42,7 +38,6 @@
   ],
   "atlas/no-try-catch": [
     "src/controllers/auth.controller.ts",
-    "src/controllers/form-log.controller.ts",
-    "src/controllers/memo.controller.ts"
+    "src/controllers/form-log.controller.ts"
   ]
 }

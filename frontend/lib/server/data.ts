@@ -21,7 +21,7 @@
  * - Client-side data fetching (that's lib/client/api-client.ts)
  */
 import "server-only";
-import { backendGet, backendPost, backendPut, backendPatch, backendDelete, backendDownload, callEndpoint } from "./api-client";
+import { backendGet, backendPost, backendPut, backendPatch, backendDelete, backendDownload, callEndpoint, downloadEndpoint } from "./api-client";
 import type { EndpointRequest } from "@css-atlas/shared/contract";
 import * as attendance from "@css-atlas/shared/contracts/attendance";
 import { getEffectiveScholarId } from "@css-atlas/shared/auth";
@@ -62,6 +62,7 @@ import type {
   RecentFormSubmission,
   TeamLeaderFormStatsRow,
 } from "@/lib/types/form-log";
+import * as memo from "@css-atlas/shared/contracts/memo";
 import * as tutorReports from "@css-atlas/shared/contracts/tutor-reports";
 import type { TutorReportWeekRow } from "@css-atlas/shared/contracts/tutor-reports";
 
@@ -357,8 +358,13 @@ export async function getTotalMinutesForMenteeWeek(params: {
   return callEndpoint(dailyActivity.getMinutes, { query: params });
 }
 
-export async function getWeeklyMemoPdf(weekNumber: number): Promise<Response> {
-  return backendDownload(`/api/memo/pdf?weekNumber=${weekNumber}`);
+/** The finished Weekly Memo for a campus week (the current one when omitted). */
+export async function getWeeklyMemo(weekNum?: number) {
+  return callEndpoint(memo.getWeeklyMemo, { query: { week_num: weekNum } });
+}
+
+export async function getWeeklyMemoPdf(weekNum: number): Promise<Response> {
+  return downloadEndpoint(memo.getPdf, { query: { week_num: weekNum } });
 }
 
 export async function getHoursBenchmarkReport() {

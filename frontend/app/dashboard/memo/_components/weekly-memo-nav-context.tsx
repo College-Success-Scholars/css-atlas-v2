@@ -6,7 +6,7 @@ export type WeeklyMemoNavState = {
   weekStartLabel: string | null
   weekEndLabel: string | null
   weekNumber: number | null
-  availableWeeks: number[]
+  availableWeeks: readonly number[]
   prevWeek: number | null
   nextWeek: number | null
   currentCampusWeek: number | null
@@ -49,7 +49,7 @@ export type WeeklyMemoNavSyncProps = {
   weekStartLabel: string | null
   weekEndLabel: string | null
   weekNumber: number | null
-  availableWeeks: number[]
+  availableWeeks: readonly number[]
   prevWeek: number | null
   nextWeek: number | null
   currentCampusWeek: number | null

@@ -59,7 +59,7 @@ app.get("/", (_req, res) => {
 });
 
 app.use(devRoutes);
-app.use("/api/memo", memoRoutes);
+app.use(memoRoutes);
 app.use("/api/auth", authRoutes);
 app.use(userRoutes);
 app.use(sessionLogRoutes);

@@ -2,130 +2,30 @@
  * @file memo.controller.ts
  * @module backend/controllers
  *
- * Request handlers for weekly memo endpoints (/api/memo/*).
- * The memo is the central weekly report aggregating all scholar activity,
- * form submissions, traffic counts, and performance metrics.
- *
- * ## Responsibilities
- * - Handle memo sync (light/heavy modes), page-data, PDF, and traffic counts
- * - Delegate to memo.service.ts, memo-page.service.ts, and traffic.service.ts
- * - Return { data } or { error } JSON
- *
- * ## What belongs here
- * - Handler functions for /api/memo/* routes
- *
- * ## What does NOT belong here
- * - Memo assembly/aggregation logic (that's in memo.service.ts and memo-page.service.ts)
+ * Handlers for /api/memo, bound to @css-atlas/shared/contracts/memo: the
+ * finished Weekly Memo for the dashboard, and its PDF printout.
  */
-import type { Response } from "express";
-import type { AuthenticatedRequest } from "../middleware/auth.middleware.js";
-import { syncMemo } from "../services/memo.service.js";
-import { getTrafficEntryCountForWeek } from "../services/traffic.service.js";
-import { getMemoPageData } from "../services/memo-page.service.js";
-import { resolveMemoDefaultWeek } from "../services/memo-default-week.js";
-import { getWeeklyMemoReport, weeklyMemoPdfFilename } from "../services/weekly-memo-report.service.js";
+import { Effect } from "effect";
+import * as contract from "@css-atlas/shared/contracts/memo";
+import { implement } from "../http/endpoint.js";
+import { getWeeklyMemo, memoWeek } from "../services/weekly-memo.service.js";
 import { renderWeeklyMemoPdf } from "../services/weekly-memo-pdf.service.js";
+import { getWeeklyMemoReport, weeklyMemoPdfFilename } from "../services/weekly-memo-report.service.js";
+import { ConflictError, UnavailableError } from "../utils/domain-error.js";
 
-function parseWeekNumberFromBody(body: { weekNumber?: number; weekNum?: number }): number | null {
-  const weekNumber = body.weekNumber ?? body.weekNum;
-  if (typeof weekNumber !== "number" || weekNumber < 1) return null;
-  return weekNumber;
-}
+export const memoEndpoints = [
+  implement(contract.getWeeklyMemo, ({ query }, caller) => getWeeklyMemo(query.week_num, caller.asOf)),
 
-// POST /api/memo/sync
-export async function sync(req: AuthenticatedRequest, res: Response) {
-  const { mode } = req.body as { weekNumber?: number; weekNum?: number; mode?: string };
-  const weekNumber = parseWeekNumberFromBody(req.body as { weekNumber?: number; weekNum?: number });
-  if (weekNumber == null) {
-    res.status(400).json({ error: "weekNumber must be a number >= 1" });
-    return;
-  }
-  if (mode !== "light" && mode !== "heavy") {
-    res.status(400).json({ error: "mode must be 'light' or 'heavy'" });
-    return;
-  }
-  try {
-    const data = await syncMemo(weekNumber, mode);
-    res.json({ data });
-  } catch (e) {
-    res.status(500).json({ error: e instanceof Error ? e.message : "Sync failed" });
-  }
-}
-
-// GET /api/memo/page-data?weekNumber=X  (weekNumber optional — defaults to current campus week)
-export async function pageData(req: AuthenticatedRequest, res: Response) {
-  const weekParam = (req.query.weekNumber ?? req.query.weekNum) as string | undefined;
-  let weekNumber: number;
-  if (weekParam != null && weekParam !== "") {
-    weekNumber = parseInt(weekParam, 10);
-    if (Number.isNaN(weekNumber) || weekNumber < 1) {
-      res.status(400).json({ error: "weekNumber must be a number >= 1" });
-      return;
-    }
-  } else {
-    const { dateToCampusWeek } = await import("../services/time.service.js");
-    const resolved = resolveMemoDefaultWeek(dateToCampusWeek(new Date()));
-    if (resolved.status === "year_not_started") {
-      res.json({ data: { yearNotStarted: true as const, currentCampusWeek: null } });
-      return;
-    }
-    weekNumber = resolved.weekNumber;
-  }
-  try {
-    const data = await getMemoPageData(weekNumber);
-    res.json({ data });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: e instanceof Error ? e.message : "Failed to build memo page data" });
-  }
-}
-
-// GET /api/memo/pdf?weekNumber=X
-export async function pdf(req: AuthenticatedRequest, res: Response) {
-  const weekParam = (req.query.weekNumber ?? req.query.weekNum) as string | undefined;
-  let weekNumber: number;
-  if (weekParam != null && weekParam !== "") {
-    weekNumber = parseInt(weekParam, 10);
-    if (Number.isNaN(weekNumber) || weekNumber < 1) {
-      res.status(400).json({ error: "weekNumber must be a number >= 1" });
-      return;
-    }
-  } else {
-    const { dateToCampusWeek } = await import("../services/time.service.js");
-    const resolved = resolveMemoDefaultWeek(dateToCampusWeek(new Date()));
-    if (resolved.status === "year_not_started") {
-      res.status(409).json({ error: "The academic year has not started." });
-      return;
-    }
-    weekNumber = resolved.weekNumber;
-  }
-
-  try {
-    const report = await getWeeklyMemoReport(weekNumber);
-    const document = await renderWeeklyMemoPdf(report);
-    const filename = weeklyMemoPdfFilename(weekNumber, report.printedAtSlug);
-    res.set({
-      "Cache-Control": "no-store, max-age=0",
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename=\"${filename}\"`,
-      "Content-Length": String(document.length),
-    });
-    res.send(document);
-  } catch (e) {
-    console.error(e);
-    res.status(503).json({ error: "PDF generation failed. Please try again." });
-  }
-}
-
-// GET /api/memo/traffic-count?weekNumber=X
-export async function trafficCount(req: AuthenticatedRequest, res: Response) {
-  const weekParam = (req.query.weekNumber ?? req.query.weekNum) as string | undefined;
-  const weekNumber = weekParam != null ? parseInt(weekParam, 10) : NaN;
-  if (Number.isNaN(weekNumber) || weekNumber < 1) {
-    res.status(400).json({ error: "weekNumber must be a number >= 1" });
-    return;
-  }
-  const entryCount = await getTrafficEntryCountForWeek(weekNumber);
-  res.set("Cache-Control", "no-store, max-age=0");
-  res.json({ data: { weekNumber, entryCount } });
-}
+  implement(contract.getPdf, ({ query }, caller) =>
+    Effect.gen(function* () {
+      const week = memoWeek(query.week_num, caller.asOf);
+      if (week == null) return yield* new ConflictError({ message: "The academic year has not started." });
+      const report = yield* Effect.promise(() => getWeeklyMemoReport(week));
+      const body = yield* Effect.tryPromise({
+        try: () => renderWeeklyMemoPdf(report),
+        catch: () => new UnavailableError({ message: "PDF generation failed. Please try again." }),
+      });
+      return { contentType: "application/pdf", filename: weeklyMemoPdfFilename(week, report.printedAtSlug), body };
+    }),
+  ),
+];

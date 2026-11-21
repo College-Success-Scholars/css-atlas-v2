@@ -16,8 +16,7 @@ const AUTH_PROTECTED_ROUTES = [
 ] as const;
 
 const TEAM_LEADER_ROUTES = [
-  "/api/memo/page-data",
-  "/api/memo/traffic-count",
+  "/api/memo",
 ] as const;
 
 describe("Auth gating — unauthenticated requests", () => {

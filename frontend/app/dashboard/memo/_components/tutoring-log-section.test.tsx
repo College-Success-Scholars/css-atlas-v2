@@ -8,7 +8,7 @@ vi.mock("./memo-accordion-section", () => ({
 }))
 
 import { TutoringLogSection } from "./tutoring-log-section"
-import type { TutoringLogSectionData } from "../types"
+import type { TutoringLogSectionData } from "@css-atlas/shared/contracts/memo"
 
 const data: TutoringLogSectionData = {
   badgeText: "2 sessions",

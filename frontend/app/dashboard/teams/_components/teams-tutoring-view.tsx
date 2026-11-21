@@ -8,7 +8,7 @@
 import { redirect } from "next/navigation";
 import { dateToCampusWeek } from "@/lib/format/time";
 import { getTutorReportWeekRows } from "@/lib/server/data";
-import { parseWeekParam } from "@/app/dashboard/memo/_lib/week-navigation";
+import { parseWeekParam } from "@/lib/format/campus-week";
 import { TeamsTutoringClient } from "./teams-tutoring-client";
 import type { TutorReportWeekRow } from "@css-atlas/shared/contracts/tutor-reports";
 

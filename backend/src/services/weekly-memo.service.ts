@@ -1,24 +1,75 @@
-import type { GradeBreakdown, GradeEntry } from "@/lib/types/form-log"
-import type { MemoTutorReportRow } from "@/lib/types/tutor-report-log"
+/**
+ * @file weekly-memo.service.ts
+ * @module backend/services
+ *
+ * Assembles the Weekly Memo once, from memo page data (memo-page.service.ts):
+ * KPI cards, Team leader performance, Scholar follow-up, Tutoring log,
+ * Recognition board, Attendance detail and the week picker. The dashboard
+ * renders the result as-is (contract: @css-atlas/shared/contracts/memo).
+ */
+import { formStatus } from "@css-atlas/shared/form-status";
 import type {
-  FormStatus,
-  MemoLivePageData,
-  MemoScholarRow,
+  MemoFormStatus as FormStatus,
+  MemoGradeEntry as GradeEntry,
   RecognitionBoardSectionData,
   TeamLeaderPerformanceRow,
   TutoringLogRow,
+  WeekNavigation,
   WeeklyKpiCard,
-  WeeklyMemoViewData,
-} from "../types"
-import { formStatus } from "@css-atlas/shared/form-status"
-import { classifyScholarFollowUpRisk } from "./risk-classifier"
+  WeeklyMemo,
+} from "@css-atlas/shared/contracts/memo";
 import {
   EASTERN_TIMEZONE,
   freshmanCohortYear,
   scholarYearGroupLabel,
   scholarYearLabel,
   sophomoreCohortYear,
-} from "@/lib/format/time"
+} from "./time.service.js";
+import { getMemoPageData } from "./memo-page.service.js";
+import { dateToCampusWeek } from "./time.service.js";
+import { classifyScholarFollowUpRisk } from "./weekly-memo-risk.js";
+import type { MemoPageData } from "./weekly-memo-report.service.js";
+
+/** The campus week to show: the requested one, else the current one; null before the year starts. */
+export function memoWeek(requested: number | undefined, asOf: Date): number | null {
+  return requested ?? dateToCampusWeek(asOf);
+}
+
+/** The finished Weekly Memo for a campus week (the current one when omitted). */
+export async function getWeeklyMemo(requested: number | undefined, asOf: Date): Promise<WeeklyMemo | { yearNotStarted: true }> {
+  const week = memoWeek(requested, asOf);
+  if (week == null) return { yearNotStarted: true };
+  return assembleWeeklyMemo(await getMemoPageData(week), asOf);
+}
+
+type MemoScholarRow = MemoPageData["scholars"][number];
+type GradeBreakdown = MemoPageData["gradeBreakdown"];
+type MemoTutorReportRow = MemoPageData["tutorReports"][number];
+
+/**
+ * The campus weeks the week picker offers (weeks with traffic, the selected
+ * week and the current week) and the selected week's neighbours.
+ */
+export function weekNavigation(data: {
+  trafficWeeklyData: ReadonlyArray<{ weekNumber: number }>;
+  selectedWeekNumber: number;
+  currentCampusWeek: number | null;
+}): WeekNavigation {
+  const availableWeeks = Array.from(
+    new Set([
+      ...data.trafficWeeklyData.map((entry) => entry.weekNumber),
+      data.selectedWeekNumber,
+      ...(data.currentCampusWeek != null ? [data.currentCampusWeek] : []),
+    ]),
+  ).sort((a, b) => a - b);
+  const index = availableWeeks.indexOf(data.selectedWeekNumber);
+  return {
+    availableWeeks,
+    prevWeek: index > 0 ? (availableWeeks[index - 1] ?? null) : null,
+    nextWeek: index >= 0 ? (availableWeeks[index + 1] ?? null) : null,
+    currentCampusWeek: data.currentCampusWeek,
+  };
+}
 
 /** Matches backend WEEKLY_MEMO_SNAPSHOT_COMPLETE_PERCENT in weekly-memo-report.service.ts */
 const SNAPSHOT_COMPLETE_PERCENT = 80
@@ -34,7 +85,7 @@ const formatWeekDateRange = (weekLabel: string) => {
   }
 }
 
-const buildTeamLeaderRows = (data: MemoLivePageData): TeamLeaderPerformanceRow[] =>
+const buildTeamLeaderRows = (data: MemoPageData): TeamLeaderPerformanceRow[] =>
   data.teamLeaderFormStats.map((row) => {
     const hasNoMentee = hasNoMenteeAssignment(row.mcfRequired)
     return {
@@ -182,12 +233,13 @@ function visitsTrendText(
   lastComparableCount: number,
   selectedWeek: number,
   currentCampusWeek: number | null,
+  asOf: Date,
 ): string {
   if (selectedWeek <= 1) return ""
   if (thisWeekCount === 0 && lastComparableCount === 0) return ""
   const direction = thisWeekCount >= lastComparableCount ? "up" : "down"
   if (selectedWeek === currentCampusWeek) {
-    const weekday = new Date().toLocaleDateString("en-US", {
+    const weekday = asOf.toLocaleDateString("en-US", {
       weekday: "long",
       timeZone: EASTERN_TIMEZONE,
     })
@@ -196,7 +248,8 @@ function visitsTrendText(
   return `${direction} vs last week`
 }
 
-export const assembleWeeklyMemo = (data: MemoLivePageData): WeeklyMemoViewData => {
+/** Assemble the memo; `asOf` is the request time (used for "vs last <weekday>" on the current week). */
+export const assembleWeeklyMemo = (data: MemoPageData, asOf: Date): WeeklyMemo => {
   const weekDates = formatWeekDateRange(data.weekLabel)
 
   const teamLeaderRows = buildTeamLeaderRows(data)
@@ -234,10 +287,11 @@ export const assembleWeeklyMemo = (data: MemoLivePageData): WeeklyMemoViewData =
       })
 
   return {
-    ...data,
+    yearNotStarted: false as const,
     weekStartLabel: weekDates.weekStartLabel,
     weekEndLabel: weekDates.weekEndLabel,
     weekNumber: data.selectedWeekNumber,
+    navigation: weekNavigation(data),
     kpis: [
       {
         title: "Visits this week",
@@ -248,6 +302,7 @@ export const assembleWeeklyMemo = (data: MemoLivePageData): WeeklyMemoViewData =
           data.trafficComparableLastWeekCount,
           data.selectedWeekNumber,
           data.currentCampusWeek,
+          asOf,
         ),
         subStats: [],
       },

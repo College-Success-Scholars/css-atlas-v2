@@ -12,57 +12,5 @@
       "severity": "error",
       "name": "dashboard-routes-are-isolated"
     }
-  },
-  {
-    "type": "dependency",
-    "from": "app/dashboard/teams/_components/teams-attendance-view.tsx",
-    "to": "app/dashboard/memo/_lib/week-navigation.ts",
-    "unresolvedTo": "@/app/dashboard/memo/_lib/week-navigation",
-    "dependencyTypes": [
-      "aliased",
-      "aliased-tsconfig",
-      "aliased-tsconfig-paths",
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "dashboard-routes-are-isolated"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "app/dashboard/teams/_components/teams-tutoring-view.tsx",
-    "to": "app/dashboard/memo/_lib/week-navigation.ts",
-    "unresolvedTo": "@/app/dashboard/memo/_lib/week-navigation",
-    "dependencyTypes": [
-      "aliased",
-      "aliased-tsconfig",
-      "aliased-tsconfig-paths",
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "dashboard-routes-are-isolated"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "lib/server/data.ts",
-    "to": "app/dashboard/hours-benchmark/types.ts",
-    "unresolvedTo": "@/app/dashboard/hours-benchmark/types",
-    "dependencyTypes": [
-      "aliased",
-      "aliased-tsconfig",
-      "aliased-tsconfig-paths",
-      "local",
-      "type-only",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "nothing-imports-app"
-    }
   }
 ]

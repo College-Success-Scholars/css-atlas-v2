@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { MemoAccordionSection } from "./memo-accordion-section"
 import { ScholarNameLink } from "./scholar-name-link"
-import type { RecognitionBoardBand, RecognitionBoardBandId, RecognitionBoardSectionData } from "../types"
+import type { RecognitionBoardBand, RecognitionBoardBandId, RecognitionBoardSectionData } from "@css-atlas/shared/contracts/memo"
 
 type RecognitionBoardSectionProps = {
   data: RecognitionBoardSectionData

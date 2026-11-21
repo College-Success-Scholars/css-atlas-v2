@@ -41,7 +41,6 @@ Export PDF (`weekly-memo-report.service` + `weekly-memo-pdf.service`) is a staff
 | File | Source Link | Description |
 |------|-------------|-------------|
 | `page.tsx` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/dashboard/memo/page.tsx) | Memo page server component — header shell + async body |
-| `types.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/dashboard/memo/types.ts) | Page-data and view-model types |
 | `layout.tsx` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/dashboard/memo/layout.tsx) | TL+ access gate |
 
 ---
@@ -51,14 +50,14 @@ Export PDF (`weekly-memo-report.service` + `weekly-memo-pdf.service`) is a staff
 | Directory | Description |
 |-----------|-------------|
 | `_components/` | Memo-specific subcomponents (prefixed `_` = route-private, not shared globally) |
-| `_lib/` | Memo-specific utilities and assembler logic |
+| `_lib/` | Memo-specific copy (KPI titles, header blurb) |
 
 ### `_components/`
 
 | File | Source Link | Description |
 |------|-------------|-------------|
 | `weekly-memo-header-shell.tsx` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/dashboard/memo/_components/weekly-memo-header-shell.tsx) | Persistent header: week range, section blurb, week nav |
-| `weekly-memo-async-content.tsx` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/dashboard/memo/_components/weekly-memo-async-content.tsx) | Fetches page-data and renders sections |
+| `weekly-memo-async-content.tsx` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/dashboard/memo/_components/weekly-memo-async-content.tsx) | Fetches the finished Weekly Memo (`GET /api/memo`) and renders its sections |
 | `weekly-memo-export-button.tsx` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/dashboard/memo/_components/weekly-memo-export-button.tsx) | Export PDF — same-origin `/api/memo/pdf` download |
 | `weekly-kpi-cards.tsx` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/dashboard/memo/_components/weekly-kpi-cards.tsx) | Weekly KPI summary cards; hours cards use Progress tracks (`bg-front-desk` orange, `bg-study` blue) |
 | `team-leader-performance-table.tsx` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/dashboard/memo/_components/team-leader-performance-table.tsx) | TL WPL / MCF / WAHF |
@@ -72,21 +71,17 @@ Export PDF (`weekly-memo-report.service` + `weekly-memo-pdf.service`) is a staff
 
 | File | Source Link | Description |
 |------|-------------|-------------|
-| `memo-source.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/dashboard/memo/_lib/memo-source.ts) | Data fetching layer for memo page |
 | `memo-section-guide.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/dashboard/memo/_lib/memo-section-guide.ts) | Header blurb copy |
-| `risk-classifier.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/dashboard/memo/_lib/risk-classifier.ts) | Follow-up Issues (glance labels + hours/grade pct + WAHF submitted-at) |
-| `weekly-memo-assembler.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/dashboard/memo/_lib/weekly-memo-assembler.ts) | Assembles page-data into the display model |
-| `weekly-memo-assembler.test.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/dashboard/memo/_lib/weekly-memo-assembler.test.ts) | Unit tests for the assembler |
 
 ---
 
 ## Standards
 
 - **`_` prefix = route-private** — components and lib files in `_components/` and `_lib/` are for this route only. If a component is needed elsewhere, move it to `frontend/components/`.
-- **Assembler owns data shape** — `weekly-memo-assembler.ts` is the single place that transforms raw API data into the memo display model. Do not transform data in individual components.
-- **Test the assembler** — the assembler contains the most business logic; tests must be kept current.
-- **Risk classification is in `risk-classifier.ts`** — do not hardcode thresholds in components.
+- **The backend assembles the memo** — `backend/src/services/weekly-memo.service.ts` (with `weekly-memo-risk.ts` for Scholar follow-up) turns memo page data into the finished Weekly Memo; its shape is `shared/contracts/memo.ts`. Components only render the section they are given; never derive memo data in the frontend.
+- **Test the assembler on the backend** — `backend/src/tests/weekly-memo.test.ts` and `weekly-memo-risk.test.ts`.
+- **No thresholds in components** — risk thresholds and Form status rules live in the backend assembler and `@css-atlas/shared/form-status`.
 - **Scholar forms vs TL forms** — do not show WPL/MCF as required on scholar rows. WAHF exceptions are follow-up Issues (submitted-at when a log exists); WAHF census is on attendance detail. Assignment grades from every WAHF this week (including team leaders) are the Recognition board census; only scholar low grades are follow-up Issues. Team leader WAHF compliance stays on team leader performance. The export PDF still lists scholar WAHF separately from follow-up.
 - **What's missing vs how it's missing** — glance column is short labels only (no numbers). How-it's-missing uses CompletionMeter for hours/grades and a time indicator for WAHF. Do not put healthy FD/SS meters on follow-up. Hours only appear when below the classifier threshold; late/missing WAHF use form-log `created_at`, never attendance.
-- **TL column** — follow-up `teamLeader` comes from `mentor_mentee` (via `/api/memo/page-data`). Do not hardcode Unassigned except as the no-assignment fallback.
+- **TL column** — follow-up `teamLeader` comes from `mentor_mentee` (via `GET /api/memo`). Do not hardcode Unassigned except as the no-assignment fallback.
 - **Export PDF is same-origin** — `WeeklyMemoExportButton` fetches `/api/memo/pdf`. Do not use `lib/client/api-client` / `NEXT_PUBLIC_BACKEND_URL` for the printout.

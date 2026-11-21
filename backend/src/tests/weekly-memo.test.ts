@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
-import { freshmanCohortYear, sophomoreCohortYear } from "@/lib/format/time"
-import type { MemoLivePageData } from "../types"
-import { assembleWeeklyMemo } from "./weekly-memo-assembler"
+import { freshmanCohortYear, sophomoreCohortYear } from "../services/time.service.js"
+import type { MemoPageData as MemoLivePageData } from "../services/weekly-memo-report.service.js"
+import { assembleWeeklyMemo, weekNavigation } from "../services/weekly-memo.service.js"
 
 const freshman = freshmanCohortYear()
 const sophomore = sophomoreCohortYear()
@@ -118,7 +118,7 @@ const buildMemoData = (): MemoLivePageData =>
 
 describe("weekly-memo-assembler", () => {
   it("assembles top-level weekly memo sections from memo page data", () => {
-    const result = assembleWeeklyMemo(buildMemoData())
+    const result = assembleWeeklyMemo(buildMemoData(), new Date())
 
     expect(result.weekStartLabel).toBe("Apr 1")
     expect(result.weekEndLabel).toBe("Apr 7")
@@ -195,7 +195,7 @@ describe("weekly-memo-assembler", () => {
   })
 
   it("builds attendance tabs from scholar logged + excuse minutes, including zeros", () => {
-    const result = assembleWeeklyMemo(buildMemoData())
+    const result = assembleWeeklyMemo(buildMemoData(), new Date())
     const fdTab = result.fullAttendanceDetail.tabs.find((tab) => tab.id === "front-desk")
     expect(fdTab?.rows).toEqual(
       expect.arrayContaining([
@@ -221,7 +221,7 @@ describe("weekly-memo-assembler", () => {
   })
 
   it("builds a three-band WAHF grade census and leaves follow-up on low grades only", () => {
-    const result = assembleWeeklyMemo(buildMemoData())
+    const result = assembleWeeklyMemo(buildMemoData(), new Date())
 
     expect(result.recognitionBoard).toEqual({
       badgeText: "3 grades",
@@ -272,9 +272,11 @@ describe("weekly-memo-assembler", () => {
           ssExcuseMin: 0,
           wahfStatus: "late" as const,
           wahfSubmittedAt: "2026-04-04T12:00:00.000Z",
+          fdCompliance: { insideMinutes: 0, outsideMinutes: 0, noShowCount: 0, dates: [] },
+          ssCompliance: { insideMinutes: 0, outsideMinutes: 0, noShowCount: 0, dates: [] },
         },
       ],
-    })
+    }, new Date())
 
     expect(result.scholarRows.map((row) => row.scholarName)).toEqual(["Bob Scholar", "Cara OnlyWahf"])
     expect(result.scholarRows.find((row) => row.scholarName === "Cara OnlyWahf")).toMatchObject({
@@ -288,19 +290,19 @@ describe("weekly-memo-assembler", () => {
       ...buildMemoData(),
       gradeBreakdown: {
         high: [
-          { scholarName: "Zed Scholar", course: "CMSC131", assessment: "Quiz", grade: "91%", percent: 91 },
-          { scholarName: "Ann Scholar", course: "MATH140", assessment: "Exam", grade: "100%", percent: 100 },
+          { scholarName: "Zed Scholar", scholarId: null, isMentee: false, course: "CMSC131", assessment: "Quiz", grade: "91%", percent: 91 },
+          { scholarName: "Ann Scholar", scholarId: null, isMentee: false, course: "MATH140", assessment: "Exam", grade: "100%", percent: 100 },
         ],
         mid: [
-          { scholarName: "Ann Scholar", course: "PHYS161", assessment: "Lab", grade: "71%", percent: 71 },
-          { scholarName: "Ann Scholar", course: "ENGL101", assessment: "Essay", grade: "88%", percent: 88 },
+          { scholarName: "Ann Scholar", scholarId: null, isMentee: false, course: "PHYS161", assessment: "Lab", grade: "71%", percent: 71 },
+          { scholarName: "Ann Scholar", scholarId: null, isMentee: false, course: "ENGL101", assessment: "Essay", grade: "88%", percent: 88 },
         ],
         low: [
-          { scholarName: "Bob Scholar", course: "X", assessment: "Y", grade: "40", percent: 40 },
-          { scholarName: "Bob Scholar", course: "Z", assessment: "W", grade: "69", percent: 69 },
+          { scholarName: "Bob Scholar", scholarId: null, isMentee: false, course: "X", assessment: "Y", grade: "40", percent: 40 },
+          { scholarName: "Bob Scholar", scholarId: null, isMentee: false, course: "Z", assessment: "W", grade: "69", percent: 69 },
         ],
       },
-    })
+    }, new Date())
 
     expect(result.recognitionBoard.bands.map((band) => band.entries.map((entry) => entry.percent))).toEqual([
       [100, 91],
@@ -334,7 +336,7 @@ describe("weekly-memo-assembler", () => {
           wahfLatestAt: "",
         },
       ],
-    })
+    }, new Date())
 
     expect(result.teamLeaderRows[0]).toMatchObject({
       leaderName: "TL None",
@@ -368,7 +370,7 @@ describe("weekly-memo-assembler", () => {
           wahfLatestAt: "",
         },
       ],
-    })
+    }, new Date())
 
     expect(result.teamLeaderRows[0]).toMatchObject({
       leaderName: "TL Partial",
@@ -403,7 +405,7 @@ describe("weekly-memo-assembler", () => {
           wahfLatestAt: "",
         },
       ],
-    })
+    }, new Date())
 
     expect(result.teamLeaderRows[0]?.mcf).toBe("incomplete")
   })
@@ -462,7 +464,7 @@ describe("weekly-memo-assembler", () => {
           ssCompliance: zeroCompliance,
         },
       ],
-    })
+    }, new Date())
 
     const hoursSubStats = [
       { label: "Sophomores", value: "1 / 1 (100%)", pct: 100 },
@@ -504,7 +506,7 @@ describe("weekly-memo-assembler", () => {
         { weekNumber: 5, entryCount: 90 },
         { weekNumber: 6, entryCount: 40 },
       ],
-    })
+    }, new Date())
 
     expect(result.kpis).toEqual(
       expect.arrayContaining([
@@ -515,5 +517,26 @@ describe("weekly-memo-assembler", () => {
         }),
       ]),
     )
+  })
+})
+
+describe("weekNavigation", () => {
+  it("builds sparse available weeks from traffic, selected, and current campus week", () => {
+    expect(weekNavigation({ trafficWeeklyData: [{ weekNumber: 4 }, { weekNumber: 6 }], selectedWeekNumber: 5, currentCampusWeek: 7 })).toEqual({
+      availableWeeks: [4, 5, 6, 7],
+      prevWeek: 4,
+      nextWeek: 6,
+      currentCampusWeek: 7,
+    })
+  })
+
+  it("uses current campus week as next when beyond traffic weeks", () => {
+    const result = weekNavigation({ trafficWeeklyData: [{ weekNumber: 5 }], selectedWeekNumber: 6, currentCampusWeek: 7 })
+    expect(result).toMatchObject({ availableWeeks: [5, 6, 7], prevWeek: 5, nextWeek: 7 })
+  })
+
+  it("returns null prev/next at list boundaries", () => {
+    expect(weekNavigation({ trafficWeeklyData: [{ weekNumber: 3 }], selectedWeekNumber: 3, currentCampusWeek: 5 })).toMatchObject({ prevWeek: null, nextWeek: 5 })
+    expect(weekNavigation({ trafficWeeklyData: [{ weekNumber: 3 }], selectedWeekNumber: 5, currentCampusWeek: 5 })).toMatchObject({ prevWeek: 3, nextWeek: null })
   })
 })

@@ -1,7 +1,8 @@
 import request from "supertest";
 import { describe, it, expect } from "vitest";
 import { app } from "../app.js";
-import { resolveMemoDefaultWeek } from "../services/memo-default-week.js";
+import { memoWeek } from "../services/weekly-memo.service.js";
+import { campusWeekToDateRange } from "../services/time.service.js";
 
 import {
   aggregateTeamLeaderMcfStats,
@@ -18,41 +19,38 @@ import { freshmanCohortYear } from "../services/time.service.js";
 describe("Memo routes — auth gating", () => {
   it("allows the local dashboard origin to request a memo PDF", async () => {
     const res = await request(app)
-      .options("/api/memo/pdf?weekNumber=5")
+      .options("/api/memo/pdf?week_num=5")
       .set("Origin", "http://localhost:3000")
       .set("Access-Control-Request-Method", "GET");
     expect(res.status).toBe(204);
     expect(res.headers["access-control-allow-origin"]).toBe("http://localhost:3000");
   });
 
-  it("GET /api/memo/page-data returns 401 without token", async () => {
-    const res = await request(app).get("/api/memo/page-data");
+  it("GET /api/memo returns 401 without token", async () => {
+    const res = await request(app).get("/api/memo");
     expect(res.status).toBe(401);
   });
 
   it("GET /api/memo/pdf returns 401 without token", async () => {
-    const res = await request(app).get("/api/memo/pdf?weekNumber=5");
+    const res = await request(app).get("/api/memo/pdf?week_num=5");
     expect(res.status).toBe(401);
   });
 
-  it("POST /api/memo/sync returns 401 without token", async () => {
-    const res = await request(app).post("/api/memo/sync");
-    expect(res.status).toBe(401);
-  });
-
-  it("GET /api/memo/traffic-count returns 401 without token", async () => {
-    const res = await request(app).get("/api/memo/traffic-count");
-    expect(res.status).toBe(401);
-  });
 });
 
-describe("resolveMemoDefaultWeek", () => {
-  it("returns year_not_started when current campus week is null", () => {
-    expect(resolveMemoDefaultWeek(null)).toEqual({ status: "year_not_started" });
+describe("memoWeek", () => {
+  it("uses the requested week", () => {
+    expect(memoWeek(3, new Date())).toBe(3);
   });
 
-  it("returns the current week without falling back to 1", () => {
-    expect(resolveMemoDefaultWeek(6)).toEqual({ status: "ok", weekNumber: 6 });
+  it("defaults to the current campus week, not week 1", () => {
+    const inWeekSix = new Date(campusWeekToDateRange(6)!.startDate.getTime() + 36 * 3_600_000);
+    expect(memoWeek(undefined, inWeekSix)).toBe(6);
+  });
+
+  it("is null before the academic year starts", () => {
+    const beforeYear = new Date(campusWeekToDateRange(1)!.startDate.getTime() - 30 * 86_400_000);
+    expect(memoWeek(undefined, beforeYear)).toBeNull();
   });
 });
 

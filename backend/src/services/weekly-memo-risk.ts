@@ -1,6 +1,18 @@
-import type { GradeEntry } from "@/lib/types/form-log"
-import { EASTERN_TIMEZONE, scholarYearLabel } from "@/lib/format/time"
-import type { MemoLivePageData, MemoScholarRow, ScholarFollowUpIssue, ScholarFollowUpRow } from "../types"
+/**
+ * @file weekly-memo-risk.ts
+ * @module backend/services
+ *
+ * Scholar follow-up for the Weekly Memo: which scholars need attention this
+ * Campus Week and why (low Front desk / Study session completion, missing or
+ * late WAHF, low grades). Pure; part of assembling the memo once
+ * (weekly-memo.service.ts).
+ */
+import type { MemoGradeEntry, ScholarFollowUpIssue, ScholarFollowUpRow } from "@css-atlas/shared/contracts/memo";
+import { EASTERN_TIMEZONE, scholarYearLabel } from "./time.service.js";
+import type { MemoPageData } from "./weekly-memo-report.service.js";
+
+type MemoScholarRow = MemoPageData["scholars"][number];
+type GradeEntry = MemoGradeEntry;
 
 const LOW_COMPLETION_THRESHOLD = 75
 
@@ -97,7 +109,7 @@ const buildScholarFollowUpIssues = (
   return { flags, issues }
 }
 
-export const classifyScholarFollowUpRisk = (data: MemoLivePageData): ScholarFollowUpRow[] => {
+export const classifyScholarFollowUpRisk = (data: MemoPageData): ScholarFollowUpRow[] => {
   const rows = data.scholars
     .map((row) => {
       const { flags, issues } = buildScholarFollowUpIssues(row, data.gradeBreakdown.low)

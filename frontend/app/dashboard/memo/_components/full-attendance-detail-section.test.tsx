@@ -8,7 +8,7 @@ vi.mock("./memo-accordion-section", () => ({
 }))
 
 import { FullAttendanceDetailSection } from "./full-attendance-detail-section"
-import type { FullAttendanceDetailSectionData } from "../types"
+import type { FullAttendanceDetailSectionData } from "@css-atlas/shared/contracts/memo"
 
 const data: FullAttendanceDetailSectionData = {
   rightLabel: "Front desk · Study sessions · WAHF",

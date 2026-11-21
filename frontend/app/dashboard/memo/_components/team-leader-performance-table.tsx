@@ -3,10 +3,10 @@
 import { Badge } from "@/components/ui/badge"
 import { DataTable, type DataTableColumn, type DataTableFilter } from "@/components/data-display/data-table"
 import { MemoAccordionSection } from "./memo-accordion-section"
-import type { FormStatus, TeamLeaderPerformanceRow } from "../types"
+import type { MemoFormStatus as FormStatus, TeamLeaderPerformanceRow } from "@css-atlas/shared/contracts/memo"
 
 type TeamLeaderPerformanceTableProps = {
-  rows: TeamLeaderPerformanceRow[]
+  rows: readonly TeamLeaderPerformanceRow[]
 }
 
 const statusClassName: Record<FormStatus, string> = {

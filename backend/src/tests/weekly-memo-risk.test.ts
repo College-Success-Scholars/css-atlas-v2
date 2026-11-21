@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
-import { freshmanCohortYear, sophomoreCohortYear } from "@/lib/format/time"
-import type { MemoLivePageData } from "../types"
-import { classifyScholarFollowUpRisk } from "./risk-classifier"
+import { freshmanCohortYear, sophomoreCohortYear } from "../services/time.service.js"
+import type { MemoPageData as MemoLivePageData } from "../services/weekly-memo-report.service.js"
+import { classifyScholarFollowUpRisk } from "../services/weekly-memo-risk.js"
 
 const freshman = freshmanCohortYear()
 const sophomore = sophomoreCohortYear()
@@ -10,10 +10,10 @@ const zeroCompliance = { insideMinutes: 0, outsideMinutes: 0, noShowCount: 0, da
 describe("risk-classifier", () => {
   const baseData = {
     scholars: [
-      { scholarId: "2024-001", scholarName: "A Scholar", cohort: freshman, teamLeader: "TL One", fdPct: 90, ssPct: 90, fdRequired: 120, ssRequired: 120, fdTotal: 0, ssTotal: 0, fdExcuseMin: 0, ssExcuseMin: 0, wahfStatus: "on-time", wahfSubmittedAt: "2026-04-02T16:00:00.000Z", fdCompliance: zeroCompliance, ssCompliance: zeroCompliance },
-      { scholarId: "2023-010", scholarName: "B Scholar", cohort: sophomore, teamLeader: "TL One", fdPct: 60, ssPct: 90, fdRequired: 120, ssRequired: 120, fdTotal: 0, ssTotal: 0, fdExcuseMin: 0, ssExcuseMin: 0, wahfStatus: "on-time", wahfSubmittedAt: "2026-04-02T16:00:00.000Z", fdCompliance: zeroCompliance, ssCompliance: zeroCompliance },
-      { scholarId: "2023-011", scholarName: "C Scholar", cohort: sophomore, teamLeader: "TL Two", fdPct: 70, ssPct: 50, fdRequired: 120, ssRequired: 120, fdTotal: 0, ssTotal: 0, fdExcuseMin: 0, ssExcuseMin: 0, wahfStatus: "on-time", wahfSubmittedAt: "2026-04-02T16:00:00.000Z", fdCompliance: zeroCompliance, ssCompliance: zeroCompliance },
-      { scholarId: "2023-012", scholarName: "D Scholar", cohort: sophomore, teamLeader: "TL Two", fdPct: 90, ssPct: 90, fdRequired: 120, ssRequired: 120, fdTotal: 0, ssTotal: 0, fdExcuseMin: 0, ssExcuseMin: 0, wahfStatus: "missing", wahfSubmittedAt: null, fdCompliance: zeroCompliance, ssCompliance: zeroCompliance },
+      { scholarId: "2024-001", scholarName: "A Scholar", cohort: freshman, teamLeader: "TL One", isMentee: false, fdPct: 90, ssPct: 90, fdRequired: 120, ssRequired: 120, fdTotal: 0, ssTotal: 0, fdExcuseMin: 0, ssExcuseMin: 0, wahfStatus: "on-time", wahfSubmittedAt: "2026-04-02T16:00:00.000Z", fdCompliance: zeroCompliance, ssCompliance: zeroCompliance },
+      { scholarId: "2023-010", scholarName: "B Scholar", cohort: sophomore, teamLeader: "TL One", isMentee: false, fdPct: 60, ssPct: 90, fdRequired: 120, ssRequired: 120, fdTotal: 0, ssTotal: 0, fdExcuseMin: 0, ssExcuseMin: 0, wahfStatus: "on-time", wahfSubmittedAt: "2026-04-02T16:00:00.000Z", fdCompliance: zeroCompliance, ssCompliance: zeroCompliance },
+      { scholarId: "2023-011", scholarName: "C Scholar", cohort: sophomore, teamLeader: "TL Two", isMentee: false, fdPct: 70, ssPct: 50, fdRequired: 120, ssRequired: 120, fdTotal: 0, ssTotal: 0, fdExcuseMin: 0, ssExcuseMin: 0, wahfStatus: "on-time", wahfSubmittedAt: "2026-04-02T16:00:00.000Z", fdCompliance: zeroCompliance, ssCompliance: zeroCompliance },
+      { scholarId: "2023-012", scholarName: "D Scholar", cohort: sophomore, teamLeader: "TL Two", isMentee: false, fdPct: 90, ssPct: 90, fdRequired: 120, ssRequired: 120, fdTotal: 0, ssTotal: 0, fdExcuseMin: 0, ssExcuseMin: 0, wahfStatus: "missing", wahfSubmittedAt: null, fdCompliance: zeroCompliance, ssCompliance: zeroCompliance },
     ],
     teamLeaders: [],
     pieData: { cohort2024: { total: 0, fdCompleteCount: 0, ssCompleteCount: 0, fdPercent: 0, ssPercent: 0 }, cohort2025: { total: 0, fdCompleteCount: 0, ssCompleteCount: 0, fdPercent: 0, ssPercent: 0 } },
@@ -26,9 +26,9 @@ describe("risk-classifier", () => {
     trafficSessions: [],
     tutorReports: [],
     gradeBreakdown: {
-      low: [{ scholarName: "C Scholar", course: "X", assessment: "Y", grade: "60", percent: 60 }],
-      high: [{ scholarName: "A Scholar", course: "CMSC131", assessment: "Quiz", grade: "95%", percent: 95 }],
-      mid: [{ scholarName: "A Scholar", course: "MATH140", assessment: "HW 4", grade: "82%", percent: 82 }],
+      low: [{ scholarName: "C Scholar", scholarId: null, isMentee: false, course: "X", assessment: "Y", grade: "60", percent: 60 }],
+      high: [{ scholarName: "A Scholar", scholarId: null, isMentee: false, course: "CMSC131", assessment: "Quiz", grade: "95%", percent: 95 }],
+      mid: [{ scholarName: "A Scholar", scholarId: null, isMentee: false, course: "MATH140", assessment: "HW 4", grade: "82%", percent: 82 }],
     },
     wahfDonut: { total: 0, completeCount: 0, lateCount: 0, percentComplete: 0 },
     teamLeaderFormStats: [],
