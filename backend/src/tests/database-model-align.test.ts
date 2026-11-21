@@ -8,6 +8,8 @@ import type { SessionLogRow } from "../models/session-log.model.js";
 import type { DevTestProfile } from "@css-atlas/shared/contracts/dev";
 import type { ProfilesRow, RosterRow } from "../models/user.model.js";
 import type { ScholarWeekExcuseRow } from "../models/attendance-week.model.js";
+import type { ActiveSemesterRow } from "@css-atlas/shared/contracts/auth";
+import type { MenteeRow } from "@css-atlas/shared/contracts/mentees";
 import type { Database } from "../supabase/database.types.js";
 
 type ProfilesDbRow = Database["public"]["Tables"]["profiles"]["Row"];
@@ -16,6 +18,7 @@ type StudySessionLogDbRow = Database["public"]["Tables"]["study_session_logs"]["
 type UserRosterDbRow = Database["public"]["Tables"]["user_roster"]["Row"];
 type DevTestProfileDbRow = Database["public"]["Tables"]["dev_test_profiles"]["Row"];
 type TutorReportDbRow = Database["public"]["Tables"]["tutor_report_logs"]["Row"];
+type SemesterDbRow = Database["public"]["Tables"]["semesters"]["Row"];
 type ScholarWeekExcuseDbRow = Database["public"]["Tables"]["scholar_week_excuses"]["Row"];
 
 describe("Database ↔ model alignment", () => {
@@ -104,6 +107,20 @@ describe("Database ↔ model alignment", () => {
     expectTypeOf<ScholarWeekExcuseRow["updated_at"]>().toEqualTypeOf<
       ScholarWeekExcuseDbRow["updated_at"]
     >();
+  });
+
+  it("ActiveSemesterRow columns match semesters Row", () => {
+    expectTypeOf<ActiveSemesterRow["id"]>().toEqualTypeOf<SemesterDbRow["id"]>();
+    expectTypeOf<ActiveSemesterRow["start_date"]>().toEqualTypeOf<SemesterDbRow["start_date"]>();
+    expectTypeOf<ActiveSemesterRow["end_date"]>().toEqualTypeOf<SemesterDbRow["end_date"]>();
+  });
+
+  it("MenteeRow roster columns match user_roster Row", () => {
+    expectTypeOf<MenteeRow["first_name"]>().toEqualTypeOf<UserRosterDbRow["first_name"]>();
+    expectTypeOf<MenteeRow["last_name"]>().toEqualTypeOf<UserRosterDbRow["last_name"]>();
+    expectTypeOf<MenteeRow["email"]>().toEqualTypeOf<UserRosterDbRow["email"]>();
+    expectTypeOf<MenteeRow["fd_required"]>().toEqualTypeOf<UserRosterDbRow["fd_required"]>();
+    expectTypeOf<MenteeRow["ss_required"]>().toEqualTypeOf<UserRosterDbRow["ss_required"]>();
   });
 
   it("profiles Insert omits generated full_name in ScholarProfileInsert pattern", () => {

@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { getCurrentProfile, getMyMentees } from "@/lib/server/queries";
 import { fetchAllUsersForMemo } from "@/lib/server/data";
 import SettingsClient, { type MenteeCandidate } from "@/components/settings/settings-client";
-import type { ProfileRow, MenteeRow } from "@/lib/types/supabase";
+import type { ProfileRow } from "@/lib/types/supabase";
 import { DEV_ACTIVE_PROFILE_COOKIE, hasRoleAtLeast } from "@css-atlas/shared/auth";
 
 export default async function SettingsPage() {
@@ -14,7 +14,6 @@ export default async function SettingsPage() {
   ]);
 
   const currentProfile = profile as ProfileRow;
-  const currentMentees = mentees as MenteeRow[];
 
   const isActingAsTestProfile = Boolean(
     cookieStore.get(DEV_ACTIVE_PROFILE_COOKIE)?.value,
@@ -24,7 +23,7 @@ export default async function SettingsPage() {
     hasRoleAtLeast(currentProfile.app_role ?? null, "team_leader");
 
   const assignedUids = new Set(
-    currentMentees.flatMap((mentee) => (mentee.scholar_uid ? [mentee.scholar_uid] : [])),
+    mentees.flatMap((mentee) => (mentee.scholar_uid ? [mentee.scholar_uid] : [])),
   );
 
   const candidates: MenteeCandidate[] = canManageMentees
@@ -51,7 +50,7 @@ export default async function SettingsPage() {
     <div className="space-y-6">
       <SettingsClient
         profile={currentProfile}
-        mentees={currentMentees}
+        mentees={mentees}
         candidates={candidates}
         canManageMentees={canManageMentees}
         readOnlyReason={

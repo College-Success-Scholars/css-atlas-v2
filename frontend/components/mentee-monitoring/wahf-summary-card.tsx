@@ -5,7 +5,7 @@ import { Check, X } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import type { WahfWeekSummary } from "@/lib/types/mentee-review"
+import type { WahfWeekSummary } from "@css-atlas/shared/contracts/mentees"
 
 import type { FollowUpDraft } from "./follow-up-drafts"
 import { PENDING_STYLES, formatClock, formatDayMonth, formatWeekdayDate } from "./utils"

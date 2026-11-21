@@ -27,11 +27,12 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
-import { backendPost } from "@/lib/server/api-client"
+import { callEndpoint } from "@/lib/server/api-client"
 import { deleteTutorReport, upsertAttendanceExcuse } from "@/lib/server/data"
 import { DEV_ACTIVE_PROFILE_COOKIE, hasRoleAtLeast } from "@css-atlas/shared/auth"
 import { Schema, scholarId, validate } from "@css-atlas/shared/contract"
 import { upsertExcuse } from "@css-atlas/shared/contracts/attendance"
+import { createProfile } from "@css-atlas/shared/contracts/auth"
 import { revalidatePath } from "next/cache"
 import { cookies } from "next/headers"
 
@@ -182,9 +183,8 @@ export async function createScholarProfile(formData: unknown) {
   }
 
   try {
-    await backendPost("/api/auth/profile", {
-      ...parsed.data,
-      phone_number: parsed.data.phone_number ?? null,
+    await callEndpoint(createProfile, {
+      body: { ...parsed.data, phone_number: parsed.data.phone_number ?? null },
     })
     revalidatePath("/dashboard")
     revalidatePath("/auth/complete-profile")

@@ -3,7 +3,8 @@ import {
   differenceInMilliseconds,
   differenceInCalendarDays,
 } from "date-fns"
-import type { WahfRow, McfRow, WplRow, MenteeRow } from "@/lib/types/supabase"
+import type { WahfRow, McfRow, WplRow } from "@/lib/types/supabase"
+import type { MenteeRow } from "@css-atlas/shared/contracts/mentees"
 import { formDeadline, isLate } from "@css-atlas/shared/form-status"
 import { campusWeekToDateRange, dateToCampusWeek, getEasternDateParts, ONE_DAY_MS } from "@/lib/format/time"
 
@@ -141,7 +142,7 @@ export function mcfMenteeKey(row: Pick<McfRow, "id" | "mentee_uid" | "mentee_nam
  * Duplicate logs for the same mentee keep the latest `created_at`.
  */
 export function buildMcfMenteeOptions(
-  mentees: MenteeRow[],
+  mentees: ReadonlyArray<MenteeRow>,
   mcf: McfRow[],
   weekNum: number,
 ): McfMenteeOption[] {

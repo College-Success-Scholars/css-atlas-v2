@@ -5,13 +5,8 @@ import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import type {
-  SectionResult,
-  ShiftSessionKind,
-  WeekDescriptor,
-  WeekReviewSummary,
-  WeekTier,
-} from "@/lib/types/mentee-review"
+import type { WeekReviewSummary, WeekTier } from "@/lib/types/mentee-review"
+import type { SectionResult, ShiftSessionKind, WeekDescriptor } from "@css-atlas/shared/contracts/mentees"
 
 import { SectionError } from "./section-error"
 import { TIER_UI, TierBadge } from "./tier-badge"
@@ -133,8 +128,8 @@ function cellFor(row: RowId, label: string, week: WeekDescriptor, summary: WeekR
 }
 
 interface SemesterGridProps {
-  result: SectionResult<WeekReviewSummary[]>
-  weeks: WeekDescriptor[]
+  result: SectionResult<ReadonlyArray<WeekReviewSummary>>
+  weeks: ReadonlyArray<WeekDescriptor>
   selectedWeek: number | null
   currentWeek: number | null
   pending: boolean

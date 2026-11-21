@@ -136,7 +136,7 @@ npm run dev --prefix frontend   # port 3000
 
 The app uses a **campus week** numbering system (not ISO weeks), defined in `shared/time-config.ts`. Week 1 starts on a configurable `FALL_SEMESTER_FIRST_DAY`. Most data queries take a `weekNum` parameter (integer).
 
-This shared campus calendar is the **server-owned time frame** — use it for week bounds, navigation, and queries (including Personal and Mentee dashboards). Prefer it over `GET /api/auth/semester` / `GET /api/auth/active-semester` (and `getActiveSemester`), which should be used sparingly: when the server-owned time frame does not make sense (e.g. historical data, or the collection year has not started yet), or when a Supabase `semesters` row is required.
+This shared campus calendar is the **server-owned time frame** — use it for week bounds, navigation, and queries (including Personal and Mentee dashboards). Prefer it over `GET /api/auth/semester` (and `getActiveSemester`), which should be used sparingly: when the server-owned time frame does not make sense (e.g. historical data, or the collection year has not started yet), or when a Supabase `semesters` row is required.
 
 **Yearly rollover** is more than those dates: re-authenticate the Google Forms → Supabase pipelines in the same pass (OAuth / Apps Script consent expires independently of git). See [Form / log intake — Yearly rollover](supabase/README.md#yearly-rollover).
 

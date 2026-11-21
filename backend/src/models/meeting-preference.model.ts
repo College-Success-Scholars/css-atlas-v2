@@ -6,14 +6,11 @@
  * time). This is the only new persistent state in the mentee review redesign.
  *
  * ## What belongs here
- * - Row/output/input types and the weekday bounds
+ * - The table row type, and the contract's input/output types
  *
  * ## What does NOT belong here
  * - Queries or validation logic (meeting-preference service)
  */
-
-export const WEEKDAY_MIN = 1;
-export const WEEKDAY_MAX = 7;
 
 /** Mirrors public.mentee_meeting_preferences (Postgres `time` is "HH:MM:SS"). */
 export interface MeetingPreferenceRow {
@@ -25,15 +22,5 @@ export interface MeetingPreferenceRow {
   updated_at: string;
 }
 
-/** Normalized preference for the API/clients. */
-export interface MeetingPreferenceOutput {
-  /** ISO weekday 1-7. */
-  weekday: number;
-  /** Program-local 24-hour "HH:MM". */
-  meetingTime: string;
-}
-
-export interface MeetingPreferenceInput {
-  weekday: number;
-  meetingTime: string;
-}
+// Wire shapes are defined once, in the API contract.
+export type { MeetingPreferenceInput, MeetingPreferenceOutput } from "@css-atlas/shared/contracts/mentees";

@@ -26,10 +26,13 @@ All routes under `/api/auth` require **requireAuth**.
 **Response:**
 ```json
 {
-  "user": { "id": "uuid", "email": "string" },
-  "profile": { /* profiles row with merged roster fields */ }
+  "data": {
+    "user": { "id": "uuid", "email": "string | null" },
+    "profile": { /* profiles row with merged roster fields, or null before onboarding */ }
+  }
 }
 ```
+For a developer, `data` also carries `realProfile`, `activeTestProfileId` and `isActingAsTestProfile`.
 
 ---
 
@@ -64,7 +67,7 @@ All routes under `/api/auth` require **requireAuth**.
 ```json
 { "data": { /* profiles row */ } }
 ```
-**Errors:** `409` if profile already exists; `403` if auth email is not UMD; `400` for invalid body.
+**Errors:** `400` for an invalid body (`first_name`/`last_name` required; `student_id` and `cohort` positive integers, as numbers or numeric strings); `403` if auth email is not UMD; `409` if profile already exists. Body validation runs before the existence and email checks.
 
 ---
 
@@ -157,7 +160,7 @@ Each `${section}` uses `{ ok: true, data, loadedAt }` or `{ ok: false, error: { 
 ### `GET /api/auth/semester`
 
 **Auth:** requireAuth
-**Description:** Returns the currently active semester from the Supabase `semesters` table. Alias: `/api/auth/active-semester`.
+**Description:** Returns the currently active semester from the Supabase `semesters` table.
 
 **Use sparingly.** Prefer the server-owned time frame — the shared campus week calendar (`shared/time-config.ts` / `shared/campus-calendar`) — for week bounds, navigation, and data queries. Use this endpoint when the server-owned time frame does not make sense (e.g. looking at historical data, or the collection year has not started yet), or when you need the DB semester row (e.g. `semester_id` or legacy ISO-week clamping) — not as the primary calendar source for the current collection year.
 
@@ -166,13 +169,6 @@ Each `${section}` uses `{ ok: true, data, loadedAt }` or `{ ok: false, error: { 
 ```json
 { "data": { "id": 1, "iso_week_offset": 0, "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD" } }
 ```
-
----
-
-### `GET /api/auth/active-semester`
-
-**Auth:** requireAuth
-**Description:** Same as `GET /api/auth/semester` (including the same sparingly / prefer server-owned time frame guidance).
 
 ---
 

@@ -16,10 +16,46 @@
  * - Queries, HTTP handlers, or any runtime logic
  * - Roster/authorization data
  */
+import type {
+  GradeBand,
+  GradeComparison,
+  GradesStatus,
+  HourBand,
+  MeetingPreferenceOutput,
+  MenteeReviewIdentity,
+  SectionResult,
+  SemesterCalendar,
+  ShiftStatus,
+  TutoringSessionLine,
+  TutoringStatus,
+  TutoringWeekSummary,
+  WahfStatus,
+  WeekDescriptor,
+  WeekPhase,
+} from "@css-atlas/shared/contracts/mentees";
 import type { ShiftSessionKind } from "./session-log.model.js";
-import type { MeetingPreferenceOutput } from "./meeting-preference.model.js";
 
 export type { ShiftSessionKind } from "./session-log.model.js";
+
+// Shapes that cross the wire unchanged are defined once, in the API contract.
+// The review types below that carry `Date` are the evaluator's own; the
+// contract has their ISO-string twins (see services/mentee-review-wire.ts).
+export type {
+  GradeBand,
+  GradeComparison,
+  GradesStatus,
+  HourBand,
+  MenteeReviewIdentity,
+  SectionResult,
+  SemesterCalendar,
+  ShiftStatus,
+  TutoringSessionLine,
+  TutoringStatus,
+  TutoringWeekSummary,
+  WahfStatus,
+  WeekDescriptor,
+  WeekPhase,
+} from "@css-atlas/shared/contracts/mentees";
 
 // ---------------------------------------------------------------------------
 // Centralized constants (task 2.4 / design D2)
@@ -40,30 +76,6 @@ export const SHORT_SHIFT_THRESHOLD_RATIO = 0.75;
 export const GRADE_BAND_GREEN_MIN_PERCENT = 90;
 export const GRADE_BAND_NEUTRAL_MIN_PERCENT = 80;
 export const GRADE_BAND_ORANGE_MIN_PERCENT = 70;
-
-// ---------------------------------------------------------------------------
-// Enumerations
-// ---------------------------------------------------------------------------
-
-export type HourBand = "green" | "orange" | "red";
-export type GradeBand = "green" | "neutral" | "orange" | "red";
-export type ShiftStatus =
-  | "attended"
-  | "short"
-  | "no_show"
-  | "active"
-  | "upcoming"
-  /** Shift would be a no-show but the day has open/unmatched evidence; never a confirmed miss. */
-  | "unconfirmed";
-export type WeekPhase = "current" | "past" | "future";
-export type WahfStatus = "pending" | "submitted" | "missing" | "unknown";
-export type TutoringStatus = "recorded" | "none" | "unknown";
-export type GradesStatus = "grades" | "empty" | "error";
-
-/** Independently recoverable adapter section; never a successful empty after an error. */
-export type SectionResult<T> =
-  | { ok: true; data: T; loadedAt: string }
-  | { ok: false; error: { code: string; message: string; retriable: boolean } };
 
 // ---------------------------------------------------------------------------
 // Normalized evidence inputs
@@ -216,22 +228,6 @@ export interface WahfWeekSummary {
   submissionId: string | null;
 }
 
-/** One recorded tutoring attendance report; multiple courses stay on one line. */
-export interface TutoringSessionLine {
-  reportId: string;
-  courses: string[];
-  date: string | null;
-  startTime: string | null;
-  endTime: string | null;
-}
-
-export interface TutoringWeekSummary {
-  status: TutoringStatus;
-  /** True iff at least one unique current-week attendance report exists. */
-  recordedAttendance: boolean;
-  reports: TutoringSessionLine[];
-}
-
 export interface WeekReviewSummary {
   weekNumber: number;
   weekStart: string;
@@ -241,12 +237,6 @@ export interface WeekReviewSummary {
   hours: HourWeekSummary[];
   wahf: WahfWeekSummary;
   tutoring: TutoringWeekSummary;
-}
-
-export interface GradeComparison {
-  direction: "up" | "down" | "equal";
-  priorPercent: number;
-  priorAssessment: string | null;
 }
 
 export interface LatestGradeEntry {
@@ -308,40 +298,10 @@ export interface EvaluateWeekInput {
 // Semester calendar and composed review DTO (tasks 3.1, 3.6, 3.7)
 // ---------------------------------------------------------------------------
 
-export interface WeekDescriptor {
-  weekNumber: number;
-  /** Program-local Monday, ISO. */
-  startDate: string;
-  /** Program-local Sunday, ISO. */
-  endDate: string;
-  /** Collapsed winter-break week: neutral and not selectable. */
-  isBreak: boolean;
-  isCurrent: boolean;
-  isFuture: boolean;
-  isSelectable: boolean;
-}
-
-export interface SemesterCalendar {
-  semesterId: string | null;
-  /** Program-local semester bounds, ISO, or null when no active semester. */
-  semesterStart: string | null;
-  semesterEnd: string | null;
-  currentWeek: number | null;
-  weeks: WeekDescriptor[];
-  /** True when there is no active semester or the collection year has not started. */
-  noActiveWeek: boolean;
-}
-
-export interface MenteeReviewIdentity {
-  uid: string;
-  fullName: string;
-  /** Roster contact for follow-up drafts; null disables launch. */
-  email: string | null;
-  /** Entering cohort year for class-year-specific tier thresholds. */
-  cohort?: number | null;
-}
-
-/** Authorized selected-week review DTO, including the caller's own meeting preference. */
+/**
+ * Authorized selected-week review as the services compose it, with `Date`
+ * evidence. The contract's `MenteeReview` is the wire form.
+ */
 export interface MenteeReview {
   asOf: string;
   mentee: MenteeReviewIdentity;

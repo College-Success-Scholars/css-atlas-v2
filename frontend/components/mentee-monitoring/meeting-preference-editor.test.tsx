@@ -2,17 +2,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 
-const mocks = vi.hoisted(() => ({ backendPut: vi.fn() }))
+const mocks = vi.hoisted(() => ({ callEndpoint: vi.fn() }))
 
-vi.mock("@/lib/client/api-client", () => ({ backendPut: mocks.backendPut }))
+vi.mock("@/lib/client/api-client", () => ({ callEndpoint: mocks.callEndpoint }))
 
+import { saveMeetingPreference } from "@css-atlas/shared/contracts/mentees"
 import { MeetingPreferenceEditor } from "./meeting-preference-editor"
 
 const preference = { weekday: 3, meetingTime: "15:00" }
 
 describe("MeetingPreferenceEditor", () => {
   beforeEach(() => {
-    mocks.backendPut.mockReset()
+    mocks.callEndpoint.mockReset()
     // jsdom lacks the pointer APIs used by the real Radix Select.
     Object.defineProperties(HTMLElement.prototype, {
       scrollIntoView: { value: vi.fn(), writable: true },
@@ -60,7 +61,7 @@ describe("MeetingPreferenceEditor", () => {
 
     expect(screen.queryByRole("dialog")).toBeNull()
     await waitFor(() => expect(document.activeElement).toBe(trigger))
-    expect(mocks.backendPut).not.toHaveBeenCalled()
+    expect(mocks.callEndpoint).not.toHaveBeenCalled()
     expect(onSaved).not.toHaveBeenCalled()
 
     rerender(
@@ -83,7 +84,7 @@ describe("MeetingPreferenceEditor", () => {
   })
 
   it("saves the chosen weekday and time, closes, notifies the caller, and restores focus", async () => {
-    mocks.backendPut.mockResolvedValue({ ok: true, data: { weekday: 5, meetingTime: "10:30" } })
+    mocks.callEndpoint.mockResolvedValue({ ok: true, data: { weekday: 5, meetingTime: "10:30" } })
     const onSaved = vi.fn()
     render(<MeetingPreferenceEditor menteeUid="mentee/123" preference={preference} onSaved={onSaved} />)
     const trigger = screen.getByRole("button", { name: "Change meeting time" })
@@ -94,17 +95,17 @@ describe("MeetingPreferenceEditor", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }))
 
     await waitFor(() => expect(onSaved).toHaveBeenCalledOnce())
-    expect(mocks.backendPut).toHaveBeenCalledExactlyOnceWith(
-      "/api/auth/mentees/mentee%2F123/meeting-preference",
-      { weekday: 5, meetingTime: "10:30" },
-    )
+    expect(mocks.callEndpoint).toHaveBeenCalledExactlyOnceWith(saveMeetingPreference, {
+      params: { uid: "mentee/123" },
+      body: { weekday: 5, meetingTime: "10:30" },
+    })
     expect(screen.queryByRole("dialog")).toBeNull()
     await waitFor(() => expect(document.activeElement).toBe(trigger))
     expect(screen.getByText("Your meeting: Wednesday at 3:00pm")).toBeTruthy()
   })
 
   it("keeps failed saves open with the edits and error, then clears them when reopened", async () => {
-    mocks.backendPut.mockResolvedValue({ ok: false, error: "Could not save meeting time", status: 500 })
+    mocks.callEndpoint.mockResolvedValue({ ok: false, error: "Could not save meeting time", status: 500 })
     const onSaved = vi.fn()
     render(<MeetingPreferenceEditor menteeUid="123456789" preference={preference} onSaved={onSaved} />)
     const trigger = screen.getByRole("button", { name: "Change meeting time" })
@@ -126,7 +127,7 @@ describe("MeetingPreferenceEditor", () => {
 
   it("blocks duplicate submissions and dismissal while saving, then allows retry after failure", async () => {
     let resolveSave!: (result: { ok: false; error: string; status: number }) => void
-    mocks.backendPut.mockReturnValue(new Promise((resolve) => { resolveSave = resolve }))
+    mocks.callEndpoint.mockReturnValue(new Promise((resolve) => { resolveSave = resolve }))
     const onSaved = vi.fn()
     render(<MeetingPreferenceEditor menteeUid="123456789" preference={preference} onSaved={onSaved} />)
     fireEvent.click(screen.getByRole("button", { name: "Change meeting time" }))
@@ -143,7 +144,7 @@ describe("MeetingPreferenceEditor", () => {
     fireEvent.click(saveButton)
     fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" })
     fireEvent.click(screen.getByRole("button", { name: "Close" }))
-    expect(mocks.backendPut).toHaveBeenCalledOnce()
+    expect(mocks.callEndpoint).toHaveBeenCalledOnce()
     expect(screen.getByRole("dialog")).toBeTruthy()
     expect(onSaved).not.toHaveBeenCalled()
 
@@ -153,10 +154,10 @@ describe("MeetingPreferenceEditor", () => {
     expect(screen.getByRole("alert").textContent).toBe("Try again")
     expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(false)
 
-    mocks.backendPut.mockResolvedValue({ ok: true, data: preference })
+    mocks.callEndpoint.mockResolvedValue({ ok: true, data: preference })
     fireEvent.click(screen.getByRole("button", { name: "Save" }))
     await waitFor(() => expect(onSaved).toHaveBeenCalledOnce())
-    expect(mocks.backendPut).toHaveBeenCalledTimes(2)
+    expect(mocks.callEndpoint).toHaveBeenCalledTimes(2)
     expect(screen.queryByRole("dialog")).toBeNull()
   })
 })

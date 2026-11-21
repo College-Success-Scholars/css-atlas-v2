@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import type { MenteeRow, ProfileRow } from "@/lib/types/supabase"
+import type { ProfileRow } from "@/lib/types/supabase"
+import type { MenteeRow } from "@css-atlas/shared/contracts/mentees"
 import SettingsClient from "./settings-client"
 
 const mocks = vi.hoisted(() => ({
@@ -31,6 +32,7 @@ const mentees: MenteeRow[] = [
     scholar_uid: "1001",
     first_name: "Ada",
     last_name: "Lovelace",
+    email: null,
     fd_required: 60,
     ss_required: 30,
   },

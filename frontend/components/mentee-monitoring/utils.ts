@@ -10,7 +10,7 @@ import {
   dateToCampusWeek,
   parseEasternDate,
 } from "@/lib/format/time"
-import type { GradeBand, HourBand, ShiftSessionKind, ShiftStatus } from "@/lib/types/mentee-review"
+import type { GradeBand, HourBand, ShiftSessionKind, ShiftStatus } from "@css-atlas/shared/contracts/mentees"
 import type {
   ShiftComplianceByKind,
   WahfRow,

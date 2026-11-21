@@ -159,7 +159,7 @@ export async function backendFetch<T>(
 
   logApiResponse("server", method, requestUrl, res.status, durationMs);
   const json = await res.json();
-  // Unwrap { data: ... } — most routes; exceptions: GET /api/auth/me returns { user, profile }
+  // Unwrap { data: ... }
   if (json != null && typeof json === "object" && "data" in json) {
     return json.data as T;
   }

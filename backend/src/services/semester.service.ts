@@ -10,16 +10,13 @@
  *
  * ## What does NOT belong here
  * - Campus-week numbering (shared campus calendar)
- * - HTTP handlers (semester.controller)
+ * - Handlers (semester.controller)
  */
+import type { ActiveSemesterRow } from "@css-atlas/shared/contracts/auth";
 import { getSupabaseClient } from "../supabase/client.js";
 
-export interface ActiveSemesterRow {
-  id: number;
-  iso_week_offset: number | null;
-  start_date: string;
-  end_date: string;
-}
+// Wire shape is defined once, in the API contract.
+export type { ActiveSemesterRow } from "@css-atlas/shared/contracts/auth";
 
 export async function getActiveSemesterRow(): Promise<ActiveSemesterRow | null> {
   const supabase = getSupabaseClient();

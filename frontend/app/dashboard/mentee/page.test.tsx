@@ -2,13 +2,8 @@ import React from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import type {
-  HourWeekSummary,
-  MenteeReview,
-  MenteeReviewClientProps,
-  SectionResult,
-  WeekReviewSummary,
-} from "@/lib/types/mentee-review"
+import type { HourWeekSummary, MenteeReview, MenteeReviewClientProps, WeekReviewSummary } from "@/lib/types/mentee-review"
+import type { SectionResult } from "@css-atlas/shared/contracts/mentees"
 
 const mocks = vi.hoisted(() => ({
   getCurrentProfile: vi.fn(),

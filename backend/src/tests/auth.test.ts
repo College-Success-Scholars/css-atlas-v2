@@ -8,7 +8,7 @@ import { app } from "../app.js";
 const AUTH_PROTECTED_ROUTES = [
   "/api/auth/me",
   "/api/auth/profile",
-  "/api/auth/mentees/compliance",
+  "/api/auth/mentees",
   "/api/users/memo-users",
   "/api/traffic/entry-count/1",
   "/api/form-logs",

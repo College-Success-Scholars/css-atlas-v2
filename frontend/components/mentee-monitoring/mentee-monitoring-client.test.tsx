@@ -5,8 +5,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 const mocks = vi.hoisted(() => ({
   routerPush: vi.fn(),
   routerRefresh: vi.fn(),
-  backendGet: vi.fn(),
-  backendPut: vi.fn(),
+  callEndpoint: vi.fn(),
 }))
 
 vi.mock("next/navigation", () => ({
@@ -14,8 +13,7 @@ vi.mock("next/navigation", () => ({
 }))
 
 vi.mock("@/lib/client/api-client", () => ({
-  backendGet: mocks.backendGet,
-  backendPut: mocks.backendPut,
+  callEndpoint: mocks.callEndpoint,
 }))
 
 // Behavior tests do not need Next's PostCSS pipeline or generated CSS-module names.
@@ -34,14 +32,8 @@ vi.mock("./tier-styles.module.css", () => ({ default: {
   pill: "tier-pill", cell: "tier-cell", card: "tier-card", text: "tier-text",
   bar: "tier-bar", sheen: "tier-sheen", legendaryHours: "tier-legendary-hours",
 } }))
-import type {
-  HourWeekSummary,
-  MenteeReview,
-  MenteeReviewClientProps,
-  SectionResult,
-  WeekDescriptor,
-  WeekReviewSummary,
-} from "@/lib/types/mentee-review"
+import type { HourWeekSummary, MenteeReview, MenteeReviewClientProps, WeekReviewSummary } from "@/lib/types/mentee-review"
+import type { SectionResult, WeekDescriptor } from "@css-atlas/shared/contracts/mentees"
 
 const AS_OF = "2026-09-10T19:12:00.000Z" // Thursday 3:12pm Eastern (EDT)
 const UID = "123456789"

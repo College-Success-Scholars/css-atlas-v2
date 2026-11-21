@@ -5,7 +5,7 @@ import { getCurrentProfile, getMyMentees } from "@/lib/server/queries";
 import { backendPost } from "@/lib/server/api-client";
 import { dateToCampusWeek } from "@/lib/format/time";
 import { WahfFormLogRow, McfFormLogRow, WplFormLogRow } from "@/lib/types/form-log";
-import { MenteeRow, ProfileRow } from "@/lib/types/supabase";
+import { ProfileRow } from "@/lib/types/supabase";
 
 export default async function PersonalPage() {
   const profile = await getCurrentProfile();
@@ -34,7 +34,7 @@ export default async function PersonalPage() {
         wahf={wahf as WahfFormLogRow[]}
         mcf={mcf as McfFormLogRow[]}
         wpl={wpl as WplFormLogRow[]}
-        mentees={mentees as MenteeRow[]}
+        mentees={mentees}
         currentCampusWeek={currentCampusWeek}
       />
     </div>

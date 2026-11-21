@@ -22,7 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import type { PersonalClientProps, WahfRow, McfRow, WplRow, MenteeRow } from "@/lib/types/supabase"
+import type { PersonalClientProps, WahfRow, McfRow, WplRow } from "@/lib/types/supabase"
+import type { MenteeRow } from "@css-atlas/shared/contracts/mentees"
 import {
   findSubmissionForCampusWeek,
   computeWeekOptions,
@@ -498,7 +499,7 @@ function FormDetailDialog({
   wahf: WahfRow[]
   mcf: McfRow[]
   wpl: WplRow[]
-  mentees: MenteeRow[]
+  mentees: ReadonlyArray<MenteeRow>
   menteeCount: number
   currentCampusWeek: number | null
   onClose: () => void
@@ -551,7 +552,7 @@ function FormDetailDialogContent({
   wahf: WahfRow[]
   mcf: McfRow[]
   wpl: WplRow[]
-  mentees: MenteeRow[]
+  mentees: ReadonlyArray<MenteeRow>
   menteeCount: number
   currentCampusWeek: number | null
 }) {
@@ -660,7 +661,7 @@ function FormTabBody({
   wahf: WahfRow[]
   mcf: McfRow[]
   wpl: WplRow[]
-  mentees: MenteeRow[]
+  mentees: ReadonlyArray<MenteeRow>
 }) {
   if (formType === "WAHF") {
     const row = findSubmissionForCampusWeek(wahf, campusWeek)
@@ -680,7 +681,7 @@ function McfWeekPanel({
 }: {
   campusWeek: number
   mcf: McfRow[]
-  mentees: MenteeRow[]
+  mentees: ReadonlyArray<MenteeRow>
 }) {
   const options = useMemo(
     () => buildMcfMenteeOptions(mentees, mcf, campusWeek),

@@ -3,7 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import type { GradeComparison, LatestGradesSummary } from "@/lib/types/mentee-review"
+import type { GradeComparison, LatestGradesSummary } from "@css-atlas/shared/contracts/mentees"
 
 import { GRADE_BAND_STYLES, formatClock, formatDayMonth, formatPercent } from "./utils"
 

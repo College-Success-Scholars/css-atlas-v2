@@ -15,13 +15,14 @@
  * - Auth forms (those are in app/auth/)
  */
 import { redirect } from "next/navigation";
-import { backendGet } from "@/lib/server/api-client";
+import { getMe } from "@css-atlas/shared/contracts/auth";
+import { callEndpoint } from "@/lib/server/api-client";
 import { LandingHeader } from "@/components/marketing/landing-header";
 import { LandingHero } from "@/components/marketing/landing-hero";
 import { LandingFeatureCards } from "@/components/marketing/landing-feature-cards";
 
 export default async function Home() {
-  const user = await backendGet("/api/auth/me").catch(() => null);
+  const user = await callEndpoint(getMe).catch(() => null);
 
   if (user) {
     redirect("/dashboard");

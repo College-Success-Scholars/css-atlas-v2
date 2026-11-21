@@ -1,13 +1,5 @@
 /** API response shapes for backend routes (not Postgres table mirrors). */
-
-/** Response row from GET /api/auth/mentees (mentor_mentee + user_roster join). */
-export type MenteeRow = {
-  scholar_uid: string | null
-  first_name: string | null
-  last_name: string | null
-  fd_required: number | null
-  ss_required: number | null
-}
+import type { MenteeRow } from "@css-atlas/shared/contracts/mentees"
 
 export type ShiftComplianceSession = {
   entryAt: string
@@ -32,12 +24,6 @@ export type ShiftComplianceByKind = {
   outsideMinutes: number
   noShowCount: number
   dates: ShiftCompliancePerDate[]
-}
-
-/** Response row from GET /api/auth/mentees/compliance. */
-export type MenteeWithCompliance = MenteeRow & {
-  fdCompliance: ShiftComplianceByKind | null
-  ssCompliance: ShiftComplianceByKind | null
 }
 
 /** Response shape when calling break-week helpers (backend maps RPC / semester APIs). */
@@ -73,14 +59,6 @@ export type TutoringRow = {
   start_time: string
   end_time: string
   courses: string[]
-}
-
-/** Active semester payload used by dashboard pages. */
-export type SemesterRow = {
-    id: number
-    iso_week_offset: number
-    start_date: string
-    end_date: string
 }
 
 /** Traffic kiosk / analytics row from traffic APIs. */
@@ -122,7 +100,7 @@ export interface PersonalClientProps {
   wahf: WahfRow[]
   mcf: McfRow[]
   wpl: WplRow[]
-  mentees: MenteeRow[]
+  mentees: ReadonlyArray<MenteeRow>
   /** Campus week from `dateToCampusWeek`; null before Fall start. */
   currentCampusWeek: number | null
 }

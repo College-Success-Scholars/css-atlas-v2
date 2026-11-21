@@ -8,10 +8,8 @@ vi.mock("../supabase/client.js", () => ({
 
 import {
   getMeetingPreference,
-  normalizeMeetingTime,
   saveMeetingPreference,
   toMeetingPreferenceOutput,
-  validateMeetingPreferenceInput,
 } from "../services/mentee-meeting-preference.service.js";
 
 interface FakeState {
@@ -51,34 +49,6 @@ function configure(state: Partial<FakeState> = {}): FakeState {
   return full;
 }
 
-describe("validateMeetingPreferenceInput", () => {
-  it("accepts an ISO weekday and 24-hour time", () => {
-    expect(validateMeetingPreferenceInput({ weekday: 2, meetingTime: "14:30" })).toEqual({
-      ok: true,
-      value: { weekday: 2, meetingTime: "14:30" },
-    });
-  });
-
-  it.each([0, 8, 2.5, "3", null, undefined])("rejects weekday %p", (weekday) => {
-    const result = validateMeetingPreferenceInput({ weekday, meetingTime: "14:30" });
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.code).toBe("invalid_weekday");
-  });
-
-  it.each(["25:00", "9:00", "14:60", "14:30:00", "", null, 1430])(
-    "rejects time %p",
-    (meetingTime) => {
-      const result = validateMeetingPreferenceInput({ weekday: 2, meetingTime });
-      expect(result.ok).toBe(false);
-      if (!result.ok) expect(result.error.code).toBe("invalid_time");
-    }
-  );
-
-  it("normalizes surrounding whitespace", () => {
-    expect(normalizeMeetingTime("  09:05 ")).toBe("09:05");
-  });
-});
-
 describe("toMeetingPreferenceOutput", () => {
   it("trims Postgres time seconds to HH:MM", () => {
     expect(
@@ -115,14 +85,6 @@ describe("getMeetingPreference", () => {
 
 describe("saveMeetingPreference", () => {
   beforeEach(() => vi.clearAllMocks());
-
-  it("rejects invalid input without writing", async () => {
-    const state = configure({ assignment: { data: { mentee_uid: "S1" }, error: null } });
-    const result = await saveMeetingPreference({ mentorId: "m1", menteeUid: "S1", weekday: 9, meetingTime: "14:30" });
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.code).toBe("invalid_weekday");
-    expect(state.upsertCalls).toHaveLength(0);
-  });
 
   it("denies a caller who is not assigned to the mentee (unrelated TL, reassignment, or admin writing another TL's row)", async () => {
     const state = configure({ assignment: { data: null, error: null } });

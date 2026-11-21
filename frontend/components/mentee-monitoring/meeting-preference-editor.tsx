@@ -24,8 +24,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { backendPut } from "@/lib/client/api-client"
-import type { MeetingPreferenceOutput } from "@/lib/types/mentee-review"
+import { callEndpoint } from "@/lib/client/api-client"
+import { saveMeetingPreference, type MeetingPreferenceOutput } from "@css-atlas/shared/contracts/mentees"
 
 import { formatTimeOfDay, formatWeekdayName } from "./utils"
 
@@ -72,10 +72,10 @@ export function MeetingPreferenceEditor({
     setIsSaving(true)
     setError(null)
     try {
-      const result = await backendPut<MeetingPreferenceOutput>(
-        `/api/auth/mentees/${encodeURIComponent(menteeUid)}/meeting-preference`,
-        { weekday, meetingTime: time },
-      )
+      const result = await callEndpoint(saveMeetingPreference, {
+        params: { uid: menteeUid },
+        body: { weekday, meetingTime: time },
+      })
       if (!result.ok) {
         setError(result.error)
         return

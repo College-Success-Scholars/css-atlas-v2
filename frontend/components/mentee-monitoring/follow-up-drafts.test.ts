@@ -5,7 +5,8 @@ import {
   buildFollowUpDrafts,
   type BuildFollowUpDraftsInput,
 } from "./follow-up-drafts";
-import type { HourWeekSummary, ShiftEvidence, ShiftSessionKind, ShiftStatus } from "@/lib/types/mentee-review";
+import type { HourWeekSummary } from "@/lib/types/mentee-review";
+import type { ShiftEvidence, ShiftSessionKind, ShiftStatus } from "@css-atlas/shared/contracts/mentees";
 
 const weekStart = "2026-09-07T04:00:00.000Z";
 const weekEnd = "2026-09-13T04:00:00.000Z";

@@ -18,11 +18,7 @@
  * - Database reads or writes
  * - Grid/card styling
  */
-import type {
-  MenteeReview,
-  WeekReviewSummary,
-  WeekTier,
-} from "@/lib/types/mentee-review"
+import type { MenteeReview, WeekReviewSummary, WeekTier } from "@/lib/types/mentee-review"
 
 export const TIER_CUTOFFS = {
   0: { rare: 105, epic: 115, legendary: 125 },

@@ -61,7 +61,6 @@ import type {
   ShiftStatus,
   ShiftSessionKind,
   TutoringEvidenceInput,
-  TutoringSessionLine,
   TutoringWeekSummary,
   WahfEvidence,
   WahfWeekSummary,
@@ -381,13 +380,22 @@ export function evaluateWahf(evidence: WahfEvidence, asOf: Date): WahfWeekSummar
 // Recorded tutoring attendance (task 2.7)
 // ---------------------------------------------------------------------------
 
+/** A session line while its rows are still being merged; returned as the read-only `TutoringSessionLine`. */
+type MutableSessionLine = {
+  reportId: string;
+  courses: string[];
+  date: string | null;
+  startTime: string | null;
+  endTime: string | null;
+};
+
 export function evaluateTutoring(evidence: TutoringEvidenceInput): TutoringWeekSummary {
   if (!evidence.available) {
     return { status: "unknown", recordedAttendance: false, reports: [] };
   }
 
   // Group by report ID so multiple courses (or repeated rows) stay one session.
-  const byId = new Map<string, TutoringSessionLine>();
+  const byId = new Map<string, MutableSessionLine>();
   for (const r of evidence.reports) {
     const existing = byId.get(r.reportId);
     if (existing) {
