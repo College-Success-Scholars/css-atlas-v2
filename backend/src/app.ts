@@ -41,7 +41,7 @@ import { requestLogger } from "./middleware/request-logger.js";
 import { errorHandler } from "./http/error-handler.js";
 
 // CORS: accepts comma-separated origins via CORS_ORIGIN env var
-// e.g. "https://app.vercel.app,https://app.railway.app"
+// e.g. "https://cssatlas.org,https://<frontend>.up.railway.app"
 const allowedOrigins = (process.env.CORS_ORIGIN ?? "http://localhost:3000,http://localhost:3002")
   .split(",")
   .map((o) => o.trim())

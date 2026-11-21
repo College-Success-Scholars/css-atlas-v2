@@ -46,12 +46,7 @@ import {
   DEV_ACTIVE_PROFILE_HEADER,
 } from "@css-atlas/shared/auth";
 
-const BACKEND_URL = resolveBackendBaseUrl(
-  process.env.BACKEND_URL,
-  process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}/_/backend`
-    : DEFAULT_LOCAL_BACKEND_URL
-);
+const BACKEND_URL = resolveBackendBaseUrl(process.env.BACKEND_URL, DEFAULT_LOCAL_BACKEND_URL);
 const BASE64_PREFIX = "base64-";
 
 function getSupabaseProjectRef(): string | null {

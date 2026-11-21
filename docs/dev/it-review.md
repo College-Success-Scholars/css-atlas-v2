@@ -108,11 +108,11 @@ Domain data goes **frontend → backend → Supabase**. The frontend does not ru
 
 | Layer | Choice | Why it matters to IT |
 |-------|--------|----------------------|
-| Frontend | Next.js 16, React 19, Tailwind 4, Radix / shadcn-ui | Browser app; `@vercel/analytics` is present |
+| Frontend | Next.js 16, React 19, Tailwind 4, Radix / shadcn-ui | Browser app; no third-party analytics |
 | Backend | Node.js 22, Express 5, TypeScript | REST under `/api/*`; no Supabase Edge Functions |
 | Shared | `@css-atlas/shared` TypeScript library | Campus calendar / week math only — no database access |
 | Auth + database | Supabase (PostgreSQL, JWT, RLS) | System of record for education records; **no service-role key in application code** |
-| Hosting | Railway (split frontend/backend) and/or Vercel same-origin (`/_/backend`); Docker Compose for CI | Off-campus cloud. Confirm the live production shape before submitting SRM |
+| Hosting | Railway (separate frontend and backend services, defined in `.railway/railway.ts`); Docker Compose for CI | Off-campus cloud |
 | CI | GitHub Actions: test, lint, build, compose smoke | No authenticated E2E against a live Supabase project in CI |
 | Intake | Google Forms → Postgres | Already a third-party pipeline outside the app |
 
@@ -154,13 +154,12 @@ Each of these is a vendor or click-through SaaS that processes institutional dat
 |--------|------|
 | **Supabase** | Auth + Postgres (system of record) |
 | **Google Forms / Google** | Form and log intake (already in use) |
-| **Railway and/or Vercel** | App hosting — confirm which environment is production |
+| **Railway** | App hosting (production and staging) |
 | **GitHub** | Source and CI (no production student database in CI) |
-| **Vercel Analytics** | Frontend telemetry — confirm what it collects before listing |
 
 CSS Atlas itself is custom code, not a purchased product. SRM still applies because institutional data moves to third-party cloud (including “free” or already-paid tools).
 
-The requestor should check DIT’s [Software List](https://it.umd.edu/SRM) first. Google is often already approved for some campus uses; Supabase, Railway, and Vercel likely need a new or scoped review.
+The requestor should check DIT’s [Software List](https://it.umd.edu/SRM) first. Google is often already approved for some campus uses; Supabase and Railway likely need a new or scoped review.
 
 **Process constraint:** a UMD **faculty or staff** member must initiate SRM in Workday. Student developers cannot sign vendor agreements. Only Procurement and Business Services has signatory authority.
 
@@ -190,10 +189,9 @@ State these up front; they are expected review topics, not surprises.
 |-------|----------------|
 | Campus SSO | Login is Supabase email/password plus email confirm — not CAS / Shibboleth |
 | Accessibility | No VPAT or formal WCAG audit of the custom UI (Title II is in SRM’s remit) |
-| Vendor artifacts | Need SOC 2 (or equivalent) from Supabase and Railway/Vercel; Google is typically already covered for some uses |
+| Vendor artifacts | Need SOC 2 (or equivalent) from Supabase and Railway; Google is typically already covered for some uses |
 | Public kiosk | Anyone who knows a scholar UID can record a traffic entry; by design for shared devices, but a privacy/abuse item |
 | Google Forms intake | Grades and submitter emails land in Postgres **outside** the app’s auth model |
-| Hosting shape | Confirm live production (Railway split vs Vercel same-origin) before submitting |
 | Dev routes | `/dev` must stay developer-only in production |
 
 This briefing does not conclude FERPA applicability or residual risk. DIT IT Compliance, Data Privacy, and Accessibility make those determinations.

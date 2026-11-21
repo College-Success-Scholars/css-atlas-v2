@@ -4,7 +4,7 @@
  *
  * Process entry point for the CSS Atlas Express API.
  * Validates required environment variables at startup (fail-fast), then starts
- * the HTTP server. Handles graceful shutdown on SIGTERM so Railway/Vercel can
+ * the HTTP server. Handles graceful shutdown on SIGTERM so Railway can
  * drain in-flight requests cleanly.
  *
  * ## Responsibilities
@@ -24,7 +24,7 @@
  */
 import "dotenv/config";
 
-// Fail fast: crash at startup if required env vars are missing so Railway/Vercel
+// Fail fast: crash at startup if required env vars are missing so Railway
 // marks the deploy unhealthy rather than serving broken responses.
 const REQUIRED_ENV = ["SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY"] as const;
 for (const key of REQUIRED_ENV) {
@@ -41,7 +41,7 @@ const server = app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
 
-// Graceful shutdown — lets Railway/Vercel drain in-flight requests cleanly
+// Graceful shutdown — lets Railway drain in-flight requests cleanly
 process.on("SIGTERM", () => {
   server.close(() => process.exit(0));
 });

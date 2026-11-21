@@ -21,7 +21,7 @@ Next.js App Router directory. Every `page.tsx`, `layout.tsx`, and `route.ts` her
 
 | File | Source Link | Description |
 |------|-------------|-------------|
-| `layout.tsx` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/layout.tsx) | Root layout — fonts (Geist), `ThemeProvider`, themed Toaster, Vercel Analytics, wraps entire app |
+| `layout.tsx` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/layout.tsx) | Root layout — fonts (Geist), `ThemeProvider`, themed Toaster, wraps entire app |
 | `page.tsx` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/page.tsx) | Landing page — shows hero for unauthenticated users, redirects authenticated users to `/dashboard` |
 | `globals.css` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/app/globals.css) | Global CSS — Tailwind base, light/dark CSS custom properties (semantic + domain theme tokens) |
 

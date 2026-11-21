@@ -12,7 +12,7 @@
 | [Shared](shared/README.md) | [`shared/`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/shared) | Shared TypeScript utilities |
 | [Frontend](frontend/README.md) | [`frontend/`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend) | Next.js 16 web app |
 | [Guardrails](guardrails.md) | [`tools/`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/tools) | Lint bans, import-direction rules, baselines |
-| [Deployment](deployment/README.md) | Docker / Railway / Vercel / CI | Hosted topology, env wiring, smoke |
+| [Deployment](deployment/README.md) | Docker / Railway / CI | Hosted topology, env wiring, smoke |
 | [IT review](it-review.md) | Current-state briefing | Product state, stack, vendors, UMD SRM proposal |
 | [Scripts](scripts/README.md) | [`scripts/`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts) | Dev/ops shell scripts |
 | [Supabase](supabase/README.md) | [`docs/dev/supabase/`](supabase/README.md) | Cloud schema scripts (test profiles) |
@@ -34,8 +34,7 @@ repo root
 ├── docs/          Documentation (agents/ + dev/)
 ├── scripts/       Shell scripts for deployment/testing
 ├── Dockerfile.backend
-├── Dockerfile.frontend
-└── vercel.json
+└── Dockerfile.frontend
 ```
 
 ### Technology Stack
@@ -49,7 +48,7 @@ repo root
 | Component library | Radix UI / shadcn-ui |
 | Charts | Recharts, D3 |
 | Testing | Vitest |
-| Deployment | Railway, Vercel, Docker — see [Deployment](deployment/README.md) |
+| Deployment | Railway, Docker — see [Deployment](deployment/README.md) |
 
 ---
 
@@ -106,7 +105,7 @@ Roles are stored in `profiles.app_role` (or `user_roster.app_role`).
 |----------|----------|-------------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Yes | Supabase anon/publishable key |
-| `BACKEND_URL` | No | Server-side backend URL (default: auto-detected from `VERCEL_URL` → `/_/backend`, else `http://localhost:3001`) |
+| `BACKEND_URL` | No | Server-side backend URL (default: `http://localhost:3001`) |
 | `NEXT_PUBLIC_BACKEND_URL` | No | Browser-side backend URL (default: `http://localhost:3001`; set in Docker/production builds) |
 
 ---

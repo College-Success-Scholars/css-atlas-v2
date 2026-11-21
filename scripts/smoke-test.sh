@@ -3,7 +3,7 @@
 #
 # Usage:
 #   BASE_URL=https://your-backend.railway.app ./scripts/smoke-test.sh
-#   BASE_URL=https://your-app.vercel.app/_/backend ./scripts/smoke-test.sh
+#   BASE_URL=https://<backend>.up.railway.app ./scripts/smoke-test.sh
 #   SMOKE_ORIGIN=http://localhost:3002 ./scripts/smoke-test.sh   # bare app.ts default CORS
 #
 # Exit codes: 0 = all passed, 1 = at least one check failed

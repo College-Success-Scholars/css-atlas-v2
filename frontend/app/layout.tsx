@@ -4,11 +4,11 @@
  *
  * Root Next.js layout — wraps the entire application.
  * Registers global fonts (Geist, Geist_Mono), theme provider, toaster,
- * Vercel Analytics, and the InviteFromHashRedirect handler for magic-link email invites.
+ * and the InviteFromHashRedirect handler for magic-link email invites.
  *
  * ## What belongs here
  * - App-wide providers, fonts, and metadata
- * - Components that must wrap every page (Toaster, Analytics)
+ * - Components that must wrap every page (Toaster)
  *
  * ## What does NOT belong here
  * - Page-specific layout (use route-specific layout.tsx files)
@@ -19,11 +19,11 @@ import { InviteFromHashRedirect } from "@/components/auth/invite-from-hash-redir
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { ThemedToaster } from "@/components/layout/themed-toaster";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
-const defaultUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
+// Railway sets RAILWAY_PUBLIC_DOMAIN on services with a public domain.
+const defaultUrl = process.env.RAILWAY_PUBLIC_DOMAIN
+  ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
   : "http://localhost:3000";
 
 const geistSans = Geist({
@@ -56,7 +56,6 @@ export default function RootLayout({
           <InviteFromHashRedirect />
           {children}
           <ThemedToaster />
-          <Analytics />
         </ThemeProvider>
       </body>
     </html>

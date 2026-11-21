@@ -33,7 +33,7 @@ Server-only modules for the frontend. All files here include `import "server-onl
 2. Decodes the base64-encoded session JSON to extract `access_token`.
 3. Attaches the token as `Authorization: Bearer <token>` on the fetch request.
 4. Forwards the dev test-profile cookie as `x-dev-active-profile` when set (developer acting as a test persona).
-5. Calls the backend URL (from `BACKEND_URL` env var or auto-detected from `VERCEL_URL`).
+5. Calls the backend URL (from `BACKEND_URL`, default `http://localhost:3001`).
 6. Unwraps `{ data: ... }` from the response automatically (`backendDownload` returns the raw `Response` so PDF bytes can be proxied).
 
 ---
