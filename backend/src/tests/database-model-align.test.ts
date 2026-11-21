@@ -24,7 +24,8 @@ describe("Database ↔ model alignment", () => {
     expectTypeOf<TutorReportLogRow["tutor_name"]>().toEqualTypeOf<TutorReportDbRow["tutor_name"]>();
     expectTypeOf<TutorReportLogRow["start_time"]>().toEqualTypeOf<TutorReportDbRow["start_time"]>();
     expectTypeOf<TutorReportLogRow["end_time"]>().toEqualTypeOf<TutorReportDbRow["end_time"]>();
-    expectTypeOf<TutorReportLogRow["courses"]>().toEqualTypeOf<TutorReportDbRow["courses"]>();
+    // Contract arrays are readonly; the element type must still match the column.
+    expectTypeOf<TutorReportLogRow["courses"]>().toEqualTypeOf<Readonly<TutorReportDbRow["courses"]>>();
     expectTypeOf<TutorReportLogRow["created_at"]>().toEqualTypeOf<TutorReportDbRow["created_at"]>();
   });
 

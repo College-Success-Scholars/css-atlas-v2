@@ -1,4 +1,4 @@
-import type { TutorReportWeekRow } from "@/lib/types/tutor-report-log";
+import type { TutorReportWeekRow } from "@css-atlas/shared/contracts/tutor-reports";
 import { EASTERN_TIMEZONE, parseEasternDate } from "@/lib/format/time";
 
 const dayFormatter = new Intl.DateTimeFormat("en-US", {
@@ -53,7 +53,7 @@ function clockSeconds(value: string): number | null {
   return hour * 3600 + minute * 60 + second;
 }
 
-export function normalizeCourses(courses: string[]): string[] {
+export function normalizeCourses(courses: ReadonlyArray<string>): string[] {
   return [...new Set(courses.map((course) => course.toUpperCase().replace(/\s/g, "")).filter(Boolean))];
 }
 

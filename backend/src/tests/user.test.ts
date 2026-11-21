@@ -27,9 +27,4 @@ describe("User routes — auth gating", () => {
     const res = await request(app).get("/api/form-logs");
     expect(res.status).toBe(401);
   });
-
-  it("GET /api/tutor-reports returns 401 without token", async () => {
-    const res = await request(app).get("/api/tutor-reports");
-    expect(res.status).toBe(401);
-  });
 });

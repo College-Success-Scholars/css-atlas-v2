@@ -10,7 +10,7 @@ import { dateToCampusWeek } from "@/lib/format/time";
 import { getTutorReportWeekRows } from "@/lib/server/data";
 import { parseWeekParam } from "@/app/dashboard/memo/_lib/week-navigation";
 import { TeamsTutoringClient } from "./teams-tutoring-client";
-import type { TutorReportWeekRow } from "@/lib/types/tutor-report-log";
+import type { TutorReportWeekRow } from "@css-atlas/shared/contracts/tutor-reports";
 
 export type TeamsTutoringViewProps = {
   basePath: string;
@@ -30,7 +30,7 @@ export async function TeamsTutoringView({
     redirect(`${basePath}?week=${currentCampusWeek}`);
   }
 
-  let rows: TutorReportWeekRow[] | null = null;
+  let rows: readonly TutorReportWeekRow[] | null = null;
   let error: string | null = null;
   if (yearStarted) {
     try {

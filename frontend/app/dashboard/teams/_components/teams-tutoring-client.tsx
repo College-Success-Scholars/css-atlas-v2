@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { deleteTutorReportAction } from "@/lib/server/actions";
-import type { TutorReportWeekRow } from "@/lib/types/tutor-report-log";
+import type { TutorReportWeekRow } from "@css-atlas/shared/contracts/tutor-reports";
 import { TutoringSessionDialog } from "./tutoring-session-dialog";
 import {
   compareSessions, formatTutorMinutes, getSessionDay, normalizeCourses, normalizedTutor,
@@ -25,7 +25,7 @@ export type TeamsTutoringClientProps = {
   basePath: string;
   weekNum: number;
   currentCampusWeek: number | null;
-  rows: TutorReportWeekRow[] | null;
+  rows: readonly TutorReportWeekRow[] | null;
   error: string | null;
 };
 
@@ -34,7 +34,7 @@ type Status = "all" | "with" | "without";
 type SessionGroup = { key: string; forms: TutorReportWeekRow[] };
 type Section = { key: string; title: string; forms: TutorReportWeekRow[]; groups: SessionGroup[] };
 
-function buildSections(rows: TutorReportWeekRow[], groupBy: GroupBy): Section[] {
+function buildSections(rows: readonly TutorReportWeekRow[], groupBy: GroupBy): Section[] {
   const sections = new Map<string, Section>();
   for (const row of [...rows].sort(compareSessions)) {
     const day = getSessionDay(row);

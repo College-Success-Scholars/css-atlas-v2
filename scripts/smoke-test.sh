@@ -50,7 +50,7 @@ for ROUTE in \
   "/api/traffic" \
   "/api/form-logs" \
   "/api/daily-activity" \
-  "/api/tutor-reports"
+  "/api/tutor-reports/week/1"
 do
   STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL$ROUTE")
   check "GET $ROUTE is auth-gated" "401" "$STATUS"

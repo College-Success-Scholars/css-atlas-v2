@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { TutorReportWeekRow } from "@/lib/types/tutor-report-log";
+import type { TutorReportWeekRow } from "@css-atlas/shared/contracts/tutor-reports";
 import {
   compareSessions, formatTutorMinutes, getSessionDay, normalizeCourses,
   receiptTimingLabel, scholarLabel, scholarStatus, sessionBlockKey,

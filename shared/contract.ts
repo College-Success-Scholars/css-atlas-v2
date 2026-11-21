@@ -170,16 +170,24 @@ export function endpointPath(
 
 const WHOLE_NUMBER = "must be a whole number";
 
-/** A campus week number. Accepts a number or a numeric string (path and query values arrive as strings). */
-export const campusWeekNumber = Schema.Union([
-  Schema.Number,
-  Schema.String.check(Schema.isPattern(/^\d+$/, { message: WHOLE_NUMBER })).pipe(
-    Schema.decodeTo(Schema.Number, SchemaTransformation.numberFromString),
-  ),
-]).check(
-  Schema.isInt({ message: WHOLE_NUMBER }),
-  Schema.isGreaterThanOrEqualTo(1, { message: "must be a campus week number of 1 or more" }),
-);
+/**
+ * A whole number of at least `minimum`, accepted as a number or a numeric
+ * string (path and query values arrive as strings).
+ */
+export function wholeNumber(minimum: number, message: string) {
+  return Schema.Union([
+    Schema.Number,
+    Schema.String.check(Schema.isPattern(/^\d+$/, { message: WHOLE_NUMBER })).pipe(
+      Schema.decodeTo(Schema.Number, SchemaTransformation.numberFromString),
+    ),
+  ]).check(Schema.isInt({ message: WHOLE_NUMBER }), Schema.isGreaterThanOrEqualTo(minimum, { message }));
+}
+
+/** A campus week number. */
+export const campusWeekNumber = wholeNumber(1, "must be a campus week number of 1 or more");
+
+/** A database row id. */
+export const rowId = wholeNumber(1, "must be a positive integer");
 
 /** A Scholar ID (University ID), trimmed. */
 export const scholarId = Schema.Trim.check(

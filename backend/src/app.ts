@@ -66,7 +66,7 @@ app.use("/api/session-logs", sessionLogRoutes);
 app.use("/api/traffic", trafficRoutes);
 app.use("/api/form-logs", formLogRoutes);
 app.use("/api/daily-activity", activityRoutes);
-app.use("/api/tutor-reports", tutorReportRoutes);
+app.use(tutorReportRoutes);
 app.use(attendanceRoutes); // contract-backed: paths come from @css-atlas/shared/contracts/attendance
 app.use("/api/hours-benchmark", hoursBenchmarkRoutes);
 

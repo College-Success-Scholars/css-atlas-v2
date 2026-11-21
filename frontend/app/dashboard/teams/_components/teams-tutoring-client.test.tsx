@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { TutorReportWeekRow } from "@/lib/types/tutor-report-log";
+import type { TutorReportWeekRow } from "@css-atlas/shared/contracts/tutor-reports";
 
 const mocks = vi.hoisted(() => ({ deleteTutorReportAction: vi.fn(), refresh: vi.fn(), push: vi.fn() }));
 vi.mock("@/lib/server/actions", () => ({ deleteTutorReportAction: mocks.deleteTutorReportAction }));

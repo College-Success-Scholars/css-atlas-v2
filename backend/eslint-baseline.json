@@ -32,7 +32,6 @@
     "src/controllers/memo.controller.ts",
     "src/controllers/session-log.controller.ts",
     "src/controllers/traffic.controller.ts",
-    "src/controllers/tutor-report-log.controller.ts",
     "src/controllers/user.controller.ts"
   ],
   "atlas/no-process-env": [
@@ -56,7 +55,6 @@
     "src/controllers/memo.controller.ts",
     "src/controllers/session-log.controller.ts",
     "src/controllers/traffic.controller.ts",
-    "src/controllers/tutor-report-log.controller.ts",
     "src/controllers/user.controller.ts"
   ]
 }

@@ -63,7 +63,8 @@ import type {
   RecentFormSubmission,
   TeamLeaderFormStatsRow,
 } from "@/lib/types/form-log";
-import type { TutorReportWeekRow } from "@/lib/types/tutor-report-log";
+import * as tutorReports from "@css-atlas/shared/contracts/tutor-reports";
+import type { TutorReportWeekRow } from "@css-atlas/shared/contracts/tutor-reports";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -319,12 +320,12 @@ export async function upsertAttendanceExcuse(
 // Tutor reports (campus week — session `date`, then `start_time`)
 // ---------------------------------------------------------------------------
 
-export async function getTutorReportWeekRows(weekNum: number): Promise<TutorReportWeekRow[]> {
-  return backendGet(`/api/tutor-reports/week/${weekNum}`);
+export async function getTutorReportWeekRows(weekNum: number): Promise<readonly TutorReportWeekRow[]> {
+  return callEndpoint(tutorReports.getWeek, { params: { week_num: weekNum } });
 }
 
-export async function deleteTutorReport(id: number): Promise<{ id: number }> {
-  return backendDelete(`/api/tutor-reports/${id}`);
+export async function deleteTutorReport(id: number): Promise<{ readonly id: number }> {
+  return callEndpoint(tutorReports.remove, { params: { id } });
 }
 
 // ---------------------------------------------------------------------------
