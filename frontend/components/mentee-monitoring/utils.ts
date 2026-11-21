@@ -3,7 +3,7 @@ import {
   getISODay,
   differenceInCalendarDays,
 } from "date-fns"
-import { getWhafDeadlineForWeek } from "@/lib/format/form-deadlines"
+import { formDeadline } from "@css-atlas/shared/form-status"
 import {
   EASTERN_TIMEZONE,
   addEasternCalendarDays,
@@ -155,7 +155,7 @@ export function computeWahfStatus(
   const submitted = submission != null
 
   const now = new Date()
-  const deadline = getWhafDeadlineForWeek(weekNum)
+  const deadline = formDeadline("WAHF", weekNum)
   const dueDate = deadline ? format(deadline, "MMM d, yyyy") : ""
 
   let daysOverdue = 0

@@ -2,13 +2,7 @@
 
 import { useState } from "react";
 import { dateToCampusWeek, campusWeekToDateRange } from "@/lib/format/time";
-import {
-  getWhafDeadlineForWeek,
-  getMcfWplDeadlineForWeek,
-  isWhafLate,
-  isMcfLate,
-  isWplLate,
-} from "@/lib/format/form-deadlines";
+import { formDeadline, isLate } from "@css-atlas/shared/form-status";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,8 +42,8 @@ export function FormLogsTestClient() {
       return;
     }
     const range = campusWeekToDateRange(n);
-    const whaf = getWhafDeadlineForWeek(n);
-    const mcfWpl = getMcfWplDeadlineForWeek(n);
+    const whaf = formDeadline("WAHF", n);
+    const mcfWpl = formDeadline("WPL", n);
     setDeadlines({
       range: range
         ? `${range.startDate.toLocaleDateString("en-US", { timeZone: ET })} – ${range.endDate.toLocaleDateString("en-US", { timeZone: ET })} (ET)`
@@ -69,9 +63,9 @@ export function FormLogsTestClient() {
     const week = dateToCampusWeek(d);
     setLateResult({
       week: week ?? null,
-      whaf: isWhafLate(d),
-      mcf: isMcfLate(d),
-      wpl: isWplLate(d),
+      whaf: isLate("WAHF", d),
+      mcf: isLate("MCF", d),
+      wpl: isLate("WPL", d),
     });
   }
 

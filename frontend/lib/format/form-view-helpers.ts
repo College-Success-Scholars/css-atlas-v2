@@ -16,7 +16,7 @@
  *
  * ## What does NOT belong here
  * - Form log data fetching
- * - Deadline calculation (use form-deadlines.ts)
+ * - Deadline calculation (use @css-atlas/shared/form-status)
  * - Business logic
  */
 

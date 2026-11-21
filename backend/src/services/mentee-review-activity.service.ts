@@ -22,7 +22,8 @@
  * - HTTP request/response logic
  */
 import { getMenteeByUid, getMenteesByMentorKey } from "./mentee.service.js";
-import { getWhafDeadlineForWeek, getWhafFormLogsByUid } from "./form-log.service.js";
+import { formDeadline } from "@css-atlas/shared/form-status";
+import { getWhafFormLogsByUid } from "./form-log.service.js";
 import {
   filterTutorReportsForCampusWeek,
   getTutorReportLogsByUid,
@@ -86,7 +87,7 @@ export function buildWahfEvidenceForWeek(
   available: boolean
 ): WahfEvidence {
   const range = campusWeekToDateRange(weekNum);
-  const dueAt = getWhafDeadlineForWeek(weekNum) ?? (range ? range.endDate : new Date(0));
+  const dueAt = formDeadline("WAHF", weekNum) ?? (range ? range.endDate : new Date(0));
   return {
     available,
     dueAt,

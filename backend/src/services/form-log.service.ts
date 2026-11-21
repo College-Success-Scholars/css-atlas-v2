@@ -23,6 +23,7 @@
  * - HTTP request/response logic
  */
 import { getSupabaseClient } from "../supabase/client.js";
+import { isLate, type RequiredForm } from "@css-atlas/shared/form-status";
 import { campusWeekToDateRange, dateToCampusWeek, getWeekFetchEnd, ONE_DAY_MS } from "./time.service.js";
 import type {
   McfFormLogRow,
@@ -36,106 +37,16 @@ import type {
 import type { ProfilesRow } from "../models/user.model.js";
 
 // ---------------------------------------------------------------------------
-// Deadline logic (pure)
+// Late-marking (pure). Deadlines and lateness live in @css-atlas/shared/form-status.
 // ---------------------------------------------------------------------------
 
-export function getWhafDeadlineForWeek(weekNum: number): Date | null {
-  const range = campusWeekToDateRange(weekNum);
-  if (!range) return null;
-  const thursdayEnd =
-    range.startDate.getTime() +
-    3 * ONE_DAY_MS +
-    (23 * 3600 + 59 * 60 + 59) * 1000 +
-    999;
-  return new Date(thursdayEnd);
-}
-
-export function getMcfWplDeadlineForWeek(weekNum: number): Date | null {
-  const range = campusWeekToDateRange(weekNum);
-  if (!range) return null;
-  const friday5pm = range.startDate.getTime() + 4 * ONE_DAY_MS + 17 * 3600 * 1000;
-  return new Date(friday5pm);
-}
-
-function toDate(createdAt: string | Date): Date {
-  return typeof createdAt === "string" ? new Date(createdAt) : createdAt;
-}
-
-function isLateAfterDeadline(
-  createdAt: string | Date,
-  getDeadlineForWeek: (weekNum: number) => Date | null
-): boolean {
-  const submitted = toDate(createdAt);
-  const weekNum = dateToCampusWeek(submitted);
-  if (weekNum == null) return false;
-  const deadline = getDeadlineForWeek(weekNum);
-  if (!deadline) return false;
-  return submitted.getTime() > deadline.getTime();
-}
-
-export function isWhafLate(createdAt: string | Date): boolean {
-  return isLateAfterDeadline(createdAt, getWhafDeadlineForWeek);
-}
-
-export function isWhafLateForWeek(createdAt: string | Date, weekNum: number): boolean {
-  const deadline = getWhafDeadlineForWeek(weekNum);
-  if (!deadline) return false;
-  return toDate(createdAt).getTime() > deadline.getTime();
-}
-
-export function isMcfLate(createdAt: string | Date): boolean {
-  return isLateAfterDeadline(createdAt, getMcfWplDeadlineForWeek);
-}
-
-export function isMcfLateForWeek(createdAt: string | Date, weekNum: number): boolean {
-  const deadline = getMcfWplDeadlineForWeek(weekNum);
-  if (!deadline) return false;
-  return toDate(createdAt).getTime() > deadline.getTime();
-}
-
-export function isWplLate(createdAt: string | Date): boolean {
-  return isLateAfterDeadline(createdAt, getMcfWplDeadlineForWeek);
-}
-
-export function isWplLateForWeek(createdAt: string | Date, weekNum: number): boolean {
-  const deadline = getMcfWplDeadlineForWeek(weekNum);
-  if (!deadline) return false;
-  return toDate(createdAt).getTime() > deadline.getTime();
-}
-
-// ---------------------------------------------------------------------------
-// Late-marking (pure)
-// ---------------------------------------------------------------------------
-
+/** Flag each row late against campus week `weekNum`, or against the week it was submitted in. */
 function markFormLogsLate<T extends { created_at: string | null }>(
+  form: RequiredForm,
   rows: T[],
-  isLate: (createdAt: string | Date) => boolean
+  weekNum?: number
 ): FormLogRowWithLate<T>[] {
-  return rows.map((row) => ({
-    ...row,
-    isLate: row.created_at != null && row.created_at !== "" ? isLate(row.created_at) : false,
-  }));
-}
-
-export function markWhafFormLogsLate<T extends { created_at: string | null }>(
-  rows: T[], weekNum?: number
-): FormLogRowWithLate<T>[] {
-  const check = weekNum != null ? (c: string | Date) => isWhafLateForWeek(c, weekNum) : isWhafLate;
-  return markFormLogsLate(rows, check);
-}
-
-export function markMcfFormLogsLate<T extends { created_at: string | null }>(
-  rows: T[], weekNum?: number
-): FormLogRowWithLate<T>[] {
-  const check = weekNum != null ? (c: string | Date) => isMcfLateForWeek(c, weekNum) : isMcfLate;
-  return markFormLogsLate(rows, check);
-}
-
-export function markWplFormLogsLate<T extends { created_at: string | null }>(
-  rows: T[], weekNum?: number
-): FormLogRowWithLate<T>[] {
-  const check = weekNum != null ? (c: string | Date) => isWplLateForWeek(c, weekNum) : isWplLate;
-  return markFormLogsLate(rows, check);
+  return rows.map((row) => ({ ...row, isLate: row.created_at ? isLate(form, row.created_at, weekNum) : false }));
 }
 
 // ---------------------------------------------------------------------------
@@ -309,37 +220,37 @@ export async function getWplFormLogsByUidAndWeek(uid: string, weekNum: number): 
 
 export async function getWhafFormLogsForWeekWithLate(weekNum: number) {
   const rows = await getWhafFormLogsForWeek(weekNum);
-  return markWhafFormLogsLate(rows, weekNum);
+  return markFormLogsLate("WAHF", rows, weekNum);
 }
 
 export async function getMcfFormLogsForWeekWithLate(weekNum: number) {
   const rows = await getMcfFormLogsForWeek(weekNum);
-  return markMcfFormLogsLate(rows, weekNum);
+  return markFormLogsLate("MCF", rows, weekNum);
 }
 
 export async function getMcfFormLogsByUidWithLate(uid: string) {
   const rows = await getMcfFormLogsByUid(uid);
-  return markMcfFormLogsLate(rows);
+  return markFormLogsLate("MCF", rows);
 }
 
 export async function getMcfFormLogsByUidAndWeekWithLate(uid: string, weekNum: number) {
   const rows = await getMcfFormLogsByUidAndWeek(uid, weekNum);
-  return markMcfFormLogsLate(rows);
+  return markFormLogsLate("MCF", rows);
 }
 
 export async function getWplFormLogsForWeekWithLate(weekNum: number) {
   const rows = await getWplFormLogsForWeek(weekNum);
-  return markWplFormLogsLate(rows, weekNum);
+  return markFormLogsLate("WPL", rows, weekNum);
 }
 
 export async function getWplFormLogsByUidWithLate(uid: string) {
   const rows = await getWplFormLogsByUid(uid);
-  return markWplFormLogsLate(rows);
+  return markFormLogsLate("WPL", rows);
 }
 
 export async function getWplFormLogsByUidAndWeekWithLate(uid: string, weekNum: number) {
   const rows = await getWplFormLogsByUidAndWeek(uid, weekNum);
-  return markWplFormLogsLate(rows);
+  return markFormLogsLate("WPL", rows);
 }
 
 // ---------------------------------------------------------------------------

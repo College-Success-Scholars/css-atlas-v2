@@ -4,13 +4,7 @@ import {
   differenceInCalendarDays,
 } from "date-fns"
 import type { WahfRow, McfRow, WplRow, MenteeRow } from "@/lib/types/supabase"
-import {
-  getWhafDeadlineForWeek,
-  getMcfWplDeadlineForWeek,
-  isWhafLateForWeek,
-  isMcfLateForWeek,
-  isWplLateForWeek,
-} from "@/lib/format/form-deadlines"
+import { formDeadline, isLate } from "@css-atlas/shared/form-status"
 import { campusWeekToDateRange, dateToCampusWeek, getEasternDateParts, ONE_DAY_MS } from "@/lib/format/time"
 
 // ---------------------------------------------------------------------------
@@ -230,15 +224,14 @@ export function getFormStatusForWeek(
   menteeCount: number | null = null,
 ): FormStatusResult {
   const now = new Date()
-  const deadline =
-    formType === "WAHF" ? getWhafDeadlineForWeek(weekNum) : getMcfWplDeadlineForWeek(weekNum)
+  const deadline = formDeadline(formType, weekNum)
 
   if (formType === "MCF") {
     const weekLogs = findSubmissionsForCampusWeek(mcf, weekNum)
     const submission = latestSubmissionForCampusWeek(mcf, weekNum)
     const requiredCount = countableMcfRequired(menteeCount)
     const completedCount = countDistinctMcfMentees(mcf, weekNum)
-    const isLate = weekLogs.some((row) => isMcfLateForWeek(row.created_at, weekNum))
+    const late = weekLogs.some((row) => isLate("MCF", row.created_at, weekNum))
     const complete = requiredCount <= 0 || completedCount >= requiredCount
     const partial = requiredCount > 1 && completedCount > 0 && completedCount < requiredCount
     const clock = complete
@@ -255,7 +248,7 @@ export function getFormStatusForWeek(
       formType,
       status,
       submittedAt: submission?.created_at ?? null,
-      isLate,
+      isLate: late,
       daysOverdue: clock.daysOverdue,
       hoursLeft: clock.hoursLeft,
       daysLeft: clock.daysLeft,
@@ -269,11 +262,7 @@ export function getFormStatusForWeek(
     formType === "WAHF"
       ? findSubmissionForCampusWeek(wahf, weekNum)
       : findSubmissionForCampusWeek(wpl, weekNum)
-  const isLate = submission
-    ? formType === "WAHF"
-      ? isWhafLateForWeek(submission.created_at, weekNum)
-      : isWplLateForWeek(submission.created_at, weekNum)
-    : false
+  const late = submission ? isLate(formType, submission.created_at, weekNum) : false
   const complete = submission != null
   const incomplete = complete
     ? { status: "done" as const, daysOverdue: 0, hoursLeft: 0, daysLeft: 0 }
@@ -283,7 +272,7 @@ export function getFormStatusForWeek(
     formType,
     status: incomplete.status,
     submittedAt: submission?.created_at ?? null,
-    isLate,
+    isLate: late,
     daysOverdue: incomplete.daysOverdue,
     hoursLeft: incomplete.hoursLeft,
     daysLeft: incomplete.daysLeft,

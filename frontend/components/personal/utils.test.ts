@@ -18,7 +18,7 @@ import {
   buildMcfMenteeOptions,
 } from "./utils"
 import type { WahfRow, McfRow, MenteeRow } from "@/lib/types/supabase"
-import { getMcfWplDeadlineForWeek } from "@/lib/format/form-deadlines"
+import { formDeadline } from "@css-atlas/shared/form-status"
 
 /** YYYY-MM-DD in Eastern. */
 function toCampusDay(d: Date): string {
@@ -103,7 +103,7 @@ describe("getFormStatusForWeek", () => {
     { hoursBefore: 8, daysLeft: 0 },
     { hoursBefore: 66, daysLeft: 3 },
   ])("uses campus calendar days $hoursBefore hours before the deadline", ({ hoursBefore, daysLeft }) => {
-    const deadline = getMcfWplDeadlineForWeek(2)!
+    const deadline = formDeadline("MCF", 2)!
     vi.useFakeTimers({ now: new Date(deadline.getTime() - hoursBefore * 60 * 60 * 1000) })
     const result = getFormStatusForWeek("WPL", [], [], [], 2, 2)
     expect(result.status).toBe("pending")

@@ -8,7 +8,6 @@ const mocks = vi.hoisted(() => ({
   getMeetingPreference: vi.fn(),
   fetchMenteeAttendanceEvidence: vi.fn(),
   getWhafFormLogsByUid: vi.fn(),
-  getWhafDeadlineForWeek: vi.fn(),
   getTutorReportLogsByUid: vi.fn(),
 }));
 
@@ -28,7 +27,6 @@ vi.mock("../services/mentee-review-attendance.adapter.js", () => ({
 }));
 vi.mock("../services/form-log.service.js", () => ({
   getWhafFormLogsByUid: mocks.getWhafFormLogsByUid,
-  getWhafDeadlineForWeek: mocks.getWhafDeadlineForWeek,
 }));
 vi.mock("../services/tutor-report-log.service.js", () => ({
   getTutorReportLogsByUid: mocks.getTutorReportLogsByUid,

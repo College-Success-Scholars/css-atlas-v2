@@ -10,6 +10,7 @@ import type {
   WeeklyKpiCard,
   WeeklyMemoViewData,
 } from "../types"
+import { formStatus } from "@css-atlas/shared/form-status"
 import { classifyScholarFollowUpRisk } from "./risk-classifier"
 import {
   EASTERN_TIMEZONE,
@@ -22,18 +23,6 @@ import {
 /** Matches backend WEEKLY_MEMO_SNAPSHOT_COMPLETE_PERCENT in weekly-memo-report.service.ts */
 const SNAPSHOT_COMPLETE_PERCENT = 80
 
-const getFormStatus = (completed: number, required: number, late: boolean): FormStatus => {
-  if (required <= 0 || completed >= required) return late ? "late" : "on-time"
-  return completed > 0 ? "late" : "missing"
-}
-
-/** MCF is one form per mentee. Some-but-not-all is incomplete, not late. */
-function getMcfStatus(completed: number, required: number, late: boolean): FormStatus {
-  if (required <= 0) return "on-time"
-  if (completed <= 0) return "missing"
-  if (completed < required) return "incomplete"
-  return late ? "late" : "on-time"
-}
 
 const hasNoMenteeAssignment = (mcfRequired: number): boolean => mcfRequired <= 0
 
@@ -50,9 +39,9 @@ const buildTeamLeaderRows = (data: MemoLivePageData): TeamLeaderPerformanceRow[]
     const hasNoMentee = hasNoMenteeAssignment(row.mcfRequired)
     return {
       leaderName: row.name,
-      mcf: hasNoMentee ? "on-time" : getMcfStatus(row.mcfCompleted, row.mcfRequired, row.mcfLate),
-      wpl: getFormStatus(row.wplCompleted, row.wplRequired, row.wplLate),
-      wahf: getFormStatus(row.wahfCompleted, row.wahfRequired, row.wahfLate),
+      mcf: hasNoMentee ? "on-time" : formStatus({ completed: row.mcfCompleted, required: row.mcfRequired, late: row.mcfLate }),
+      wpl: formStatus({ completed: row.wplCompleted, required: row.wplRequired, late: row.wplLate }),
+      wahf: formStatus({ completed: row.wahfCompleted, required: row.wahfRequired, late: row.wahfLate }),
       menteesOk: row.wahfPct >= 90 && row.wplPct >= 90 && row.mcfPct >= 90 ? ("yes" as const) : ("check" as const),
       hasNoMentee,
     }

@@ -229,6 +229,18 @@ describe("weekly memo print report", () => {
     expect(weeklyMemoPdfFilename(9, printed.slug)).toBe("weekly-memo-week-9-2026-09-04-1939.pdf");
   });
 
+  it("reports a team leader with some but not all mentee check-ins as MCF incomplete, like the dashboard", () => {
+    const data = source(7);
+    data.teamLeaderFormStats = [
+      { ...data.teamLeaderFormStats[0]!, name: "Partial MCF TL", mcfCompleted: 1, mcfRequired: 3, mcfLate: false },
+      { ...data.teamLeaderFormStats[0]!, name: "No MCF TL", mcfCompleted: 0, mcfRequired: 3, mcfLate: false },
+    ];
+    expect(createWeeklyMemoReport(data).attention.tlSubmissions).toEqual([
+      { leaderName: "No MCF TL", issues: ["MCF missing"] },
+      { leaderName: "Partial MCF TL", issues: ["MCF incomplete"] },
+    ]);
+  });
+
   it("keeps TL form census tiles separate and folds TL WAHF into Team Leader Submissions", () => {
     const data = source(7);
     data.teamLeaderFormStats = [
