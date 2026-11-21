@@ -21,7 +21,6 @@
     "app/traffic/page.tsx",
     "components/dashboard/widgets/daily-activity-minutes-note.tsx",
     "components/data-display/campus-week-card.tsx",
-    "components/mentee-monitoring/utils.ts",
     "components/personal/personal-client.tsx",
     "components/personal/utils.ts",
     "lib/client/api-client.ts",
