@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "./scripts/dev.sh",
     "docs:rewrite-links": "node scripts/docs-rewrite-links.mjs",
     "docs:copy-api": "node scripts/docs-copy-api-md.mjs",
     "docs:typedoc": "rm -rf docs/reference/api && typedoc --options typedoc.json",
