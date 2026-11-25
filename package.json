@@ -1,9 +1,17 @@
 {
-  "name": "css-atlas-docs",
+  "name": "css-atlas",
   "private": true,
   "type": "module",
+  "workspaces": ["shared", "backend", "frontend"],
+  "engines": { "node": ">=22 <23", "npm": ">=10" },
   "scripts": {
-    "dev": "./scripts/dev.sh",
+    "predev": "npm run build -w @css-atlas/shared",
+    "dev": "concurrently -k -n shared,api,web -c blue,green,magenta \"npm run watch -w @css-atlas/shared\" \"npm run dev -w @css-atlas/backend\" \"npm run dev -w @css-atlas/frontend\"",
+    "build": "npm run build -w @css-atlas/shared && npm run build -w @css-atlas/backend -w @css-atlas/frontend",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "guardrails": "npm run guardrails --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
     "docs:rewrite-links": "node scripts/docs-rewrite-links.mjs",
     "docs:copy-api": "node scripts/docs-copy-api-md.mjs",
     "docs:typedoc": "rm -rf docs/reference/api && typedoc --options typedoc.json",
@@ -19,14 +27,8 @@
     "audit:staging": "supabase migration list --project-ref xhcnncsgxrgxwmgjhbnz",
     "audit:prod": "supabase migration list --project-ref qclgoapaleomceugftre"
   },
-  "dependencies": {
-    "@radix-ui/react-accordion": "^1.2.12",
-    "@supabase/ssr": "^0.12.4",
-    "@supabase/supabase-js": "^2.112.3",
-    "railway": "^3.17.0",
-    "shared": "^0.2.0"
-  },
   "devDependencies": {
+    "concurrently": "^9",
     "typedoc": "^0.28.5",
     "typedoc-plugin-markdown": "^4.7.0",
     "typescript": "^5.9.3"
