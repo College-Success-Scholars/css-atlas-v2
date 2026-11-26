@@ -1,4 +1,4 @@
-import type { ActivityFormType, RecentFormSubmission } from "@/lib/types/form-log"
+import type { ActivityFormType, RecentFormSubmission } from "@css-atlas/shared/contracts/form-logs"
 
 export const formTone: Record<ActivityFormType, string> = {
   WAHF: "text-info-muted-foreground bg-info-muted",

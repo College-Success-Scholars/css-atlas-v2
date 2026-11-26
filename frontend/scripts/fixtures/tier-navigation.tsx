@@ -8,7 +8,8 @@ import { McfBar } from "../../components/mentee-monitoring/mcf-bar"
 import { SemesterGrid } from "../../components/mentee-monitoring/semester-grid"
 import styles from "../../components/mentee-monitoring/mentee-review.module.css"
 import { getHourTier } from "../../lib/tiers"
-import type { HourWeekSummary, WeekDescriptor, WeekReviewSummary, WeekTier } from "../../lib/types/mentee-review"
+import type { HourWeekSummary, WeekReviewSummary, WeekTier } from "../../lib/types/mentee-review"
+import type { WeekDescriptor } from "@css-atlas/shared/contracts/mentees"
 
 // Synthetic data only. This fixture never calls auth, the API, or a database.
 const tiers: WeekTier[] = ["rare", "epic", "legendary"]

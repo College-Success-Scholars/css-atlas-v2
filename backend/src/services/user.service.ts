@@ -38,6 +38,7 @@ import type {
   RosterRow,
   TeamLeaderRow,
 } from "../models/user.model.js";
+import { ForbiddenError, NotFoundError, ValidationError } from "../utils/domain-error.js";
 import { isHourEligibleCohort } from "./time.service.js";
 
 /** Writable profiles insert — excludes generated `full_name` and server `created_at`. */
@@ -60,7 +61,7 @@ type DirectorySourceRow = Pick<
 
 type DirectoryCursor = { name: string; id: string };
 
-export class DirectoryCursorError extends Error {}
+const invalidCursor = () => new ValidationError({ field: "", message: "Invalid directory cursor" });
 
 function directoryName(row: Pick<DirectorySourceRow, "first_name" | "last_name">): string {
   return [row.first_name, row.last_name].filter(Boolean).join(" ").trim() || "Unnamed person";
@@ -100,7 +101,7 @@ export function decodeDirectoryCursor(value: string): DirectoryCursor {
     ) throw new Error("invalid cursor");
     return parsed as DirectoryCursor;
   } catch {
-    throw new DirectoryCursorError("Invalid directory cursor");
+    throw invalidCursor();
   }
 }
 
@@ -119,7 +120,7 @@ function paginateDirectoryPeople(
   if (query.cursor) {
     const cursor = decodeDirectoryCursor(query.cursor);
     const cursorIndex = people.findIndex((person) => person.id === cursor.id && person.name === cursor.name);
-    if (cursorIndex === -1) throw new DirectoryCursorError("Stale directory cursor");
+    if (cursorIndex === -1) throw invalidCursor();
     offset = cursorIndex + 1;
   }
   const members = people.slice(offset, offset + query.limit);
@@ -343,65 +344,6 @@ export async function fetchScholarNamesByUids(
   return map;
 }
 
-export async function fetchRequiredHoursByUids(
-  uids: string[]
-): Promise<Map<string, { fd_required: number | null; ss_required: number | null }>> {
-  if (uids.length === 0) return new Map();
-  const supabase = getSupabaseClient();
-  const uniqueUids = uniqueNonEmptyStrings(uids);
-  const { data, error } = await supabase
-    .from("user_roster")
-    .select("uid, fd_required, ss_required")
-    .in("uid", uniqueUids);
-  if (error) throw error;
-  const map = new Map<string, { fd_required: number | null; ss_required: number | null }>();
-  for (const row of data ?? []) {
-    if (row.uid != null) {
-      const fd = row.fd_required != null ? Number(row.fd_required) : null;
-      const ss = row.ss_required != null ? Number(row.ss_required) : null;
-      map.set(String(row.uid), { fd_required: fd, ss_required: ss });
-    }
-  }
-  return map;
-}
-
-export async function fetchEligibleScholarUids(uids: string[]): Promise<Set<string>> {
-  if (uids.length === 0) return new Set();
-  const supabase = getSupabaseClient();
-  const uniqueUids = uniqueNonEmptyStrings(uids);
-  const { data, error } = await supabase
-    .from("user_roster")
-    .select("uid, program_role, fd_required, ss_required, cohort, status")
-    .in("uid", uniqueUids);
-  if (error) throw error;
-  const eligible = new Set<string>();
-  for (const row of data ?? []) {
-    if (row.uid == null) continue;
-    if (
-      isEligibleScholar({
-        program_role: row.program_role,
-        cohort: row.cohort != null ? Number(row.cohort) : null,
-        status: row.status,
-        fd_required: row.fd_required != null ? Number(row.fd_required) : null,
-        ss_required: row.ss_required != null ? Number(row.ss_required) : null,
-      })
-    ) {
-      eligible.add(String(row.uid));
-    }
-  }
-  return eligible;
-}
-
-export async function fetchAllUserUids(): Promise<string[]> {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase
-    .from("user_roster")
-    .select("uid")
-    .not("uid", "is", null);
-  if (error) throw error;
-  return uniqueNonEmptyStrings((data ?? []).map((r) => String(r.uid)));
-}
-
 export async function fetchAllUsersForMemo(): Promise<MemoUserRow[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
@@ -449,19 +391,6 @@ export async function fetchTeamLeaders(): Promise<TeamLeaderRow[]> {
   return rows.filter(isTeamLeaderForPerformance);
 }
 
-/** Enrolled scholar UIDs from `user_roster` (`program_role` scholar, `status` enrolled). */
-export async function fetchScholarUids(): Promise<string[]> {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase
-    .from("user_roster")
-    .select("uid, program_role, status")
-    .ilike("program_role", "scholar");
-  if (error) throw error;
-  return (data ?? [])
-    .filter((r) => r.uid != null && isEnrolledScholar({ program_role: r.program_role, status: r.status }))
-    .map((r) => String(r.uid));
-}
-
 export async function getRosterByUid(uid: string): Promise<RosterRow | null> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
@@ -502,9 +431,24 @@ async function replaceMentorMenteeAssignments(
   if (insertError) throw insertError;
 }
 
+/** A fresh mutable copy of a list column, for the database client's write types. */
+function writableList(list: ReadonlyArray<string> | null | undefined): string[] | null | undefined {
+  return list ? [...list] : list;
+}
+
 export async function updateRosterByUid(uid: string, patch: RosterPatch): Promise<RosterRow> {
   const supabase = getSupabaseClient();
-  const rosterUpdate: Database["public"]["Tables"]["user_roster"]["Update"] = { ...patch };
+  const majors = writableList(patch.majors);
+  const minors = writableList(patch.minors);
+  const teams = writableList(patch.teams);
+  const menteeUids = writableList(patch.mentee_uids);
+  const rosterUpdate: Database["public"]["Tables"]["user_roster"]["Update"] = {
+    ...patch,
+    majors,
+    minors,
+    teams,
+    mentee_uids: menteeUids,
+  };
   if (patch.mentee_uids !== undefined) {
     rosterUpdate.mentee_count = patch.mentee_uids?.length ?? 0;
   }
@@ -518,13 +462,14 @@ export async function updateRosterByUid(uid: string, patch: RosterPatch): Promis
   if (error) throw error;
   if (!data) {
     const existing = await getRosterByUid(uid);
-    if (!existing) throw new Error("User not found");
-    throw new Error(
-      "Roster update blocked by RLS. Apply supabase/migrations/20260903053000_developer_write_user_roster.sql on the linked project.",
-    );
+    if (!existing) throw new NotFoundError({ resource: "User" });
+    throw new ForbiddenError({
+      reason:
+        "Roster update blocked by RLS. Apply supabase/migrations/20260903053000_developer_write_user_roster.sql on the linked project.",
+    });
   }
   const mapped = mapRosterRow(data);
-  if (!mapped) throw new Error("User not found");
+  if (!mapped) throw new NotFoundError({ resource: "User" });
 
   const profilePatch: Database["public"]["Tables"]["profiles"]["Update"] = {};
   if (patch.first_name !== undefined) profilePatch.first_name = patch.first_name;
@@ -535,9 +480,9 @@ export async function updateRosterByUid(uid: string, patch: RosterPatch): Promis
   if (patch.program_role !== undefined) profilePatch.program_role = patch.program_role;
   if (patch.fd_required !== undefined) profilePatch.fd_required = patch.fd_required;
   if (patch.ss_required !== undefined) profilePatch.ss_required = patch.ss_required;
-  if (patch.majors !== undefined) profilePatch.majors = patch.majors;
-  if (patch.minors !== undefined) profilePatch.minors = patch.minors;
-  if (patch.teams !== undefined) profilePatch.teams = patch.teams;
+  if (patch.majors !== undefined) profilePatch.majors = majors;
+  if (patch.minors !== undefined) profilePatch.minors = minors;
+  if (patch.teams !== undefined) profilePatch.teams = teams;
   if (patch.email !== undefined) profilePatch.emails = patch.email ? [patch.email] : [];
   if (patch.mentee_uids !== undefined) profilePatch.mentee_count = patch.mentee_uids?.length ?? 0;
 
@@ -557,7 +502,7 @@ export async function updateRosterByUid(uid: string, patch: RosterPatch): Promis
         if (profileUpdateError) throw profileUpdateError;
       }
       if (patch.mentee_uids !== undefined) {
-        await replaceMentorMenteeAssignments(profile.id, patch.mentee_uids ?? []);
+        await replaceMentorMenteeAssignments(profile.id, menteeUids ?? []);
       }
     }
   }

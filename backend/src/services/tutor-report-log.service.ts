@@ -223,13 +223,6 @@ export async function getTutorReportLogsByUid(uid: string): Promise<TutorReportL
   return withoutProbeTutorReports((data ?? []) as TutorReportLogRow[]);
 }
 
-export async function getTutorReportLogsByUidAndWeek(
-  uid: string,
-  weekNum: number
-): Promise<TutorReportLogRow[]> {
-  return fetchTutorReportsForCampusWeek(weekNum, uid);
-}
-
 export async function getTutorReportLogsByUids(uids: string[]): Promise<TutorReportLogRow[]> {
   if (!uids.length) return [];
   const supabase = getSupabaseClient();
@@ -241,11 +234,3 @@ export async function getTutorReportLogsByUids(uids: string[]): Promise<TutorRep
   return withoutProbeTutorReports((data ?? []) as TutorReportLogRow[]);
 }
 
-export async function didScholarAttendTutoring(
-  uid: string,
-  weekNum: number
-): Promise<boolean> {
-  if (!uid || isProbeTutorReportUid(uid) || isEmptyTutoringSessionUid(uid)) return false;
-  const rows = await fetchTutorReportsForCampusWeek(weekNum, uid);
-  return rows.length > 0;
-}

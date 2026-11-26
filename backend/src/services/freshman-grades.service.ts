@@ -19,6 +19,13 @@
  * - HTTP request/response logic
  * - daily_scholar_activity or frozen *_records_legacy tables
  */
+import type {
+  FreshmanGradeHoursWeek,
+  FreshmanGradeRow,
+  FreshmanGradesReport,
+  FreshmanGradesScoredWeeks,
+  FreshmanGradeWeekBreakdown,
+} from "@css-atlas/shared/contracts/dev";
 import { completionPct, effectiveMinutes, getCampusWeekAttendance } from "./attendance-week.service.js";
 import { getWhafFormLogsForWeekWithLate } from "./form-log.service.js";
 import { scholarWahfStatus, type ScholarWahfStatus } from "./memo-page.service.js";
@@ -48,25 +55,6 @@ export type FreshmanGradeWeekInput = {
   wahfStatus: ScholarWahfStatus;
 };
 
-export type FreshmanGradeHoursWeek = {
-  loggedMinutes: number;
-  excuseMinutes: number;
-  effectiveMinutes: number;
-  requiredMinutes: number | null;
-  /** Uncapped completion. Null when required minutes are missing or zero. */
-  rawPct: number | null;
-  /** Capped at 100. Null when the week is not scored. */
-  cappedPct: number | null;
-};
-
-export type FreshmanGradeWeekBreakdown = {
-  weekNum: number;
-  fd: FreshmanGradeHoursWeek;
-  ss: FreshmanGradeHoursWeek;
-  wahfStatus: ScholarWahfStatus;
-  wahfPct: number;
-};
-
 export type FreshmanGradeScholarInput = {
   uid: string;
   first_name: string | null;
@@ -79,31 +67,6 @@ export type FreshmanGradeScholarInput = {
   /** Display name from mentor_mentee. "Unassigned" when the scholar has no mentor. */
   mentor: string;
   weeks: FreshmanGradeWeekInput[];
-};
-
-export type FreshmanGradeRow = {
-  scholarId: string;
-  scholarName: string;
-  mentor: string;
-  cohort: number;
-  fdPct: number | null;
-  ssPct: number | null;
-  wahfPct: number | null;
-  weeks: FreshmanGradeWeekBreakdown[];
-};
-
-export type FreshmanGradesScoredWeeks = {
-  fromWeek: number;
-  throughWeek: number;
-};
-
-export type FreshmanGradesReport = {
-  /** Current campus week. 0 before the semester starts. */
-  throughWeek: number;
-  /** Weeks that are scored: week 2 through the week before throughWeek. */
-  scoredWeeks: FreshmanGradesScoredWeeks | null;
-  weights: typeof FRESHMAN_GRADE_WEIGHTS;
-  scholars: FreshmanGradeRow[];
 };
 
 /** Weeks 2 through the previous campus week. Null when that range is empty. */

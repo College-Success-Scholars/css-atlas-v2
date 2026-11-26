@@ -4,7 +4,7 @@
  *
  * Typed wrapper functions for every backend API endpoint.
  * This is the preferred way for Server Components and pages to fetch domain data.
- * Each function calls backendGet/backendPost/backendPut/backendPatch/backendDelete/backendDownload from api-client.ts
+ * Each function calls callEndpoint / downloadEndpoint (api-client.ts) with a contract from @css-atlas/shared/contracts
  * and returns a strongly-typed result.
  *
  * ## Responsibilities
@@ -21,47 +21,45 @@
  * - Client-side data fetching (that's lib/client/api-client.ts)
  */
 import "server-only";
-import { backendGet, backendPost, backendPut, backendPatch, backendDelete, backendDownload } from "./api-client";
-import { getEffectiveScholarId } from "../../../shared/dist/auth.js";
+import { callEndpoint, downloadEndpoint } from "./api-client";
+import type { EndpointRequest } from "@css-atlas/shared/contract";
+import * as attendance from "@css-atlas/shared/contracts/attendance";
+import { getEffectiveScholarId } from "@css-atlas/shared/auth";
+import * as sessionLogs from "@css-atlas/shared/contracts/session-logs";
+import * as users from "@css-atlas/shared/contracts/users";
+import type { ScholarInRoom, ScholarNoShow, ScholarWithCompletedSession, SessionLogRow } from "@css-atlas/shared/contracts/session-logs";
+import type { MemoUserRow, TeamLeaderRow } from "@css-atlas/shared/contracts/users";
 import type {
-  SessionLogRow,
   SessionType,
   CleanedAndErroredResult,
   CleanedAndErroredOptions,
-  ScholarInRoom,
   ScholarsInRoomOptions,
-  ScholarNoShow,
-  ScholarWithCompletedSession,
 } from "@/lib/types/session-log";
-import type { HoursBenchmarkReport } from "@/app/dashboard/hours-benchmark/types";
 import type {
   AttendanceKind,
   AttendanceWeekBoard,
   AttendanceForUids,
   ScholarWeekExcuse,
-} from "@/lib/types/attendance-week";
-import type { RosterRow } from "@/lib/types/roster";
-import type { MenteeWithCompliance } from "@/lib/types/supabase";
-import type {
-  McfPrefill,
-  MeetingPreferenceInput,
-  MeetingPreferenceOutput,
-  MenteeOption,
-  MenteeReview,
-} from "@/lib/types/mentee-review";
-import type {
-  TrafficSession,
-  WeekEntryCount,
-} from "@/lib/types/traffic";
+} from "@css-atlas/shared/contracts/attendance";
+import { getRoster, type RosterRow } from "@css-atlas/shared/contracts/dev";
+import * as mentees from "@css-atlas/shared/contracts/mentees";
+import type { McfPrefill, MeetingPreferenceInput, MeetingPreferenceOutput } from "@css-atlas/shared/contracts/mentees";
+import type { MenteeOption, MenteeReview } from "@/lib/types/mentee-review";
+import * as traffic from "@css-atlas/shared/contracts/traffic";
+import type { TrafficSession, WeekEntryCount } from "@css-atlas/shared/contracts/traffic";
+import * as dailyActivity from "@css-atlas/shared/contracts/daily-activity";
+import * as hoursBenchmark from "@css-atlas/shared/contracts/hours-benchmark";
+import * as formLogs from "@css-atlas/shared/contracts/form-logs";
 import type {
   McfFormLogRow,
-  WahfFormLogRow,
-  WplFormLogRow,
-  FormLogRowWithLate,
   RecentFormSubmission,
   TeamLeaderFormStatsRow,
-} from "@/lib/types/form-log";
-import type { TutorReportWeekRow } from "@/lib/types/tutor-report-log";
+  WahfFormLogRow,
+  WplFormLogRow,
+} from "@css-atlas/shared/contracts/form-logs";
+import * as memo from "@css-atlas/shared/contracts/memo";
+import * as tutorReports from "@css-atlas/shared/contracts/tutor-reports";
+import type { TutorReportWeekRow } from "@css-atlas/shared/contracts/tutor-reports";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -80,27 +78,9 @@ function dateOpts(options?: { startDate?: Date; endDate?: Date; scholarUids?: st
 // Users
 // ---------------------------------------------------------------------------
 
-export async function fetchMenteesWithCompliance(
-  startDate: Date,
-  endDate: Date
-): Promise<MenteeWithCompliance[]> {
-  const params = new URLSearchParams({
-    startDate: startDate.toISOString(),
-    endDate: endDate.toISOString(),
-  });
-  return backendGet<MenteeWithCompliance[]>(`/api/auth/mentees/compliance?${params}`);
-}
-
-type MenteeApiRow = {
-  scholar_uid: string | null;
-  first_name: string | null;
-  last_name: string | null;
-  email: string | null;
-};
-
 /** GET /api/auth/mentees — the caller's assigned mentees, normalized for the switcher. */
 export async function fetchMentees(): Promise<MenteeOption[]> {
-  const rows = await backendGet<MenteeApiRow[]>("/api/auth/mentees");
+  const rows = await callEndpoint(mentees.getMentees);
   return rows.flatMap((row) => {
     if (!row.scholar_uid) return [];
     const fullName = [row.first_name, row.last_name].filter(Boolean).join(" ").trim();
@@ -110,12 +90,7 @@ export async function fetchMentees(): Promise<MenteeOption[]> {
 
 /** GET /api/auth/mentees/:uid/review — authorized review (own meeting preference included). */
 export async function fetchMenteeReview(uid: string, week?: number | null): Promise<MenteeReview> {
-  const params = new URLSearchParams();
-  if (week != null) params.set("week", String(week));
-  const query = params.toString();
-  return backendGet<MenteeReview>(
-    `/api/auth/mentees/${encodeURIComponent(uid)}/review${query ? `?${query}` : ""}`
-  );
+  return callEndpoint(mentees.getMenteeReview, { params: { uid }, query: week != null ? { week } : {} });
 }
 
 /**
@@ -126,12 +101,7 @@ export async function fetchDirectoryMenteeReview(
   uid: string,
   week?: number | null,
 ): Promise<MenteeReview> {
-  const params = new URLSearchParams();
-  if (week != null) params.set("week", String(week));
-  const query = params.toString();
-  return backendGet<MenteeReview>(
-    `/api/auth/mentees/${encodeURIComponent(uid)}/directory-review${query ? `?${query}` : ""}`,
-  );
+  return callEndpoint(mentees.getDirectoryMenteeReview, { params: { uid }, query: week != null ? { week } : {} });
 }
 
 /** PUT /api/auth/mentees/:uid/meeting-preference — save the caller's own weekday/time. */
@@ -139,10 +109,7 @@ export async function saveMenteeMeetingPreference(
   uid: string,
   input: MeetingPreferenceInput
 ): Promise<MeetingPreferenceOutput> {
-  return backendPut<MeetingPreferenceOutput>(
-    `/api/auth/mentees/${encodeURIComponent(uid)}/meeting-preference`,
-    input
-  );
+  return callEndpoint(mentees.saveMeetingPreference, { params: { uid }, body: input });
 }
 
 /**
@@ -150,68 +117,25 @@ export async function saveMenteeMeetingPreference(
  * current week. Call on the user gesture; open the returned URL in a new tab.
  */
 export async function fetchMenteeMcfPrefill(uid: string): Promise<McfPrefill> {
-  return backendGet<McfPrefill>(`/api/auth/mentees/${encodeURIComponent(uid)}/mcf-prefill`);
+  return callEndpoint(mentees.getMenteeMcfPrefill, { params: { uid } });
 }
 
-export type MemoUserRow = {
-  uid: string;
-  first_name: string | null;
-  last_name: string | null;
-  cohort: number | null;
-  program_role: string | null;
-  app_role: string | null;
-  fd_required: number | null;
-  ss_required: number | null;
-  status: string | null;
-};
-
-export type TeamLeaderRow = Omit<MemoUserRow, "app_role"> & {
-  mentee_count: number | null;
-};
-
-export async function fetchScholarNamesByUids(uids: string[]): Promise<Map<string, string>> {
-  if (uids.length === 0) return new Map();
-  const data = await backendPost<Record<string, string>>("/api/users/scholar-names", { uids });
-  return new Map(Object.entries(data));
-}
-
-export async function fetchRequiredHoursByUids(
-  uids: string[]
-): Promise<Map<string, { fd_required: number | null; ss_required: number | null }>> {
-  if (uids.length === 0) return new Map();
-  const data = await backendPost<Record<string, { fd_required: number | null; ss_required: number | null }>>("/api/users/required-hours", { uids });
-  return new Map(Object.entries(data));
-}
-
-export async function fetchEligibleScholarUids(uids: string[]): Promise<Set<string>> {
-  if (uids.length === 0) return new Set();
-  return new Set(await backendPost<string[]>("/api/users/eligible-scholars", { uids }));
-}
-
-export async function fetchAllUserUids(): Promise<string[]> {
-  return backendGet<string[]>("/api/users/all-uids");
-}
-
-export async function fetchAllUsersForMemo(): Promise<MemoUserRow[]> {
-  return backendGet<MemoUserRow[]>("/api/users/memo-users");
+export async function fetchAllUsersForMemo(): Promise<readonly MemoUserRow[]> {
+  return callEndpoint(users.getMemoUsers);
 }
 
 export async function getUserByUid(uid: string): Promise<MemoUserRow | null> {
-  return backendGet<MemoUserRow | null>(`/api/users/${encodeURIComponent(uid)}`);
+  return callEndpoint(users.getUser, { params: { uid } });
 }
 
-export type { RosterRow } from "@/lib/types/roster";
+export type { RosterRow };
 
-export async function getRosterByUid(uid: string): Promise<RosterRow | null> {
-  return backendGet<RosterRow | null>(`/api/dev/roster/${encodeURIComponent(uid)}`);
+export async function getRosterByUid(uid: string): Promise<RosterRow> {
+  return callEndpoint(getRoster, { params: { uid } });
 }
 
-export async function fetchTeamLeaders(): Promise<TeamLeaderRow[]> {
-  return backendGet<TeamLeaderRow[]>("/api/users/team-leaders");
-}
-
-export async function fetchScholarUids(): Promise<string[]> {
-  return backendGet<string[]>("/api/users/scholar-uids");
+export async function fetchTeamLeaders(): Promise<readonly TeamLeaderRow[]> {
+  return callEndpoint(users.getTeamLeaders);
 }
 
 // ---------------------------------------------------------------------------
@@ -220,70 +144,68 @@ export async function fetchScholarUids(): Promise<string[]> {
 
 export async function fetchFrontDeskLogs(options?: {
   startDate?: Date; endDate?: Date; scholarUids?: string[]; sessionType?: SessionType | string;
-}): Promise<SessionLogRow[]> {
-  return backendPost<SessionLogRow[]>("/api/session-logs/front-desk", dateOpts(options));
+}): Promise<readonly SessionLogRow[]> {
+  return callEndpoint(sessionLogs.getFrontDeskLogs, { body: dateOpts(options) });
 }
 
 export async function fetchStudySessionLogs(options?: {
   startDate?: Date; endDate?: Date; scholarUids?: string[]; sessionType?: SessionType | string;
-}): Promise<SessionLogRow[]> {
-  return backendPost<SessionLogRow[]>("/api/session-logs/study", dateOpts(options));
+}): Promise<readonly SessionLogRow[]> {
+  return callEndpoint(sessionLogs.getStudyLogs, { body: dateOpts(options) });
 }
 
 export async function getFrontDeskCleanedAndErrored(
   options?: { startDate?: Date; endDate?: Date; scholarUids?: string[]; sessionType?: SessionType | string; } & CleanedAndErroredOptions
-) {
-  const raw = await backendPost<{ byScholarUid: Record<string, { cleaned: unknown[]; errored: unknown[]; scholarName: string | null }>; allCleaned: unknown[]; allErrored: unknown[] }>(
-    "/api/session-logs/front-desk/cleaned",
-    { ...dateOpts(options), treatUnclosedEntryAsError: options?.treatUnclosedEntryAsError }
-  );
-  return { byScholarUid: new Map(Object.entries(raw.byScholarUid)), allCleaned: raw.allCleaned, allErrored: raw.allErrored } as CleanedAndErroredResult;
+): Promise<CleanedAndErroredResult> {
+  const raw = await callEndpoint(sessionLogs.getFrontDeskCleaned, {
+    body: { ...dateOpts(options), treatUnclosedEntryAsError: options?.treatUnclosedEntryAsError },
+  });
+  return { ...raw, byScholarUid: new Map(Object.entries(raw.byScholarUid)) };
 }
 
 export async function getFrontDeskScholarsInRoom(
   options?: ScholarsInRoomOptions & { startDate?: Date; endDate?: Date; scholarUids?: string[] }
-): Promise<ScholarInRoom[]> {
-  return backendPost<ScholarInRoom[]>("/api/session-logs/front-desk/in-room", {
-    ...dateOpts(options), asOf: options?.asOf?.toISOString(),
+): Promise<readonly ScholarInRoom[]> {
+  return callEndpoint(sessionLogs.getFrontDeskInRoom, {
+    body: { ...dateOpts(options), asOf: options?.asOf?.toISOString() },
   });
 }
 
 export async function getFrontDeskCompletedSessions(options?: {
   startDate?: Date; endDate?: Date; scholarUids?: string[]; sessionType?: SessionType | string;
-}): Promise<ScholarWithCompletedSession[]> {
-  return backendPost<ScholarWithCompletedSession[]>("/api/session-logs/front-desk/completed", dateOpts(options));
+}): Promise<readonly ScholarWithCompletedSession[]> {
+  return callEndpoint(sessionLogs.getFrontDeskCompleted, { body: dateOpts(options) });
 }
 
 export async function getStudySessionCleanedAndErrored(
   options?: { startDate?: Date; endDate?: Date; scholarUids?: string[]; sessionType?: string; } & CleanedAndErroredOptions
-) {
-  const raw = await backendPost<{ byScholarUid: Record<string, unknown>; allCleaned: unknown[]; allErrored: unknown[] }>(
-    "/api/session-logs/study/cleaned",
-    { ...dateOpts(options), treatUnclosedEntryAsError: options?.treatUnclosedEntryAsError }
-  );
-  return { byScholarUid: new Map(Object.entries(raw.byScholarUid)), allCleaned: raw.allCleaned, allErrored: raw.allErrored } as CleanedAndErroredResult;
+): Promise<CleanedAndErroredResult> {
+  const raw = await callEndpoint(sessionLogs.getStudyCleaned, {
+    body: { ...dateOpts(options), treatUnclosedEntryAsError: options?.treatUnclosedEntryAsError },
+  });
+  return { ...raw, byScholarUid: new Map(Object.entries(raw.byScholarUid)) };
 }
 
 export async function getStudySessionScholarsInRoom(
   options?: ScholarsInRoomOptions & { startDate?: Date; endDate?: Date; scholarUids?: string[] }
-): Promise<ScholarInRoom[]> {
-  return backendPost<ScholarInRoom[]>("/api/session-logs/study/in-room", {
-    ...dateOpts(options), asOf: options?.asOf?.toISOString(),
+): Promise<readonly ScholarInRoom[]> {
+  return callEndpoint(sessionLogs.getStudyInRoom, {
+    body: { ...dateOpts(options), asOf: options?.asOf?.toISOString() },
   });
 }
 
 export async function getStudySessionCompletedSessions(options?: {
   startDate?: Date; endDate?: Date; scholarUids?: string[]; sessionType?: string;
-}): Promise<ScholarWithCompletedSession[]> {
-  return backendPost<ScholarWithCompletedSession[]>("/api/session-logs/study/completed", dateOpts(options));
+}): Promise<readonly ScholarWithCompletedSession[]> {
+  return callEndpoint(sessionLogs.getStudyCompleted, { body: dateOpts(options) });
 }
 
-export async function getStudySessionNoShows(): Promise<ScholarNoShow[]> {
-  return backendGet<ScholarNoShow[]>("/api/session-logs/study/no-shows");
+export async function getStudySessionNoShows(): Promise<readonly ScholarNoShow[]> {
+  return callEndpoint(sessionLogs.getStudyNoShows);
 }
 
-export async function getFrontDeskNoShows(): Promise<ScholarNoShow[]> {
-  return backendGet<ScholarNoShow[]>("/api/session-logs/front-desk/no-shows");
+export async function getFrontDeskNoShows(): Promise<readonly ScholarNoShow[]> {
+  return callEndpoint(sessionLogs.getFrontDeskNoShows);
 }
 
 // ---------------------------------------------------------------------------
@@ -294,7 +216,7 @@ export async function getAttendanceWeekBoard(
   weekNum: number,
   kind: AttendanceKind
 ): Promise<AttendanceWeekBoard> {
-  return backendGet(`/api/attendance/week/${weekNum}?kind=${kind}`);
+  return callEndpoint(attendance.getWeekBoard, { params: { week_num: weekNum }, query: { kind } });
 }
 
 export async function fetchAttendanceForUids(
@@ -304,29 +226,25 @@ export async function fetchAttendanceForUids(
   if (uids.length === 0) {
     return { week_num: weekNum, week_start: "", rows: [] };
   }
-  return backendPost<AttendanceForUids>(`/api/attendance/week/${weekNum}/by-uids`, { uids });
+  return callEndpoint(attendance.getWeekAttendanceForUids, { params: { week_num: weekNum }, body: { uids } });
 }
 
-export async function upsertAttendanceExcuse(payload: {
-  uid: string;
-  weekNum: number;
-  kind: AttendanceKind;
-  excuse_min: number | null;
-  description: string | null;
-}): Promise<ScholarWeekExcuse> {
-  return backendPatch("/api/attendance/excuse", payload);
+export async function upsertAttendanceExcuse(
+  excuse: EndpointRequest<typeof attendance.upsertExcuse>["body"]
+): Promise<ScholarWeekExcuse> {
+  return callEndpoint(attendance.upsertExcuse, { body: excuse });
 }
 
 // ---------------------------------------------------------------------------
 // Tutor reports (campus week — session `date`, then `start_time`)
 // ---------------------------------------------------------------------------
 
-export async function getTutorReportWeekRows(weekNum: number): Promise<TutorReportWeekRow[]> {
-  return backendGet(`/api/tutor-reports/week/${weekNum}`);
+export async function getTutorReportWeekRows(weekNum: number): Promise<readonly TutorReportWeekRow[]> {
+  return callEndpoint(tutorReports.getWeek, { params: { week_num: weekNum } });
 }
 
-export async function deleteTutorReport(id: number): Promise<{ id: number }> {
-  return backendDelete(`/api/tutor-reports/${id}`);
+export async function deleteTutorReport(id: number): Promise<{ readonly id: number }> {
+  return callEndpoint(tutorReports.remove, { params: { id } });
 }
 
 // ---------------------------------------------------------------------------
@@ -335,48 +253,47 @@ export async function deleteTutorReport(id: number): Promise<{ id: number }> {
 
 export type { WeekEntryCount };
 
-export async function getTrafficSessionsForWeek(weekNumber: number): Promise<TrafficSession[]> {
-  return backendGet(`/api/traffic/sessions/${weekNumber}`);
+export async function getTrafficSessionsForWeek(weekNumber: number): Promise<readonly TrafficSession[]> {
+  return callEndpoint(traffic.getSessionsForWeek, { params: { week_num: weekNumber } });
 }
 
 export async function getTrafficEntryCountForWeek(weekNumber: number): Promise<number> {
-  return backendGet(`/api/traffic/entry-count/${weekNumber}`);
+  return callEndpoint(traffic.getEntryCountForWeek, { params: { week_num: weekNumber } });
 }
 
-export async function getTrafficEntryCountsForWeeks(weekNumbers: number[]): Promise<WeekEntryCount[]> {
+export async function getTrafficEntryCountsForWeeks(weekNumbers: ReadonlyArray<number>): Promise<readonly WeekEntryCount[]> {
   if (weekNumbers.length === 0) return [];
-  return backendPost("/api/traffic/entry-counts", { weekNumbers });
+  return callEndpoint(traffic.getEntryCountsForWeeks, { body: { weekNumbers } });
 }
 
 // ---------------------------------------------------------------------------
 // Form logs
 // ---------------------------------------------------------------------------
 
-export type WahfFormLogRowWithLate = FormLogRowWithLate<WahfFormLogRow>;
-export type McfFormLogRowWithLate = FormLogRowWithLate<McfFormLogRow>;
-export type WplFormLogRowWithLate = FormLogRowWithLate<WplFormLogRow>;
+export async function getMcfFormLogsByUid(uid: string): Promise<readonly McfFormLogRow[]> {
+  return callEndpoint(formLogs.getMcfByUid, { params: { uid } });
+}
+export async function getWhafFormLogsByUid(uid: string): Promise<readonly WahfFormLogRow[]> {
+  return callEndpoint(formLogs.getWahfByUid, { params: { uid } });
+}
+export async function getWplFormLogsByUid(uid: string): Promise<readonly WplFormLogRow[]> {
+  return callEndpoint(formLogs.getWplByUid, { params: { uid } });
+}
 
-export async function getMcfFormLogsForWeek(weekNum: number) { return backendGet<McfFormLogRow[]>(`/api/form-logs/mcf/week/${weekNum}`); }
-export async function getMcfFormLogsByUid(uid: string) { return backendGet<McfFormLogRow[]>(`/api/form-logs/mcf/uid/${encodeURIComponent(uid)}`); }
-export async function getMcfFormLogsByUidAndWeek(uid: string, weekNum: number) { return backendGet<McfFormLogRow[]>(`/api/form-logs/mcf/uid/${encodeURIComponent(uid)}/week/${weekNum}`); }
-export async function getWhafFormLogsForWeek(weekNum: number) { return backendGet<WahfFormLogRow[]>(`/api/form-logs/whaf/week/${weekNum}`); }
-export async function getWhafFormLogsByUid(uid: string) { return backendGet<WahfFormLogRow[]>(`/api/form-logs/whaf/uid/${encodeURIComponent(uid)}`); }
-export async function getWplFormLogsForWeek(weekNum: number) { return backendGet<WplFormLogRow[]>(`/api/form-logs/wpl/week/${weekNum}`); }
-export async function getWplFormLogsByUid(uid: string) { return backendGet<WplFormLogRow[]>(`/api/form-logs/wpl/uid/${encodeURIComponent(uid)}`); }
-export async function getWplFormLogsByUidAndWeek(uid: string, weekNum: number) { return backendGet<WplFormLogRow[]>(`/api/form-logs/wpl/uid/${encodeURIComponent(uid)}/week/${weekNum}`); }
-
-export async function getWhafFormLogsForWeekWithLate(weekNum: number) { return backendGet<WahfFormLogRowWithLate[]>(`/api/form-logs/whaf/week/${weekNum}/with-late`); }
-export async function getMcfFormLogsForWeekWithLate(weekNum: number) { return backendGet<McfFormLogRowWithLate[]>(`/api/form-logs/mcf/week/${weekNum}/with-late`); }
-export async function getMcfFormLogsByUidWithLate(uid: string) { return backendGet<McfFormLogRowWithLate[]>(`/api/form-logs/mcf/uid/${encodeURIComponent(uid)}/with-late`); }
-export async function getMcfFormLogsByUidAndWeekWithLate(uid: string, weekNum: number) { return backendGet<McfFormLogRowWithLate[]>(`/api/form-logs/mcf/uid/${encodeURIComponent(uid)}/week/${weekNum}/with-late`); }
-export async function getWplFormLogsForWeekWithLate(weekNum: number) { return backendGet<WplFormLogRowWithLate[]>(`/api/form-logs/wpl/week/${weekNum}/with-late`); }
-export async function getWplFormLogsByUidWithLate(uid: string) { return backendGet<WplFormLogRowWithLate[]>(`/api/form-logs/wpl/uid/${encodeURIComponent(uid)}/with-late`); }
-export async function getWplFormLogsByUidAndWeekWithLate(uid: string, weekNum: number) { return backendGet<WplFormLogRowWithLate[]>(`/api/form-logs/wpl/uid/${encodeURIComponent(uid)}/week/${weekNum}/with-late`); }
+export async function getMcfFormLogsForWeekWithLate(weekNum: number) {
+  return callEndpoint(formLogs.getMcfWeekWithLate, { params: { week_num: weekNum } });
+}
+export async function getWhafFormLogsForWeekWithLate(weekNum: number) {
+  return callEndpoint(formLogs.getWahfWeekWithLate, { params: { week_num: weekNum } });
+}
+export async function getWplFormLogsForWeekWithLate(weekNum: number) {
+  return callEndpoint(formLogs.getWplWeekWithLate, { params: { week_num: weekNum } });
+}
 
 export type { TeamLeaderFormStatsRow };
 
-export async function getTeamLeaderFormStatsForWeek(weekNumber: number): Promise<TeamLeaderFormStatsRow[]> {
-  return backendPost("/api/form-logs/team-leader-stats", { weekNumber });
+export async function getTeamLeaderFormStatsForWeek(weekNumber: number): Promise<readonly TeamLeaderFormStatsRow[]> {
+  return callEndpoint(formLogs.getTeamLeaderStats, { body: { week_num: weekNumber } });
 }
 
 export function scholarIdFromProfile(profile: { student_id?: unknown } | null): string | null {
@@ -388,10 +305,10 @@ export const scholarUidFromProfile = scholarIdFromProfile;
 
 export async function getRecentFormSubmissions(params: {
   profile: { student_id?: string | null } | null;
-}): Promise<RecentFormSubmission[]> {
+}): Promise<readonly RecentFormSubmission[]> {
   const scholarId = scholarIdFromProfile(params.profile);
   if (!scholarId) return [];
-  return backendPost("/api/form-logs/recent-submissions", { scholarId });
+  return callEndpoint(formLogs.getRecentSubmissions, { body: { scholarId } });
 }
 
 // ---------------------------------------------------------------------------
@@ -401,19 +318,18 @@ export async function getRecentFormSubmissions(params: {
 export async function getTotalMinutesForMenteeWeek(params: {
   menteeUid: string; weekNum: number; logSource: string;
 }): Promise<number> {
-  const { menteeUid, weekNum, logSource } = params;
-  return backendGet(`/api/daily-activity/minutes?menteeUid=${encodeURIComponent(menteeUid)}&weekNum=${weekNum}&logSource=${encodeURIComponent(logSource)}`);
+  return callEndpoint(dailyActivity.getMinutes, { query: params });
 }
 
-export async function getWeeklyMemoPdf(weekNumber: number): Promise<Response> {
-  return backendDownload(`/api/memo/pdf?weekNumber=${weekNumber}`);
+/** The finished Weekly Memo for a campus week (the current one when omitted). */
+export async function getWeeklyMemo(weekNum?: number) {
+  return callEndpoint(memo.getWeeklyMemo, { query: { week_num: weekNum } });
+}
+
+export async function getWeeklyMemoPdf(weekNum: number): Promise<Response> {
+  return downloadEndpoint(memo.getPdf, { query: { week_num: weekNum } });
 }
 
 export async function getHoursBenchmarkReport() {
-  return backendGet<HoursBenchmarkReport>("/api/hours-benchmark");
-}
-
-export async function getHoursBenchmarkPdf(scope: "low" | "all" = "low"): Promise<Response> {
-  const query = new URLSearchParams({ scope });
-  return backendDownload(`/api/hours-benchmark/pdf?${query}`);
+  return callEndpoint(hoursBenchmark.getReport);
 }

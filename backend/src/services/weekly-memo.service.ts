@@ -1,0 +1,342 @@
+/**
+ * @file weekly-memo.service.ts
+ * @module backend/services
+ *
+ * Assembles the Weekly Memo once, from memo page data (memo-page.service.ts):
+ * KPI cards, Team leader performance, Scholar follow-up, Tutoring log,
+ * Recognition board, Attendance detail and the week picker. The dashboard
+ * renders the result as-is (contract: @css-atlas/shared/contracts/memo).
+ */
+import { formStatus } from "@css-atlas/shared/form-status";
+import type {
+  MemoFormStatus as FormStatus,
+  MemoGradeEntry as GradeEntry,
+  RecognitionBoardSectionData,
+  TeamLeaderPerformanceRow,
+  TutoringLogRow,
+  WeekNavigation,
+  WeeklyKpiCard,
+  WeeklyMemo,
+} from "@css-atlas/shared/contracts/memo";
+import {
+  EASTERN_TIMEZONE,
+  freshmanCohortYear,
+  scholarYearGroupLabel,
+  scholarYearLabel,
+  sophomoreCohortYear,
+} from "./time.service.js";
+import { getMemoPageData } from "./memo-page.service.js";
+import { dateToCampusWeek } from "./time.service.js";
+import { classifyScholarFollowUpRisk } from "./weekly-memo-risk.js";
+import type { MemoPageData } from "./weekly-memo-report.service.js";
+
+/** The campus week to show: the requested one, else the current one; null before the year starts. */
+export function memoWeek(requested: number | undefined, asOf: Date): number | null {
+  return requested ?? dateToCampusWeek(asOf);
+}
+
+/** The finished Weekly Memo for a campus week (the current one when omitted). */
+export async function getWeeklyMemo(requested: number | undefined, asOf: Date): Promise<WeeklyMemo | { yearNotStarted: true }> {
+  const week = memoWeek(requested, asOf);
+  if (week == null) return { yearNotStarted: true };
+  return assembleWeeklyMemo(await getMemoPageData(week), asOf);
+}
+
+type MemoScholarRow = MemoPageData["scholars"][number];
+type GradeBreakdown = MemoPageData["gradeBreakdown"];
+type MemoTutorReportRow = MemoPageData["tutorReports"][number];
+
+/**
+ * The campus weeks the week picker offers (weeks with traffic, the selected
+ * week and the current week) and the selected week's neighbours.
+ */
+export function weekNavigation(data: {
+  trafficWeeklyData: ReadonlyArray<{ weekNumber: number }>;
+  selectedWeekNumber: number;
+  currentCampusWeek: number | null;
+}): WeekNavigation {
+  const availableWeeks = Array.from(
+    new Set([
+      ...data.trafficWeeklyData.map((entry) => entry.weekNumber),
+      data.selectedWeekNumber,
+      ...(data.currentCampusWeek != null ? [data.currentCampusWeek] : []),
+    ]),
+  ).sort((a, b) => a - b);
+  const index = availableWeeks.indexOf(data.selectedWeekNumber);
+  return {
+    availableWeeks,
+    prevWeek: index > 0 ? (availableWeeks[index - 1] ?? null) : null,
+    nextWeek: index >= 0 ? (availableWeeks[index + 1] ?? null) : null,
+    currentCampusWeek: data.currentCampusWeek,
+  };
+}
+
+/** Matches backend WEEKLY_MEMO_SNAPSHOT_COMPLETE_PERCENT in weekly-memo-report.service.ts */
+const SNAPSHOT_COMPLETE_PERCENT = 80
+
+
+const hasNoMenteeAssignment = (mcfRequired: number): boolean => mcfRequired <= 0
+
+const formatWeekDateRange = (weekLabel: string) => {
+  const [start, end] = weekLabel.split("-").map((part) => part.trim())
+  return {
+    weekStartLabel: start || weekLabel,
+    weekEndLabel: end || weekLabel,
+  }
+}
+
+const buildTeamLeaderRows = (data: MemoPageData): TeamLeaderPerformanceRow[] =>
+  data.teamLeaderFormStats.map((row) => {
+    const hasNoMentee = hasNoMenteeAssignment(row.mcfRequired)
+    return {
+      leaderName: row.name,
+      mcf: hasNoMentee ? "on-time" : formStatus({ completed: row.mcfCompleted, required: row.mcfRequired, late: row.mcfLate }),
+      wpl: formStatus({ completed: row.wplCompleted, required: row.wplRequired, late: row.wplLate }),
+      wahf: formStatus({ completed: row.wahfCompleted, required: row.wahfRequired, late: row.wahfLate }),
+      menteesOk: row.wahfPct >= 90 && row.wplPct >= 90 && row.mcfPct >= 90 ? ("yes" as const) : ("check" as const),
+      hasNoMentee,
+    }
+  })
+
+const mapTutoringLogRow = (
+  report: MemoTutorReportRow,
+  cohortById: Map<string, number | null>,
+): TutoringLogRow => ({
+  id: report.id,
+  scholarId: report.scholarId,
+  isMentee: report.isMentee ?? false,
+  scholarName: report.scholarName,
+  cohort: report.scholarId ? cohortById.get(report.scholarId) ?? null : null,
+  dayOfWeek: report.dayOfWeek,
+  tutorName: report.tutorName,
+  courses: report.courses,
+  startTime: report.startTime,
+  endTime: report.endTime,
+})
+
+const RECOGNITION_BANDS = [
+  { id: "high" as const, label: "90 – 100%", key: "high" as const },
+  { id: "mid" as const, label: "70 – 89%", key: "mid" as const },
+  { id: "low" as const, label: "Below 70%", key: "low" as const },
+]
+
+const byGradePercentDesc = (left: GradeEntry, right: GradeEntry) => {
+  if (left.percent !== right.percent) return right.percent - left.percent
+  const byName = left.scholarName.localeCompare(right.scholarName)
+  if (byName !== 0) return byName
+  return left.course.localeCompare(right.course)
+}
+
+const buildRecognitionBoard = (
+  breakdown: GradeBreakdown,
+  cohortById: Map<string, number | null>,
+): RecognitionBoardSectionData => {
+  const withCohort = (entry: GradeEntry): GradeEntry => ({
+    ...entry,
+    cohort: entry.scholarId ? cohortById.get(entry.scholarId) ?? null : null,
+  })
+  const bands = RECOGNITION_BANDS.map((band) => ({
+    id: band.id,
+    label: band.label,
+    entries: [...breakdown[band.key]].sort(byGradePercentDesc).map(withCohort),
+  }))
+  const total = bands.reduce((sum, band) => sum + band.entries.length, 0)
+  return {
+    badgeText: `${total} grade${total === 1 ? "" : "s"}`,
+    rightLabel: "90–100% · 70–89% · Below 70%",
+    bands,
+  }
+}
+
+const buildTutoringLog = (
+  tutorReports: MemoTutorReportRow[],
+  cohortById: Map<string, number | null>,
+) => {
+  const sessions = tutorReports
+    .filter((report) => report.scholarName !== "EMPTY SESSION")
+    .map((report) => mapTutoringLogRow(report, cohortById))
+  const emptySessions = tutorReports
+    .filter((report) => report.scholarName === "EMPTY SESSION")
+    .map((report) => mapTutoringLogRow(report, cohortById))
+
+  return {
+    badgeText: `${sessions.length} session${sessions.length === 1 ? "" : "s"}`,
+    rightLabel: "Sessions · Empty sessions",
+    tabs: [
+      { id: "sessions" as const, label: "Sessions", rows: sessions },
+      { id: "empty-sessions" as const, label: "Empty sessions", rows: emptySessions },
+    ],
+  }
+}
+
+function hoursCompletionPercent(completedMinutes: number, requiredMinutes: number): number {
+  return Math.max(0, Math.min(100, Math.round((completedMinutes / requiredMinutes) * 100)))
+}
+
+function scholarHoursComplete(
+  scholar: MemoScholarRow,
+  totalKey: "fdTotal" | "ssTotal",
+  excuseKey: "fdExcuseMin" | "ssExcuseMin",
+  requiredKey: "fdRequired" | "ssRequired",
+): boolean {
+  const requiredMinutes = scholar[requiredKey]
+  if (requiredMinutes == null || requiredMinutes <= 0) return false
+  const completedMinutes = scholar[totalKey] + scholar[excuseKey]
+  return hoursCompletionPercent(completedMinutes, requiredMinutes) >= SNAPSHOT_COMPLETE_PERCENT
+}
+
+/** Print snapshot hours: complete at 80%+, Sophomores then Freshmen, denominator is the class-year roster. */
+function snapshotHoursOverview(
+  scholars: MemoScholarRow[],
+  totalKey: "fdTotal" | "ssTotal",
+  excuseKey: "fdExcuseMin" | "ssExcuseMin",
+  requiredKey: "fdRequired" | "ssRequired",
+): Array<{ label: string; completed: number; total: number }> {
+  return [sophomoreCohortYear(), freshmanCohortYear()].map((cohort) => {
+    const inCohort = scholars.filter((scholar) => scholar.cohort === cohort)
+    const completed = inCohort.filter((scholar) =>
+      scholarHoursComplete(scholar, totalKey, excuseKey, requiredKey)
+    ).length
+    return {
+      label: scholarYearGroupLabel(cohort) ?? `Cohort ${cohort}`,
+      completed,
+      total: inCohort.length,
+    }
+  })
+}
+
+function ratioPct(completed: number, total: number): number {
+  return total === 0 ? 0 : Math.round((completed / total) * 100)
+}
+
+function hoursKpiCard(
+  title: string,
+  overview: Array<{ label: string; completed: number; total: number }>,
+): WeeklyKpiCard {
+  const completed = overview.reduce((sum, row) => sum + row.completed, 0)
+  const total = overview.reduce((sum, row) => sum + row.total, 0)
+  return {
+    title,
+    primaryValue: `${completed} / ${total}`,
+    secondaryText: `${SNAPSHOT_COMPLETE_PERCENT}% or more`,
+    trendText: "",
+    pct: ratioPct(completed, total),
+    subStats: overview.map((row) => {
+      const pct = ratioPct(row.completed, row.total)
+      return { label: row.label, value: `${row.completed} / ${row.total} (${pct}%)`, pct }
+    }),
+  }
+}
+
+function visitsTrendText(
+  thisWeekCount: number,
+  lastComparableCount: number,
+  selectedWeek: number,
+  currentCampusWeek: number | null,
+  asOf: Date,
+): string {
+  if (selectedWeek <= 1) return ""
+  if (thisWeekCount === 0 && lastComparableCount === 0) return ""
+  const direction = thisWeekCount >= lastComparableCount ? "up" : "down"
+  if (selectedWeek === currentCampusWeek) {
+    const weekday = asOf.toLocaleDateString("en-US", {
+      weekday: "long",
+      timeZone: EASTERN_TIMEZONE,
+    })
+    return `${direction} vs last ${weekday}`
+  }
+  return `${direction} vs last week`
+}
+
+/** Assemble the memo; `asOf` is the request time (used for "vs last <weekday>" on the current week). */
+export const assembleWeeklyMemo = (data: MemoPageData, asOf: Date): WeeklyMemo => {
+  const weekDates = formatWeekDateRange(data.weekLabel)
+
+  const teamLeaderRows = buildTeamLeaderRows(data)
+  const scholarRows = classifyScholarFollowUpRisk(data)
+  const cohortById = new Map(data.scholars.map((scholar) => [scholar.scholarId, scholar.cohort]))
+  const tutoringLog = buildTutoringLog(data.tutorReports, cohortById)
+  const noShowCount = tutoringLog.tabs.find((tab) => tab.id === "empty-sessions")?.rows.length ?? 0
+  const sessionsLogged = data.tutorReports.length - noShowCount
+
+  const makeAttendanceRows = (
+    totalKey: "fdTotal" | "ssTotal",
+    excuseKey: "fdExcuseMin" | "ssExcuseMin",
+    requiredKey: "fdRequired" | "ssRequired"
+  ) =>
+    data.scholars
+      .filter((scholar) => (scholar[requiredKey] ?? 0) > 0)
+      .map((scholar) => {
+        const logged = scholar[totalKey]
+        const excuseMinutes = scholar[excuseKey]
+        const requiredMinutes = scholar[requiredKey] ?? 0
+        const completedMinutes = logged + excuseMinutes
+        const completionPct =
+          requiredMinutes > 0 ? Math.round((completedMinutes / requiredMinutes) * 100) : 0
+        return {
+          scholarId: scholar.scholarId,
+          isMentee: scholar.isMentee,
+          scholarName: scholar.scholarName,
+          scholarYear: scholarYearLabel(scholar.cohort) ?? "—",
+          cohort: scholar.cohort,
+          completedMinutes,
+          excuseMinutes,
+          requiredMinutes,
+          completionPct: Math.max(0, Math.min(100, completionPct)),
+        }
+      })
+
+  return {
+    yearNotStarted: false as const,
+    weekStartLabel: weekDates.weekStartLabel,
+    weekEndLabel: weekDates.weekEndLabel,
+    weekNumber: data.selectedWeekNumber,
+    navigation: weekNavigation(data),
+    kpis: [
+      {
+        title: "Visits this week",
+        primaryValue: String(data.trafficEntryCountForSelectedWeek),
+        secondaryText: `${data.trafficSessions.length} traffic sessions`,
+        trendText: visitsTrendText(
+          data.trafficEntryCountForSelectedWeek,
+          data.trafficComparableLastWeekCount,
+          data.selectedWeekNumber,
+          data.currentCampusWeek,
+          asOf,
+        ),
+        subStats: [],
+      },
+      hoursKpiCard(
+        "Front desk hours",
+        snapshotHoursOverview(data.scholars, "fdTotal", "fdExcuseMin", "fdRequired"),
+      ),
+      hoursKpiCard(
+        "Study session hours",
+        snapshotHoursOverview(data.scholars, "ssTotal", "ssExcuseMin", "ssRequired"),
+      ),
+      {
+        title: "Tutoring sessions",
+        primaryValue: String(sessionsLogged),
+        secondaryText: `${noShowCount} no-show${noShowCount === 1 ? "" : "s"}`,
+        trendText: "",
+        subStats: [],
+      },
+    ],
+    teamLeaderRows,
+    scholarRows,
+    tutoringLog,
+    recognitionBoard: buildRecognitionBoard(data.gradeBreakdown, cohortById),
+    fullAttendanceDetail: {
+      rightLabel: "Front desk · Study sessions · WAHF",
+      wahfCensus: {
+        onTime: data.scholars.filter((row) => row.wahfStatus === "on-time").length,
+        late: data.scholars.filter((row) => row.wahfStatus === "late").length,
+        missing: data.scholars.filter((row) => row.wahfStatus === "missing").length,
+      },
+      tabs: [
+        { id: "front-desk", label: "Front desk", rows: makeAttendanceRows("fdTotal", "fdExcuseMin", "fdRequired") },
+        { id: "study-sessions", label: "Study sessions", rows: makeAttendanceRows("ssTotal", "ssExcuseMin", "ssRequired") },
+      ],
+    },
+  }
+}

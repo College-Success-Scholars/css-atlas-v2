@@ -11,7 +11,7 @@
  * - Ensure the same data is not fetched multiple times per request
  *
  * ## What belongs here
- * - cache()-wrapped calls to backendGet or lib/supabase/server.ts helpers
+ * - cache()-wrapped calls to callEndpoint or lib/supabase/server.ts helpers
  * - Queries called from multiple layout/page components in the same request
  *
  * ## What does NOT belong here
@@ -19,23 +19,11 @@
  * - Mutations (use actions.ts)
  */
 import { cache } from "react";
-import { backendGet } from "./api-client";
+import * as auth from "@css-atlas/shared/contracts/auth";
+import * as mentees from "@css-atlas/shared/contracts/mentees";
+import { callEndpoint } from "./api-client";
 
-export type CurrentUserResponse = {
-  user: { id: string; email: string | null };
-  profile: Record<string, unknown> | null;
-  realProfile?: Record<string, unknown> | null;
-  activeTestProfileId?: string | null;
-  isActingAsTestProfile?: boolean;
-};
-
-export type DevTestProfileListItem = {
-  id: string;
-  label: string;
-  roster_uid: string;
-  program_role: string | null;
-  app_role: string | null;
-};
+export type CurrentUserResponse = auth.CurrentUser;
 
 /**
  * Fetches GET /api/auth/semester. Use sparingly — prefer the server-owned time
@@ -44,12 +32,12 @@ export type DevTestProfileListItem = {
  * collection year has not started yet).
  */
 export const getActiveSemester = cache(async () => {
-  return backendGet<{ id: number; iso_week_offset: number; start_date: string; end_date: string }>("/api/auth/semester");
+  return callEndpoint(auth.getSemester);
 });
 
 export const getCurrentUser = cache(async (): Promise<CurrentUserResponse | null> => {
   try {
-    return await backendGet<CurrentUserResponse>("/api/auth/me");
+    return await callEndpoint(auth.getMe);
   } catch {
     return null;
   }
@@ -61,5 +49,5 @@ export const getCurrentProfile = cache(async () => {
 });
 
 export const getMyMentees = cache(async () => {
-  return backendGet<Array<Record<string, unknown>>>("/api/auth/mentees");
+  return callEndpoint(mentees.getMentees);
 });

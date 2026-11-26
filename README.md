@@ -51,7 +51,7 @@ The Next.js frontend owns authentication and session handling. Domain data flows
 | Separate shared package | Shares calendar and time behavior without coupling app layers to database DTOs | Pure TypeScript library compiled before app builds |
 | Explicit role hierarchy | Gives each program persona only the operations it needs | scholar/basic user -> team leader -> developer |
 | Container parity for deployment | Lets CI exercise production-style images while retaining a fast local loop | frontend on `:3000`, backend on `:3001`; Docker Compose is used for smoke testing |
-| Root Dockerfiles | Includes the shared package during independent frontend/backend builds | supports Railway split deployment and Vercel same-origin deployment |
+| Root Dockerfiles | Includes the shared package during independent frontend/backend builds | Railway builds each service from the repository root |
 
 ### How We Evaluate It
 
@@ -70,7 +70,7 @@ flowchart LR
 
 ### Monitoring
 
-Railway deployments configure `GET /` health checks for both application services. Notification detectors persist outcomes in `notification_log` and can send Slack notifications. The frontend includes Vercel Analytics.
+Railway deployments configure `GET /` health checks for both application services. Notification detectors persist outcomes in `notification_log` and can send Slack notifications.
 
 > **Monitoring placeholder:** Link the production health dashboard, error tracking, alerting policy, and on-call runbook when those are available.
 
@@ -107,14 +107,9 @@ For the complete developer handbook, local setup, role guidance, and first-PR pa
 
 ### Deployment Details
 
-Two deployment topologies are supported:
+Frontend and backend run as separate Railway services, defined in `.railway/railway.ts` and built from the repository root with `Dockerfile.frontend` and `Dockerfile.backend`. Configure CORS and both backend URLs.
 
-| Topology | Frontend | Backend | Notes |
-|---|---|---|---|
-| Railway split deployment | Independent Next.js service | Independent Express service | Deploy from the repository root using `Dockerfile.frontend` and `Dockerfile.backend`; configure CORS and both backend URLs. |
-| Vercel same-origin deployment | `/` | `/_/backend` | `vercel.json` mounts both services; server-side calls can resolve the backend from `VERCEL_URL`. |
-
-In both cases, Supabase provides Postgres, Auth, and RLS. App deployment is separate from schema deployment: ship Supabase migrations before an app release depends on new database objects. Never commit real environment files or browser-expose the Supabase service-role key.
+Supabase provides Postgres, Auth, and RLS. App deployment is separate from schema deployment: ship Supabase migrations before an app release depends on new database objects. Never commit real environment files or browser-expose the Supabase service-role key.
 
 See the [deployment runbook](docs/dev/deployment/README.md) for environment wiring, Docker Compose parity, CI/CD, and validation steps.
 

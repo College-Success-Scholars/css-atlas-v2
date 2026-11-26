@@ -1,96 +1,12 @@
 /** API response shapes for backend routes (not Postgres table mirrors). */
+import type { MenteeRow } from "@css-atlas/shared/contracts/mentees"
 
-/** Response row from GET /api/auth/mentees (mentor_mentee + user_roster join). */
-export type MenteeRow = {
-  scholar_uid: string | null
-  first_name: string | null
-  last_name: string | null
-  fd_required: number | null
-  ss_required: number | null
-}
-
-export type ShiftComplianceSession = {
-  entryAt: string
-  exitAt: string
-  insideMinutes: number
-  outsideMinutes: number
-}
-
-export type ShiftCompliancePerDate = {
-  date: string
-  scheduledStart: string | null
-  scheduledEnd: string | null
-  insideMinutes: number
-  outsideMinutes: number
-  noShow: boolean
-  unscheduled: boolean
-  sessions: ShiftComplianceSession[]
-}
-
-export type ShiftComplianceByKind = {
-  insideMinutes: number
-  outsideMinutes: number
-  noShowCount: number
-  dates: ShiftCompliancePerDate[]
-}
-
-/** Response row from GET /api/auth/mentees/compliance. */
-export type MenteeWithCompliance = MenteeRow & {
-  fdCompliance: ShiftComplianceByKind | null
-  ssCompliance: ShiftComplianceByKind | null
-}
-
-/** Response shape when calling break-week helpers (backend maps RPC / semester APIs). */
-export type WeekBreakRpcRow = {
-  break_days: number | null
-  is_break_week: boolean | null
-  breaks: unknown[] | null
-}
-
-/** Response row from daily-activity APIs (`/api/form-logs/daily-activity/…`). */
-export type ActivityRow = {
-    scholar_uid: string
-    activity_date: string
-    week_num: number
-    log_source: "front_desk_logs" | "study_session_logs"
-    duration_minutes: number
-}
-
-import { WahfFormLogRow, McfFormLogRow, WplFormLogRow } from "./form-log"
-import type { AttendanceForUids } from "./attendance-week"
+import type { WahfFormLogRow, McfFormLogRow, WplFormLogRow } from "@css-atlas/shared/contracts/form-logs"
+import type { AttendanceForUids } from "@css-atlas/shared/contracts/attendance"
 
 export type WahfRow = WahfFormLogRow
 export type McfRow = McfFormLogRow
 export type WplRow = WplFormLogRow
-
-/** Response row from tutor-report APIs (mirrors backend TutorReportLogRow). */
-export type TutoringRow = {
-  id: number
-  created_at: string
-  date: string | null
-  tutor_name: string
-  scholar_uid: string
-  start_time: string
-  end_time: string
-  courses: string[]
-}
-
-/** Active semester payload used by dashboard pages. */
-export type SemesterRow = {
-    id: number
-    iso_week_offset: number
-    start_date: string
-    end_date: string
-}
-
-/** Traffic kiosk / analytics row from traffic APIs. */
-export type TrafficRow = {
-  id: number
-  created_at: string
-  uid: string | null
-  traffic_type: string | null
-  duration_min: number | null
-}
 
 /**
  * Profile fields returned by auth/profile APIs for dashboard pages.
@@ -119,10 +35,10 @@ export type ProfileRow = {
 
 export interface PersonalClientProps {
   profile: ProfileRow
-  wahf: WahfRow[]
-  mcf: McfRow[]
-  wpl: WplRow[]
-  mentees: MenteeRow[]
+  wahf: readonly WahfRow[]
+  mcf: readonly McfRow[]
+  wpl: readonly WplRow[]
+  mentees: ReadonlyArray<MenteeRow>
   /** Campus week from `dateToCampusWeek`; null before Fall start. */
   currentCampusWeek: number | null
 }

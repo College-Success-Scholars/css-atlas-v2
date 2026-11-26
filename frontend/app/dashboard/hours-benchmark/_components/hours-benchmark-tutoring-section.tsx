@@ -5,15 +5,15 @@ import { useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-import type { HoursBenchmarkTutoringGroup } from "../types";
+import type { HoursBenchmarkTutoringGroup } from "@css-atlas/shared/contracts/hours-benchmark";
 
 type TutoringTabId = "scholar" | "tutor" | "day";
 
 type HoursBenchmarkTutoringSectionProps = {
   weekRangeLabel: string;
-  byScholar: HoursBenchmarkTutoringGroup[];
-  byTutor: HoursBenchmarkTutoringGroup[];
-  byDay: HoursBenchmarkTutoringGroup[];
+  byScholar: readonly HoursBenchmarkTutoringGroup[];
+  byTutor: readonly HoursBenchmarkTutoringGroup[];
+  byDay: readonly HoursBenchmarkTutoringGroup[];
 };
 
 const TABS: Array<{ id: TutoringTabId; label: string }> = [
@@ -26,7 +26,7 @@ function TutoringGroupList({
   groups,
   mode,
 }: {
-  groups: HoursBenchmarkTutoringGroup[];
+  groups: readonly HoursBenchmarkTutoringGroup[];
   mode: TutoringTabId;
 }) {
   if (groups.length === 0) {

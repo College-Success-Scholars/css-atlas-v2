@@ -53,6 +53,7 @@ nav:
       - Campus weeks: dev/onboarding/campus-weeks.md
       - Auth & RLS runbook: dev/onboarding/auth-rls-runbook.md
       - Ask / don’t touch: dev/onboarding/ask-and-dont-touch.md
+      - Guardrails: dev/guardrails.md
       - PR template: dev/pr/TEMPLATE.md
   - Backend:
       - Overview: dev/backend/README.md
@@ -79,7 +80,6 @@ nav:
           - Overview: dev/frontend/lib/README.md
           - Server: dev/frontend/lib/server/README.md
           - Supabase: dev/frontend/lib/supabase/README.md
-      - Legacy: dev/frontend/legacy/README.md
   - Shared:
       - Overview: dev/shared/README.md
       - Source: dev/shared/src/README.md

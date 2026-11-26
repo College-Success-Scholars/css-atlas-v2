@@ -2,10 +2,10 @@ import { redirect } from "next/navigation";
 import { PersonalClient } from "@/components/personal/personal-client";
 import { canAccessWeeklyMemo } from "@/lib/auth";
 import { getCurrentProfile, getMyMentees } from "@/lib/server/queries";
-import { backendPost } from "@/lib/server/api-client";
+import { callEndpoint } from "@/lib/server/api-client";
+import * as formLogs from "@css-atlas/shared/contracts/form-logs";
 import { dateToCampusWeek } from "@/lib/format/time";
-import { WahfFormLogRow, McfFormLogRow, WplFormLogRow } from "@/lib/types/form-log";
-import { MenteeRow, ProfileRow } from "@/lib/types/supabase";
+import { ProfileRow } from "@/lib/types/supabase";
 
 export default async function PersonalPage() {
   const profile = await getCurrentProfile();
@@ -19,9 +19,9 @@ export default async function PersonalPage() {
   const uids = uid ? [uid] : [];
 
   const [wahf, mcf, wpl, mentees] = await Promise.all([
-    uids.length ? backendPost<WahfFormLogRow[]>("/api/form-logs/whaf/by-uids", { uids }) : Promise.resolve([]),
-    uids.length ? backendPost<McfFormLogRow[]>("/api/form-logs/mcf/by-uids", { uids, field: "mentor_uid" }) : Promise.resolve([]),
-    uids.length ? backendPost<WplFormLogRow[]>("/api/form-logs/wpl/by-uids", { uids }) : Promise.resolve([]),
+    uids.length ? callEndpoint(formLogs.getWahfByUids, { body: { uids } }) : Promise.resolve([]),
+    uids.length ? callEndpoint(formLogs.getMcfByUids, { body: { uids, field: "mentor_uid" } }) : Promise.resolve([]),
+    uids.length ? callEndpoint(formLogs.getWplByUids, { body: { uids } }) : Promise.resolve([]),
     getMyMentees(),
   ]);
 
@@ -31,10 +31,10 @@ export default async function PersonalPage() {
     <div className="space-y-6">
       <PersonalClient
         profile={profile as ProfileRow}
-        wahf={wahf as WahfFormLogRow[]}
-        mcf={mcf as McfFormLogRow[]}
-        wpl={wpl as WplFormLogRow[]}
-        mentees={mentees as MenteeRow[]}
+        wahf={wahf}
+        mcf={mcf}
+        wpl={wpl}
+        mentees={mentees}
         currentCampusWeek={currentCampusWeek}
       />
     </div>

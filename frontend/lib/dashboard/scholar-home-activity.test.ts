@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { toScholarHomeActivityEntries } from "./scholar-home-activity";
-import type { RecentFormSubmission } from "@/lib/types/form-log";
+import type { RecentFormSubmission } from "@css-atlas/shared/contracts/form-logs";
 
 describe("toScholarHomeActivityEntries", () => {
   it("keeps WAHF/WHAF as type + timestamp only", () => {

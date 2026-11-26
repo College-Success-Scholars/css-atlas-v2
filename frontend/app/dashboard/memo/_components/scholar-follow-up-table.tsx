@@ -5,10 +5,10 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { MemoAccordionSection } from "./memo-accordion-section"
 import { ScholarNameLink } from "./scholar-name-link"
-import type { ScholarFollowUpIssue, ScholarFollowUpRow } from "../types"
+import type { ScholarFollowUpIssue, ScholarFollowUpRow } from "@css-atlas/shared/contracts/memo"
 
 type ScholarFollowUpTableProps = {
-  rows: ScholarFollowUpRow[]
+  rows: readonly ScholarFollowUpRow[]
 }
 
 function FollowUpIssueDetail({ issue }: { issue: ScholarFollowUpIssue }) {

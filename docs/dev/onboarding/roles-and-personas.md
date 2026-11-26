@@ -26,16 +26,16 @@ null (basic user / scholar)
        └─ developer
 ```
 
-Backend gates (see auth controller middleware):
+Backend gates (each endpoint declares one in its contract):
 
-| Middleware | Who passes |
-|------------|------------|
-| `requireAuth` | Any authenticated user with a valid JWT |
-| `requireTeamLeaderOrAbove` | `team_leader` or `developer` (standalone; verifies JWT) |
-| `requireTeamLeaderRole` | `team_leader` or `developer` — after `requireAuth` |
-| `requireSelfOrTeamLeader` | Own `:uid` (`student_id`) or team_leader+ — after `requireAuth` |
-| `requireSelfScholarIdOrTeamLeader` | Own body `scholarId` or team_leader+ — after `requireAuth` |
-| `requireDeveloper` | `developer` only |
+| Contract `access` | Who can call |
+|-------------------|-------------|
+| `"authenticated"` | Any signed-in user (any role) |
+| `"team_leader"` | `team_leader` or `developer` |
+| `"developer"` | `developer` only |
+| `{ selfOrTeamLeader: "params.uid" }` | The scholar whose Scholar ID is at that field of the validated input, or `team_leader`/`developer`. A missing value is let through; the handler decides what it means. |
+
+Every route declares its `access` in its contract (`shared/contracts/<domain>.ts`); `http/endpoint.ts` enforces it. No route attaches auth middleware by hand. Every non-health route answering 401 without a token is enforced by `src/tests/route-gating.test.ts`.
 
 Scholars (`program_role` scholar, often `app_role` null) get scholar nav / dashboard surfaces and **own** form submissions (uid-scoped `/api/form-logs` + Activity Log). Team leaders get supervisory tools (Memo, week-wide form logs). Developers get `/dev` tools and persona switching.
 

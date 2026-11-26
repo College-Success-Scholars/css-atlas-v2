@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils"
 export const CAMPUS_WEEK_NAV_WIDTH_CLASS = "w-full sm:w-[26rem]"
 
 export type CampusWeekNavProps = {
-  weeks: number[]
+  weeks: readonly number[]
   selectedWeek: number | null
   currentCampusWeek: number | null
   onWeekChange: (week: number) => void

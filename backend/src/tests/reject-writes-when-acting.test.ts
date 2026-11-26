@@ -45,7 +45,6 @@ describe("isActingWriteRequest", () => {
   });
 
   it("blocks mutation POST endpoints when acting", () => {
-    expect(isActingWriteRequest(actingReq("POST", "/api/memo/sync"))).toBe(true);
     expect(isActingWriteRequest(actingReq("POST", "/api/auth/profile"))).toBe(true);
   });
 
@@ -80,8 +79,8 @@ describe("rejectWritesWhenActing", () => {
     expect(next).toHaveBeenCalled();
   });
 
-  it("blocks sync POST when acting", () => {
-    const req = actingReq("POST", "/api/memo/sync");
+  it("blocks profile creation POST when acting", () => {
+    const req = actingReq("POST", "/api/auth/profile");
     const res = mockRes();
     const next = vi.fn();
     rejectWritesWhenActing(req, res, next as NextFunction);

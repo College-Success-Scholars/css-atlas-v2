@@ -33,7 +33,7 @@ Do **not** confuse with `/dev/traffic` (authenticated analytics scratchpad).
 |-------|------|
 | Middleware | `/traffic` and `/traffic/*` stay on the public allowlist (no forced login) |
 | `layout.tsx` | Never call `redirect`, `canAccessWeeklyMemo`, `requireUser`, `requireTeamLeaderOrAbove`, or `/api/auth/me` |
-| Writes | `recordTrafficEntry` server action — Zod-validated `uid` + `duration_min`; forced `traffic_type: "entry"`; no client `created_at` |
+| Writes | `recordTrafficEntry` server action — Effect Schema-validated `uid` + `duration_min`; forced `traffic_type: "entry"`; no client `created_at` |
 | Reads / analytics | Stay private: auth-gated `/api/traffic` and developer `/dev/traffic` |
 | RLS | Prefer INSERT-only for anon/authenticated — [`004_traffic_public_insert.sql`](../../../supabase/004_traffic_public_insert.sql) |
 

@@ -12,7 +12,7 @@ import {
   isDeveloperProfile,
   isValidUuid,
   mapTestProfileToEffectiveRow,
-} from "../../../shared/dist/auth.js";
+} from "@css-atlas/shared/auth";
 
 export type EffectiveProfileResult = {
   profile: ProfilesRow | null;

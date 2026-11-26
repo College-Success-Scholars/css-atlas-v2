@@ -3,7 +3,7 @@
 #
 # Usage:
 #   BASE_URL=https://your-backend.railway.app ./scripts/smoke-test.sh
-#   BASE_URL=https://your-app.vercel.app/_/backend ./scripts/smoke-test.sh
+#   BASE_URL=https://<backend>.up.railway.app ./scripts/smoke-test.sh
 #   SMOKE_ORIGIN=http://localhost:3002 ./scripts/smoke-test.sh   # bare app.ts default CORS
 #
 # Exit codes: 0 = all passed, 1 = at least one check failed
@@ -43,14 +43,14 @@ check "GET / health check" "200" "$STATUS"
 # Auth gating — all protected routes must return 401 without a token
 for ROUTE in \
   "/api/auth/me" \
-  "/api/memo/page-data" \
-  "/api/users" \
-  "/api/session-logs" \
+  "/api/memo" \
+  "/api/users/memo-users" \
+  "/api/session-logs/study/no-shows" \
   "/api/attendance/week/1?kind=front_desk" \
-  "/api/traffic" \
-  "/api/form-logs" \
-  "/api/daily-activity" \
-  "/api/tutor-reports"
+  "/api/traffic/entry-count/1" \
+  "/api/form-logs/mcf/week/1/with-late" \
+  "/api/daily-activity/minutes?menteeUid=1&weekNum=1&logSource=front_desk" \
+  "/api/tutor-reports/week/1"
 do
   STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL$ROUTE")
   check "GET $ROUTE is auth-gated" "401" "$STATUS"

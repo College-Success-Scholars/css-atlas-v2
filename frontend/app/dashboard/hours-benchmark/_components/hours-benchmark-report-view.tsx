@@ -10,12 +10,9 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
-import {
-  HOURS_BENCHMARK_AT_OR_BELOW_PERCENT,
-  HOURS_BENCHMARK_MET_PERCENT,
-  type HoursBenchmarkCell,
-  type HoursBenchmarkReport,
-} from "../types";
+import type { HoursBenchmarkCell, HoursBenchmarkReport } from "@css-atlas/shared/contracts/hours-benchmark";
+
+import { HOURS_BENCHMARK_AT_OR_BELOW_PERCENT, HOURS_BENCHMARK_MET_PERCENT } from "../types";
 import { HoursBenchmarkExportButton } from "./hours-benchmark-export-button";
 import { HoursBenchmarkTutoringSection } from "./hours-benchmark-tutoring-section";
 

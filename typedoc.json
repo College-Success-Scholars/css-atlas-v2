@@ -7,6 +7,12 @@
     "shared/time-config.ts",
     "shared/eastern-time.ts",
     "shared/campus-calendar.ts",
+    "shared/contract.ts",
+    "shared/form-status.ts",
+    "shared/contracts",
+    "backend/src/http",
+    "backend/src/utils/domain-error.ts",
+    "backend/src/context",
     "backend/src/controllers",
     "backend/src/services",
     "backend/src/middleware",
@@ -26,7 +32,6 @@
     "**/node_modules/**",
     "backend/src/tests/**",
     "backend/src/supabase/database.types.ts",
-    "frontend/legacy/**",
     "frontend/components/ui/**"
   ],
   "blockTags": [

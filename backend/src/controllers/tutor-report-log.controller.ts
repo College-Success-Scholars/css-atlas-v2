@@ -2,109 +2,18 @@
  * @file tutor-report-log.controller.ts
  * @module backend/controllers
  *
- * Request handlers for tutoring report log endpoints (/api/tutor-reports/*).
- * Tutor reports track whether scholars attended tutoring sessions each week.
- *
- * ## Responsibilities
- * - Parse weekNum, uid, and id from route params
- * - Delegate to tutor-report-log.service.ts
- * - Return { data } or { error } JSON
- *
- * ## What belongs here
- * - Handler functions for /api/tutor-reports/* routes
- *
- * ## What does NOT belong here
- * - Tutor report query logic (that's in tutor-report-log.service.ts)
+ * Handlers for /api/tutor-reports, bound to @css-atlas/shared/contracts/tutor-reports.
  */
-import type { Response } from "express";
-import type { AuthenticatedRequest } from "../middleware/auth.middleware.js";
-import {
-  getTutorReportWeekRows,
-  getTutorReportLogsByUid,
-  getTutorReportLogsByUidAndWeek,
-  didScholarAttendTutoring,
-  deleteTutorReportLog,
-} from "../services/tutor-report-log.service.js";
+import * as contract from "@css-atlas/shared/contracts/tutor-reports";
+import { implement } from "../http/endpoint.js";
+import { deleteTutorReportLog, getTutorReportWeekRows } from "../services/tutor-report-log.service.js";
+import { NotFoundError } from "../utils/domain-error.js";
 
-function paramStr(val: string | string[] | undefined): string {
-  return Array.isArray(val) ? val[0] ?? "" : val ?? "";
-}
+export const tutorReportEndpoints = [
+  implement(contract.getWeek, ({ params }) => getTutorReportWeekRows(params.week_num)),
 
-// GET /api/tutor-reports/week/:weekNum
-export async function forWeek(req: AuthenticatedRequest, res: Response) {
-  try {
-    const weekNum = parseInt(paramStr(req.params.weekNum), 10);
-    if (Number.isNaN(weekNum) || weekNum < 1) {
-      res.status(400).json({ error: "weekNum must be a number >= 1" }); return;
-    }
-    const data = await getTutorReportWeekRows(weekNum);
-    res.json({ data });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: e instanceof Error ? e.message : "Failed to fetch tutor reports" });
-  }
-}
-
-// GET /api/tutor-reports/uid/:uid
-export async function byUid(req: AuthenticatedRequest, res: Response) {
-  try {
-    const uid = paramStr(req.params.uid);
-    if (!uid) { res.status(400).json({ error: "Missing uid parameter" }); return; }
-    const data = await getTutorReportLogsByUid(uid);
-    res.json({ data });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: e instanceof Error ? e.message : "Failed to fetch tutor reports" });
-  }
-}
-
-// GET /api/tutor-reports/uid/:uid/week/:weekNum
-export async function byUidAndWeek(req: AuthenticatedRequest, res: Response) {
-  try {
-    const uid = paramStr(req.params.uid);
-    const weekNum = parseInt(paramStr(req.params.weekNum), 10);
-    if (!uid) { res.status(400).json({ error: "Missing uid parameter" }); return; }
-    if (Number.isNaN(weekNum) || weekNum < 1) {
-      res.status(400).json({ error: "weekNum must be a number >= 1" }); return;
-    }
-    const data = await getTutorReportLogsByUidAndWeek(uid, weekNum);
-    res.json({ data });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: e instanceof Error ? e.message : "Failed to fetch tutor reports" });
-  }
-}
-
-// GET /api/tutor-reports/attended/:uid/week/:weekNum
-export async function attended(req: AuthenticatedRequest, res: Response) {
-  try {
-    const uid = paramStr(req.params.uid);
-    const weekNum = parseInt(paramStr(req.params.weekNum), 10);
-    if (!uid) { res.status(400).json({ error: "Missing uid parameter" }); return; }
-    if (Number.isNaN(weekNum) || weekNum < 1) {
-      res.status(400).json({ error: "weekNum must be a number >= 1" }); return;
-    }
-    const result = await didScholarAttendTutoring(uid, weekNum);
-    res.json({ data: { attended: result } });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: e instanceof Error ? e.message : "Failed to check tutoring attendance" });
-  }
-}
-
-// DELETE /api/tutor-reports/:id
-export async function remove(req: AuthenticatedRequest, res: Response) {
-  try {
-    const raw = paramStr(req.params.id);
-    const id = /^\d+$/.test(raw) ? Number(raw) : NaN;
-    if (!Number.isSafeInteger(id) || id < 1) {
-      res.status(400).json({ error: "id must be a positive integer" }); return;
-    }
-    const deleted = await deleteTutorReportLog(id);
-    if (!deleted) { res.status(404).json({ error: "Tutor report not found" }); return; }
-    res.json({ data: { id } });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: e instanceof Error ? e.message : "Failed to delete tutor report" });
-  }
-}
+  implement(contract.remove, async ({ params }) => {
+    if (!(await deleteTutorReportLog(params.id))) throw new NotFoundError({ resource: "Tutor report" });
+    return { id: params.id };
+  }),
+];

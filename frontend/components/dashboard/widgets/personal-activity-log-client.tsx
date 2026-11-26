@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
-import type { ActivityFormType, RecentFormSubmission } from "@/lib/types/form-log"
+import type { ActivityFormType, RecentFormSubmission } from "@css-atlas/shared/contracts/form-logs"
 import { cn } from "@/lib/utils"
 import { useMemo, useState } from "react"
 import { SubmissionDetailsModal } from "./submission-details-modal"
@@ -24,7 +24,7 @@ function formatSubmittedAt(value: string | null) {
   }).format(date)
 }
 
-export function PersonalActivityLogClient({ entries }: { entries: RecentFormSubmission[] }) {
+export function PersonalActivityLogClient({ entries }: { entries: readonly RecentFormSubmission[] }) {
   const [filter, setFilter] = useState<FilterType>("ALL")
 
   const visibleEntries = useMemo(() => {

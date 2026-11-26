@@ -42,7 +42,7 @@ Source files (`time.ts`, `auth.ts`, `campus-calendar.ts`, etc.) live at the **`s
 npm run build   # tsc → outputs to dist/
 ```
 
-The shared package **must be built before** starting the backend or frontend. Both consume `shared/dist/`.
+The shared package **must be built before** starting the backend or frontend. Both depend on it as `@css-atlas/shared` (a `file:../shared` dependency) and import by package name; relative `shared/dist` imports are lint errors.
 
 ---
 
@@ -50,7 +50,7 @@ The shared package **must be built before** starting the backend or frontend. Bo
 
 From backend or frontend:
 ```typescript
-import { campusWeekToDateRange, dateToCampusWeek } from "shared/dist/time.js";
+import { campusWeekToDateRange, dateToCampusWeek } from "@css-atlas/shared/time";
 ```
 
 Or via the package name (if workspace symlinks are configured):

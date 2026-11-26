@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { renderToStaticMarkup } from "react-dom/server"
 
 import { ScholarFollowUpTable } from "./scholar-follow-up-table"
-import type { ScholarFollowUpRow } from "../types"
+import type { ScholarFollowUpRow } from "@css-atlas/shared/contracts/memo"
 
 const rows: ScholarFollowUpRow[] = [
   {
@@ -30,7 +30,7 @@ const rows: ScholarFollowUpRow[] = [
     scholarYear: "Freshman",
     teamLeader: "TL Two",
     flags: ["Low front desk completion"],
-    issues: [{ kind: "front-desk", glance: "Front desk", pct: 40, requiredMinutes: 120 }],
+    issues: [{ kind: "front-desk", glance: "Front desk", pct: 40, requiredMinutes: 120, insideMinutes: 48, outsideMinutes: 0 }],
     frontDeskPct: 90,
     studySessionPct: 91,
     fdRequired: 120,

@@ -3,19 +3,15 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { DevTestClient } from "@/app/dev/dev-test-client";
-import { backendGet } from "@/lib/client/api-client";
-
-type DevMeResponse = {
-  user: { id: string; email: string | null };
-  profile: { app_role: string | null; email: string | null } | null;
-};
+import { me, type DevMe } from "@css-atlas/shared/contracts/dev";
+import { callEndpoint } from "@/lib/client/api-client";
 
 export default function DevPage() {
-  const [user, setUser] = useState<DevMeResponse["user"] | null>(null);
+  const [user, setUser] = useState<DevMe["user"] | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    backendGet<DevMeResponse>("/api/dev/me")
+    callEndpoint(me)
       .then((result) => {
         if (result.ok) setUser(result.data.user);
         setLoading(false);

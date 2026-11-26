@@ -10,14 +10,14 @@ import { ActivityLog } from "@/components/dashboard/widgets/activity-log"
 import { YearNotStartedState } from "@/components/dashboard/widgets/year-not-started-state"
 import { isCollectionYearStarted } from "@/lib/format/time"
 import type { CurrentUserResponse } from "@/lib/server/queries"
-import type { RecentFormSubmission } from "@/lib/types/form-log"
+import type { RecentFormSubmission } from "@css-atlas/shared/contracts/form-logs"
 
 export function ScholarDashboard({
   me,
   entries,
 }: {
   me: CurrentUserResponse | null
-  entries: RecentFormSubmission[]
+  entries: readonly RecentFormSubmission[]
 }) {
   const profile = me?.profile as { first_name?: string; last_name?: string } | null | undefined
   const firstName = profile?.first_name ?? me?.user?.email?.split('@')[0] ?? '';

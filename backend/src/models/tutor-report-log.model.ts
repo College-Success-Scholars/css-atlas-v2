@@ -15,19 +15,5 @@
  * Prefer `date` (session calendar day) when present. Memo and mentee week
  * filters use `date`, then a parseable `start_time`; not form `created_at`.
  */
-export interface TutorReportLogRow {
-  id: number;
-  created_at: string | null;
-  date: string | null;
-  tutor_name: string;
-  scholar_uid: string | null;
-  end_time: string;
-  start_time: string;
-  courses: string[];
-}
-
-/** Week read row: `scholar_name` is EMPTY SESSION for `n/a` / `111111111`. */
-export interface TutorReportWeekRow extends TutorReportLogRow {
-  scholar_name: string;
-  day_of_week: string;
-}
+// Wire shapes are defined once, in the API contract.
+export type { TutorReportLogRow, TutorReportWeekRow } from "@css-atlas/shared/contracts/tutor-reports";

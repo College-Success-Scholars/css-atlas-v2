@@ -82,7 +82,7 @@ export interface DataTableFilter<T> {
 }
 
 interface DataTableProps<T> {
-  data: T[];
+  data: ReadonlyArray<T>;
   /** Field key used to generate row keys (e.g. "scholarUid"). */
   rowKeyField: keyof T;
   /** Name column shorthand. Uses header default "Scholar". */

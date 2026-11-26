@@ -3,8 +3,9 @@
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { getDeveloperUser } from "@/lib/supabase/server";
-import { DEV_ACTIVE_PROFILE_COOKIE } from "../../../shared/dist/auth.js";
-import { backendPost } from "./api-client";
+import { DEV_ACTIVE_PROFILE_COOKIE } from "@css-atlas/shared/auth";
+import { setActiveProfile } from "@css-atlas/shared/contracts/dev";
+import { callEndpoint } from "./api-client";
 
 /**
  * Sets or clears the active dev test profile cookie (developer only).
@@ -17,7 +18,7 @@ export async function setActiveTestProfile(testProfileId: string | null): Promis
   }
 
   if (testProfileId !== null) {
-    await backendPost("/api/dev/active-profile", { testProfileId });
+    await callEndpoint(setActiveProfile, { body: { testProfileId } });
   }
 
   const store = await cookies();

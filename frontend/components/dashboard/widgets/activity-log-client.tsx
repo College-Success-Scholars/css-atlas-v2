@@ -2,7 +2,7 @@
 
 import { CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { RecentFormSubmission } from "@/lib/types/form-log";
+import type { RecentFormSubmission } from "@css-atlas/shared/contracts/form-logs";
 import { toScholarHomeActivityEntries } from "@/lib/dashboard/scholar-home-activity";
 
 function formatSubmittedAt(value: string | null): string {
@@ -18,7 +18,7 @@ function formatSubmittedAt(value: string | null): string {
   }).format(date);
 }
 
-export function ActivityLogClient({ entries }: { entries: RecentFormSubmission[] }) {
+export function ActivityLogClient({ entries }: { entries: readonly RecentFormSubmission[] }) {
   const visibleEntries = toScholarHomeActivityEntries(entries);
 
   return (

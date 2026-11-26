@@ -4,7 +4,7 @@
  *
  * Next.js configuration for the CSS Atlas frontend.
  * Enables access to files above the Next.js project root (externalDir)
- * so both webpack and Turbopack can resolve shared/dist/ imports.
+ * so both webpack and Turbopack can resolve the symlinked @css-atlas/shared package.
  *
  * ## What belongs here
  * - Next.js build and runtime configuration
@@ -19,7 +19,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const frontendDir = path.dirname(fileURLToPath(import.meta.url));
-/** Repo root — Turbopack must see `shared/dist` via relative imports. */
+/** Repo root — @css-atlas/shared is a symlink to ../shared, so Turbopack needs the repo root. */
 const repoRoot = path.resolve(frontendDir, "..");
 
 const nextConfig: NextConfig = {
@@ -28,7 +28,7 @@ const nextConfig: NextConfig = {
     externalDir: true,
   },
 
-  // Absolute monorepo root so Turbopack can resolve ../../../shared/dist/*.
+  // Absolute monorepo root so Turbopack can follow the @css-atlas/shared symlink.
   // `next` itself is installed under frontend/node_modules — scripts/dev.sh
   // symlinks it to <repo>/node_modules/next so HMR does not panic with
   // "Next.js package not found".

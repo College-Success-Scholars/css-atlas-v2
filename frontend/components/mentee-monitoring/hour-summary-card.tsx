@@ -2,7 +2,8 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import type { HourWeekSummary, ShiftEvidence, WeekTier } from "@/lib/types/mentee-review"
+import type { HourWeekSummary, WeekTier } from "@/lib/types/mentee-review"
+import type { ShiftEvidence } from "@css-atlas/shared/contracts/mentees"
 
 import { TIER_UI, TierBadge } from "./tier-badge"
 import tierStyles from "./tier-styles.module.css"

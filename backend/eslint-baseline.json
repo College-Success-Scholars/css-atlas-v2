@@ -1,0 +1,35 @@
+{
+  "atlas/no-clock-read": [
+    "src/domains/notifications/detectors/reconciliation-detector.ts",
+    "src/domains/notifications/detectors/signin-detector.ts",
+    "src/domains/notifications/notification.service.ts",
+    "src/services/freshman-grades.service.ts",
+    "src/services/hours-benchmark.service.ts",
+    "src/services/memo-page.service.ts",
+    "src/services/mentee-mcf-prefill.service.ts",
+    "src/services/mentee-review-activity.service.ts",
+    "src/services/session-log.service.ts",
+    "src/services/session-no-shows.service.ts",
+    "src/services/weekly-memo-report.service.ts"
+  ],
+  "atlas/no-double-cast": [
+    "src/domains/notifications/detectors/detector-data.ts",
+    "src/domains/notifications/recipient-resolver.ts",
+    "src/services/mentee-meeting-preference.service.ts",
+    "src/services/mentee-review-attendance.adapter.ts",
+    "src/services/schedule-board.service.ts",
+    "src/services/session-log.service.ts"
+  ],
+  "atlas/no-process-env": [
+    "src/app.ts",
+    "src/domains/notifications/channels/slack-channel.ts",
+    "src/domains/notifications/detectors/reconciliation-detector.ts",
+    "src/domains/notifications/detectors/signin-detector.ts",
+    "src/domains/notifications/recipient-resolver.ts",
+    "src/domains/notifications/templates/format.ts",
+    "src/server.ts",
+    "src/services/session-no-shows.service.ts",
+    "src/services/weekly-memo-pdf.service.ts",
+    "src/supabase/client.ts"
+  ]
+}

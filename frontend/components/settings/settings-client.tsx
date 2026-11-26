@@ -32,7 +32,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { addMentee, removeMentee } from "@/lib/server/actions"
-import type { ProfileRow, MenteeRow } from "@/lib/types/supabase"
+import type { ProfileRow } from "@/lib/types/supabase"
+import type { MenteeRow } from "@css-atlas/shared/contracts/mentees"
 
 const TABS = [
   { id: "personal", label: "Personal", icon: User },
@@ -64,7 +65,7 @@ export default function SettingsClient({
   readOnlyReason = null,
 }: {
   profile: ProfileRow
-  mentees: MenteeRow[]
+  mentees: ReadonlyArray<MenteeRow>
   candidates?: MenteeCandidate[]
   canManageMentees?: boolean
   readOnlyReason?: string | null
@@ -245,7 +246,7 @@ function MenteesTab({
   canManageMentees,
   readOnlyReason,
 }: {
-  mentees: MenteeRow[]
+  mentees: ReadonlyArray<MenteeRow>
   candidates: MenteeCandidate[]
   canManageMentees: boolean
   readOnlyReason: string | null

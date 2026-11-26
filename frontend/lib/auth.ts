@@ -19,7 +19,7 @@
  *   requireCoordinatorOrAbove, requireDeveloper)
  */
 
-import { hasRoleAtLeast, isDeveloperProfile } from "../../shared/dist/auth.js";
+import { hasRoleAtLeast, isDeveloperProfile } from "@css-atlas/shared/auth";
 
 export { isDeveloperProfile };
 

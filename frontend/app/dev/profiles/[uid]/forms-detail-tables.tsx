@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { dateToCampusWeek, formatDate } from "@/lib/format/time";
-import type { McfFormLogRow, WplFormLogRow } from "@/lib/types/form-log";
-import { backendGet } from "@/lib/client/api-client";
+import type { McfFormLogRow, WplFormLogRow } from "@css-atlas/shared/contracts/form-logs";
+import { callEndpoint } from "@/lib/client/api-client";
+import { getById } from "@css-atlas/shared/contracts/form-logs";
 import {
   Card,
   CardContent,
@@ -48,8 +49,8 @@ type DetailState = {
 };
 
 type Props = {
-  mcfRows: McfFormLogRow[];
-  wplRows: WplFormLogRow[];
+  mcfRows: readonly McfFormLogRow[];
+  wplRows: readonly WplFormLogRow[];
 };
 
 export function FormsDetailTables({ mcfRows, wplRows }: Props) {
@@ -74,7 +75,7 @@ export function FormsDetailTables({ mcfRows, wplRows }: Props) {
     }));
 
     try {
-      const result = await backendGet<Record<string, unknown>>(`/api/form-logs/${formType}/${encodeURIComponent(String(formId))}`);
+      const result = await callEndpoint(getById, { params: { form_type: formType, id: String(formId) } });
       if (!result.ok) {
         throw new Error(result.error);
       }

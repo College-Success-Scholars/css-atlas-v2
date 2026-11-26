@@ -2,22 +2,10 @@
  * @file attendance.routes.ts
  * @module backend/routes
  *
- * Express Router for /api/attendance/* endpoints.
- * Campus-week minutes from tickets + excuses from scholar_week_excuses
- * (keyed by scholar_uid, week_start, kind).
- * GET week board, POST by-uids (mentees), PATCH excuse.
- * Requires team leader or above.
+ * /api/attendance. Paths, methods and minimum roles are declared in
+ * @css-atlas/shared/contracts/attendance; this file only mounts them.
  */
-import { Router } from "express";
-import { requireTeamLeaderOrAbove } from "../middleware/auth.middleware.js";
-import * as attendanceController from "../controllers/attendance-week.controller.js";
+import { toRouter } from "../http/endpoint.js";
+import { attendanceEndpoints } from "../controllers/attendance-week.controller.js";
 
-const router = Router();
-
-router.use(requireTeamLeaderOrAbove);
-
-router.get("/week/:weekNum", attendanceController.weekBoard);
-router.post("/week/:weekNum/by-uids", attendanceController.weekAttendanceByUids);
-router.patch("/excuse", attendanceController.patchExcuse);
-
-export default router;
+export default toRouter(attendanceEndpoints);

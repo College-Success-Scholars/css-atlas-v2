@@ -22,7 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import type { PersonalClientProps, WahfRow, McfRow, WplRow, MenteeRow } from "@/lib/types/supabase"
+import type { PersonalClientProps, WahfRow, McfRow, WplRow } from "@/lib/types/supabase"
+import type { MenteeRow } from "@css-atlas/shared/contracts/mentees"
 import {
   findSubmissionForCampusWeek,
   computeWeekOptions,
@@ -347,9 +348,9 @@ function HistoryWeekBlock({
 }: {
   weekNum: number
   label: string
-  wahf: WahfRow[]
-  mcf: McfRow[]
-  wpl: WplRow[]
+  wahf: readonly WahfRow[]
+  mcf: readonly McfRow[]
+  wpl: readonly WplRow[]
   menteeCount: number
   currentCampusWeek: number | null
   onView: (formType: FormType) => void
@@ -495,10 +496,10 @@ function FormDetailDialog({
 }: {
   state: DialogState
   weekOptions: WeekOption[]
-  wahf: WahfRow[]
-  mcf: McfRow[]
-  wpl: WplRow[]
-  mentees: MenteeRow[]
+  wahf: readonly WahfRow[]
+  mcf: readonly McfRow[]
+  wpl: readonly WplRow[]
+  mentees: ReadonlyArray<MenteeRow>
   menteeCount: number
   currentCampusWeek: number | null
   onClose: () => void
@@ -548,10 +549,10 @@ function FormDetailDialogContent({
   initialFormType: FormType
   weeks: number[]
   onNavigateWeek: (campusWeek: number) => void
-  wahf: WahfRow[]
-  mcf: McfRow[]
-  wpl: WplRow[]
-  mentees: MenteeRow[]
+  wahf: readonly WahfRow[]
+  mcf: readonly McfRow[]
+  wpl: readonly WplRow[]
+  mentees: ReadonlyArray<MenteeRow>
   menteeCount: number
   currentCampusWeek: number | null
 }) {
@@ -657,10 +658,10 @@ function FormTabBody({
 }: {
   formType: FormType
   campusWeek: number
-  wahf: WahfRow[]
-  mcf: McfRow[]
-  wpl: WplRow[]
-  mentees: MenteeRow[]
+  wahf: readonly WahfRow[]
+  mcf: readonly McfRow[]
+  wpl: readonly WplRow[]
+  mentees: ReadonlyArray<MenteeRow>
 }) {
   if (formType === "WAHF") {
     const row = findSubmissionForCampusWeek(wahf, campusWeek)
@@ -679,8 +680,8 @@ function McfWeekPanel({
   mentees,
 }: {
   campusWeek: number
-  mcf: McfRow[]
-  mentees: MenteeRow[]
+  mcf: readonly McfRow[]
+  mentees: ReadonlyArray<MenteeRow>
 }) {
   const options = useMemo(
     () => buildMcfMenteeOptions(mentees, mcf, campusWeek),

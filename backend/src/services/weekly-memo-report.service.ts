@@ -1,3 +1,4 @@
+import { formStatus } from "@css-atlas/shared/form-status";
 import { completionPct, effectiveMinutes } from "./attendance-week.service.js";
 import { campusWeekToDateRange, freshmanCohortYear, sophomoreCohortYear } from "./time.service.js";
 import { getMemoPageData } from "./memo-page.service.js";
@@ -197,12 +198,10 @@ function toWahfAttention(scholars: MemoPageData["scholars"]) {
     });
 }
 
+/** "<FORM> <status>" when a team leader's form needs attention, e.g. "MCF incomplete". */
 function tlFormIssue(completed: number, required: number, late: boolean, label: string): string | null {
-  const need = Math.max(0, required);
-  if (need <= 0) return null;
-  if (completed < need) return `${label} missing`;
-  if (late) return `${label} late`;
-  return null;
+  const status = formStatus({ required, completed, late });
+  return status === "on-time" ? null : `${label} ${status}`;
 }
 
 function toTlSubmissionAttention(rows: MemoPageData["teamLeaderFormStats"]) {

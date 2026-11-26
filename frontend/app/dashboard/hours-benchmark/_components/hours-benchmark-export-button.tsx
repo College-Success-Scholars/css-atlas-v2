@@ -5,7 +5,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
-import type { HoursBenchmarkHeatmapScope } from "../types";
+import type { HoursBenchmarkHeatmapScope } from "@css-atlas/shared/contracts/hours-benchmark";
 
 type HoursBenchmarkExportButtonProps = {
   available: boolean;

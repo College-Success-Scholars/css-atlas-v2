@@ -10,7 +10,6 @@ vi.mock("../supabase/client.js", () => ({
 
 import {
   campusWeekForTutoringRow,
-  didScholarAttendTutoring,
   filterTutorReportsForCampusWeek,
   getTutorReportLogsForWeek,
   getTutorReportWeekRows,
@@ -248,45 +247,5 @@ describe("getTutorReportWeekRows", () => {
       [1, "Ada Lovelace", "Mon"],
       [2, "EMPTY SESSION", "Mon"],
     ]);
-  });
-});
-
-describe("didScholarAttendTutoring", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("is true when a session date falls in the week even if created_at does not", async () => {
-    const week = 2;
-    const inWeek = dayInCampusWeek(week, 1);
-    const priorWeek = dayInCampusWeek(week - 1, 1);
-    const builder: Record<string, ReturnType<typeof vi.fn>> = {};
-    builder.select = vi.fn(() => builder);
-    builder.eq = vi.fn(() => builder);
-    builder.or = vi.fn(() => builder);
-    builder.order = vi.fn().mockResolvedValue({
-      data: [
-        row({
-          id: 1,
-          scholar_uid: "1001",
-          date: inWeek,
-          created_at: `${priorWeek}T16:00:00.000Z`,
-        }),
-      ],
-      error: null,
-    });
-    mocks.getSupabaseClient.mockReturnValue({
-      from: vi.fn().mockReturnValue(builder),
-    });
-
-    await expect(didScholarAttendTutoring("1001", week)).resolves.toBe(true);
-  });
-
-  it("is false for probe and empty-session uids", async () => {
-    const week = 2;
-    await expect(didScholarAttendTutoring("test", week)).resolves.toBe(false);
-    await expect(didScholarAttendTutoring("N/A", week)).resolves.toBe(false);
-    await expect(didScholarAttendTutoring("111111111", week)).resolves.toBe(false);
-    expect(mocks.getSupabaseClient).not.toHaveBeenCalled();
   });
 });

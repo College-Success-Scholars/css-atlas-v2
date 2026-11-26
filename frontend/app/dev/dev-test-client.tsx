@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { backendGet } from "@/lib/client/api-client";
+import { ping } from "@css-atlas/shared/contracts/dev";
+import { callEndpoint } from "@/lib/client/api-client";
 
 /**
  * Client component for testing server functions.
@@ -16,7 +17,7 @@ export function DevTestClient() {
     setStatus("Testing...");
     try {
       // Example: call a server action or fetch an API route
-      const result = await backendGet("/api/dev/test");
+      const result = await callEndpoint(ping);
       setStatus(result.ok ? `OK: ${JSON.stringify(result.data)}` : `Error: ${result.error}`);
     } catch (err) {
       setStatus(`Error: ${err instanceof Error ? err.message : "Unknown"}`);

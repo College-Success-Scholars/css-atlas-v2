@@ -14,7 +14,8 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["frontend/*"]
+      "@/*": ["frontend/*"],
+      "@css-atlas/shared/*": ["shared/*"]
     },
     "types": ["node"]
   },
@@ -31,7 +32,6 @@
     "**/*.test.ts",
     "**/*.spec.ts",
     "backend/src/tests/**",
-    "frontend/legacy/**",
     "shared/dist/**",
     "backend/dist/**"
   ]

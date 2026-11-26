@@ -14,6 +14,20 @@
  * - Functions, queries, or runtime logic
  */
 
+import type {
+  ProcessedTicket,
+  ScholarWithCompletedSession,
+} from "@css-atlas/shared/contracts/session-logs";
+
+export type {
+  ProcessedTicket,
+  ScholarInRoom,
+  ScholarNoShow,
+  ScholarWithCompletedSession,
+  SessionLogRow,
+  TicketErrorType,
+} from "@css-atlas/shared/contracts/session-logs";
+
 export const SESSION_TYPE_STUDY = "Study Session";
 export const SESSION_TYPE_FRONT_DESK = "Front Desk";
 
@@ -24,16 +38,6 @@ export const SESSION_TYPES: SessionType[] = [
   SESSION_TYPE_FRONT_DESK,
 ];
 
-export interface SessionLogRow {
-  id: string;
-  created_at: string;
-  scholar_uid: string | null;
-  scholar_name?: string | null;
-  action_type: string | null;
-  session_type?: string | null;
-  [key: string]: unknown;
-}
-
 export interface SessionLogConfig {
   entryAction: string;
   exitAction: string;
@@ -43,19 +47,6 @@ export const DEFAULT_SESSION_CONFIG: SessionLogConfig = {
   entryAction: "Entry",
   exitAction: "Exit",
 };
-
-export type TicketErrorType =
-  | "DOUBLE_EXIT"
-  | "DOUBLE_ENTER"
-  | "EXIT_BEFORE_ENTER"
-  | "EXIT_WITHOUT_ENTER"
-  | "ENTRY_WITHOUT_SAME_DAY_EXIT";
-
-export interface ProcessedTicket {
-  ticket: SessionLogRow;
-  error?: TicketErrorType;
-  pairedEntryAt?: string;
-}
 
 export interface CleanedAndErroredResult {
   byScholarUid: Map<
@@ -68,26 +59,6 @@ export interface CleanedAndErroredResult {
   >;
   allCleaned: ProcessedTicket[];
   allErrored: ProcessedTicket[];
-}
-
-export interface ScholarInRoom {
-  scholarId: string;
-  scholarName: string | null;
-  entryTicket: SessionLogRow;
-  entryAt: string;
-  timeInRoomMs: number;
-  sessionType?: string | null;
-}
-
-export interface ScholarWithCompletedSession {
-  scholarId: string;
-  scholarName: string | null;
-  entryTicket: SessionLogRow;
-  exitTicket: SessionLogRow;
-  entryAt: string;
-  exitAt: string;
-  durationMs: number;
-  sessionType?: string | null;
 }
 
 export interface FrontDeskLogRow {
@@ -169,14 +140,4 @@ export interface ShiftComplianceByKind {
 export interface ScholarShiftCompliance {
   fdCompliance: ShiftComplianceByKind;
   ssCompliance: ShiftComplianceByKind;
-}
-
-export interface ScholarNoShow {
-  scholarId: string;
-  scholarName: string;
-  phoneNumber: string | null;
-  /** ISO start of the missed shift occurrence (Eastern wall clock). */
-  scheduledStart: string;
-  /** ISO end of the missed shift occurrence (Eastern wall clock). */
-  scheduledEnd: string;
 }

@@ -17,8 +17,9 @@ import {
   countableMcfRequired,
   buildMcfMenteeOptions,
 } from "./utils"
-import type { WahfRow, McfRow, MenteeRow } from "@/lib/types/supabase"
-import { getMcfWplDeadlineForWeek } from "@/lib/format/form-deadlines"
+import type { WahfRow, McfRow } from "@/lib/types/supabase"
+import type { MenteeRow } from "@css-atlas/shared/contracts/mentees"
+import { formDeadline } from "@css-atlas/shared/form-status"
 
 /** YYYY-MM-DD in Eastern. */
 function toCampusDay(d: Date): string {
@@ -103,7 +104,7 @@ describe("getFormStatusForWeek", () => {
     { hoursBefore: 8, daysLeft: 0 },
     { hoursBefore: 66, daysLeft: 3 },
   ])("uses campus calendar days $hoursBefore hours before the deadline", ({ hoursBefore, daysLeft }) => {
-    const deadline = getMcfWplDeadlineForWeek(2)!
+    const deadline = formDeadline("MCF", 2)!
     vi.useFakeTimers({ now: new Date(deadline.getTime() - hoursBefore * 60 * 60 * 1000) })
     const result = getFormStatusForWeek("WPL", [], [], [], 2, 2)
     expect(result.status).toBe("pending")
@@ -195,8 +196,8 @@ describe("buildMcfMenteeOptions", () => {
       addEasternCalendarDays(parseEasternDate(mondayOfCampusWeek(2)), 2),
     )
     const mentees: MenteeRow[] = [
-      { scholar_uid: "s-1", first_name: "Ada", last_name: "Lovelace", fd_required: 120, ss_required: 180 },
-      { scholar_uid: "s-2", first_name: "Grace", last_name: "Hopper", fd_required: 120, ss_required: 180 },
+      { scholar_uid: "s-1", first_name: "Ada", last_name: "Lovelace", email: null, fd_required: 120, ss_required: 180 },
+      { scholar_uid: "s-2", first_name: "Grace", last_name: "Hopper", email: null, fd_required: 120, ss_required: 180 },
     ]
     const logs: McfRow[] = [
       mockMcf({

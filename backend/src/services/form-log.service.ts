@@ -4,12 +4,12 @@
  *
  * Form submission log access and aggregation service.
  * Handles all three form types: MCF (Mentee Check-in Form),
- * WHAF (Weekly Hours Activity Form), and WPL (Weekly Performance Log).
+ * WAHF (Weekly Academic Health Form), and WPL (Weekly Performance Log).
  * Provides individual lookups, batch queries by multiple UIDs, late submission
  * filtering, and team leader performance stat aggregation.
  *
  * ## Responsibilities
- * - Fetch MCF/WHAF/WPL logs by weekNum, uid, or batch of uids
+ * - Fetch MCF/WAHF/WPL logs by weekNum, uid, or batch of uids
  * - Filter by late submission status
  * - Aggregate submission stats for team leaders
  * - Get recent form submissions for a scholar profile
@@ -23,6 +23,7 @@
  * - HTTP request/response logic
  */
 import { getSupabaseClient } from "../supabase/client.js";
+import { isLate, type RequiredForm } from "@css-atlas/shared/form-status";
 import { campusWeekToDateRange, dateToCampusWeek, getWeekFetchEnd, ONE_DAY_MS } from "./time.service.js";
 import type {
   McfFormLogRow,
@@ -36,106 +37,16 @@ import type {
 import type { ProfilesRow } from "../models/user.model.js";
 
 // ---------------------------------------------------------------------------
-// Deadline logic (pure)
+// Late-marking (pure). Deadlines and lateness live in @css-atlas/shared/form-status.
 // ---------------------------------------------------------------------------
 
-export function getWhafDeadlineForWeek(weekNum: number): Date | null {
-  const range = campusWeekToDateRange(weekNum);
-  if (!range) return null;
-  const thursdayEnd =
-    range.startDate.getTime() +
-    3 * ONE_DAY_MS +
-    (23 * 3600 + 59 * 60 + 59) * 1000 +
-    999;
-  return new Date(thursdayEnd);
-}
-
-export function getMcfWplDeadlineForWeek(weekNum: number): Date | null {
-  const range = campusWeekToDateRange(weekNum);
-  if (!range) return null;
-  const friday5pm = range.startDate.getTime() + 4 * ONE_DAY_MS + 17 * 3600 * 1000;
-  return new Date(friday5pm);
-}
-
-function toDate(createdAt: string | Date): Date {
-  return typeof createdAt === "string" ? new Date(createdAt) : createdAt;
-}
-
-function isLateAfterDeadline(
-  createdAt: string | Date,
-  getDeadlineForWeek: (weekNum: number) => Date | null
-): boolean {
-  const submitted = toDate(createdAt);
-  const weekNum = dateToCampusWeek(submitted);
-  if (weekNum == null) return false;
-  const deadline = getDeadlineForWeek(weekNum);
-  if (!deadline) return false;
-  return submitted.getTime() > deadline.getTime();
-}
-
-export function isWhafLate(createdAt: string | Date): boolean {
-  return isLateAfterDeadline(createdAt, getWhafDeadlineForWeek);
-}
-
-export function isWhafLateForWeek(createdAt: string | Date, weekNum: number): boolean {
-  const deadline = getWhafDeadlineForWeek(weekNum);
-  if (!deadline) return false;
-  return toDate(createdAt).getTime() > deadline.getTime();
-}
-
-export function isMcfLate(createdAt: string | Date): boolean {
-  return isLateAfterDeadline(createdAt, getMcfWplDeadlineForWeek);
-}
-
-export function isMcfLateForWeek(createdAt: string | Date, weekNum: number): boolean {
-  const deadline = getMcfWplDeadlineForWeek(weekNum);
-  if (!deadline) return false;
-  return toDate(createdAt).getTime() > deadline.getTime();
-}
-
-export function isWplLate(createdAt: string | Date): boolean {
-  return isLateAfterDeadline(createdAt, getMcfWplDeadlineForWeek);
-}
-
-export function isWplLateForWeek(createdAt: string | Date, weekNum: number): boolean {
-  const deadline = getMcfWplDeadlineForWeek(weekNum);
-  if (!deadline) return false;
-  return toDate(createdAt).getTime() > deadline.getTime();
-}
-
-// ---------------------------------------------------------------------------
-// Late-marking (pure)
-// ---------------------------------------------------------------------------
-
+/** Flag each row late against campus week `weekNum`, or against the week it was submitted in. */
 function markFormLogsLate<T extends { created_at: string | null }>(
+  form: RequiredForm,
   rows: T[],
-  isLate: (createdAt: string | Date) => boolean
+  weekNum?: number
 ): FormLogRowWithLate<T>[] {
-  return rows.map((row) => ({
-    ...row,
-    isLate: row.created_at != null && row.created_at !== "" ? isLate(row.created_at) : false,
-  }));
-}
-
-export function markWhafFormLogsLate<T extends { created_at: string | null }>(
-  rows: T[], weekNum?: number
-): FormLogRowWithLate<T>[] {
-  const check = weekNum != null ? (c: string | Date) => isWhafLateForWeek(c, weekNum) : isWhafLate;
-  return markFormLogsLate(rows, check);
-}
-
-export function markMcfFormLogsLate<T extends { created_at: string | null }>(
-  rows: T[], weekNum?: number
-): FormLogRowWithLate<T>[] {
-  const check = weekNum != null ? (c: string | Date) => isMcfLateForWeek(c, weekNum) : isMcfLate;
-  return markFormLogsLate(rows, check);
-}
-
-export function markWplFormLogsLate<T extends { created_at: string | null }>(
-  rows: T[], weekNum?: number
-): FormLogRowWithLate<T>[] {
-  const check = weekNum != null ? (c: string | Date) => isWplLateForWeek(c, weekNum) : isWplLate;
-  return markFormLogsLate(rows, check);
+  return rows.map((row) => ({ ...row, isLate: row.created_at ? isLate(form, row.created_at, weekNum) : false }));
 }
 
 // ---------------------------------------------------------------------------
@@ -217,23 +128,8 @@ export async function getMcfFormLogsByUid(uid: string): Promise<McfFormLogRow[]>
   return (data ?? []) as McfFormLogRow[];
 }
 
-export async function getMcfFormLogsByUidAndWeek(uid: string, weekNum: number): Promise<McfFormLogRow[]> {
-  const range = campusWeekToDateRange(weekNum);
-  if (!range) return [];
-  const supabase = getSupabaseClient();
-  const endDate = getWeekFetchEnd(range);
-  const { data, error } = await supabase
-    .from("mcf_form_logs").select("*")
-    .or(`mentor_uid.eq.${uid},mentee_uid.eq.${uid}`)
-    .gte("created_at", range.startDate.toISOString())
-    .lte("created_at", endDate.toISOString())
-    .order("created_at", { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as McfFormLogRow[];
-}
-
 // ---------------------------------------------------------------------------
-// Supabase fetch — WHAF
+// Supabase fetch — WAHF
 // ---------------------------------------------------------------------------
 
 export async function getWhafFormLogsForWeek(weekNum: number): Promise<WahfFormLogRow[]> {
@@ -288,58 +184,23 @@ export async function getWplFormLogsByUid(uid: string): Promise<WplFormLogRow[]>
   return (data ?? []) as WplFormLogRow[];
 }
 
-export async function getWplFormLogsByUidAndWeek(uid: string, weekNum: number): Promise<WplFormLogRow[]> {
-  const range = campusWeekToDateRange(weekNum);
-  if (!range) return [];
-  const supabase = getSupabaseClient();
-  const endDate = getWeekFetchEnd(range);
-  const { data, error } = await supabase
-    .from("wpl_form_logs").select("*")
-    .eq("scholar_uid", uid)
-    .gte("created_at", range.startDate.toISOString())
-    .lte("created_at", endDate.toISOString())
-    .order("created_at", { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as WplFormLogRow[];
-}
-
 // ---------------------------------------------------------------------------
 // With-late fetchers
 // ---------------------------------------------------------------------------
 
 export async function getWhafFormLogsForWeekWithLate(weekNum: number) {
   const rows = await getWhafFormLogsForWeek(weekNum);
-  return markWhafFormLogsLate(rows, weekNum);
+  return markFormLogsLate("WAHF", rows, weekNum);
 }
 
 export async function getMcfFormLogsForWeekWithLate(weekNum: number) {
   const rows = await getMcfFormLogsForWeek(weekNum);
-  return markMcfFormLogsLate(rows, weekNum);
-}
-
-export async function getMcfFormLogsByUidWithLate(uid: string) {
-  const rows = await getMcfFormLogsByUid(uid);
-  return markMcfFormLogsLate(rows);
-}
-
-export async function getMcfFormLogsByUidAndWeekWithLate(uid: string, weekNum: number) {
-  const rows = await getMcfFormLogsByUidAndWeek(uid, weekNum);
-  return markMcfFormLogsLate(rows);
+  return markFormLogsLate("MCF", rows, weekNum);
 }
 
 export async function getWplFormLogsForWeekWithLate(weekNum: number) {
   const rows = await getWplFormLogsForWeek(weekNum);
-  return markWplFormLogsLate(rows, weekNum);
-}
-
-export async function getWplFormLogsByUidWithLate(uid: string) {
-  const rows = await getWplFormLogsByUid(uid);
-  return markWplFormLogsLate(rows);
-}
-
-export async function getWplFormLogsByUidAndWeekWithLate(uid: string, weekNum: number) {
-  const rows = await getWplFormLogsByUidAndWeek(uid, weekNum);
-  return markWplFormLogsLate(rows);
+  return markFormLogsLate("WPL", rows, weekNum);
 }
 
 // ---------------------------------------------------------------------------
@@ -447,7 +308,7 @@ export function buildTeamLeaderFormStatsForWeek(
 // Batch fetch by UIDs
 // ---------------------------------------------------------------------------
 
-export async function getWhafFormLogsByUids(uids: string[]): Promise<WahfFormLogRow[]> {
+export async function getWhafFormLogsByUids(uids: ReadonlyArray<string>): Promise<WahfFormLogRow[]> {
   if (!uids.length) return [];
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
@@ -457,7 +318,7 @@ export async function getWhafFormLogsByUids(uids: string[]): Promise<WahfFormLog
 }
 
 export async function getMcfFormLogsByUids(
-  uids: string[],
+  uids: ReadonlyArray<string>,
   field: "mentor_uid" | "mentee_uid" = "mentor_uid"
 ): Promise<McfFormLogRow[]> {
   if (!uids.length) return [];
@@ -468,7 +329,7 @@ export async function getMcfFormLogsByUids(
   return (data ?? []) as McfFormLogRow[];
 }
 
-export async function getWplFormLogsByUids(uids: string[]): Promise<WplFormLogRow[]> {
+export async function getWplFormLogsByUids(uids: ReadonlyArray<string>): Promise<WplFormLogRow[]> {
   if (!uids.length) return [];
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
@@ -517,7 +378,7 @@ function sortByCreatedAtDesc<T extends { created_at: string | null }>(rows: T[])
 
 function mapWhafRow(row: WahfFormLogRow): RecentFormSubmission {
   return {
-    id: `WHAF-${row.id}`, formType: "WHAF", submittedAt: row.created_at,
+    id: `WAHF-${row.id}`, formType: "WAHF", submittedAt: row.created_at,
     assignment_grades: row.assignment_grades, course_changes: row.course_changes,
     missed_classes: row.missed_classes, missed_assignments: row.missed_assignments,
     course_change_details: row.course_change_details,
@@ -527,8 +388,8 @@ function mapWhafRow(row: WahfFormLogRow): RecentFormSubmission {
 /** Scholar home: WAHF id + timestamp only — no grades or team-leader form payloads. */
 export function mapWhafSummaryRow(row: WahfFormLogRow): RecentFormSubmission {
   return {
-    id: `WHAF-${row.id}`,
-    formType: "WHAF",
+    id: `WAHF-${row.id}`,
+    formType: "WAHF",
     submittedAt: row.created_at,
   };
 }

@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { dateToCampusWeek } from "@/lib/format/time";
-import { backendGet } from "@/lib/server/api-client";
+import { getScheduleBoard } from "@css-atlas/shared/contracts/dev";
+import { callEndpoint } from "@/lib/server/api-client";
 import { CampusWeekCard } from "@/components/data-display/campus-week-card";
 import { ScheduleViewsClient } from "./schedule-views-client";
-import type { ScheduleBoardResponse } from "./types";
 
 export const metadata = {
   title: "FD/SS Schedule Views | Dev Tools",
@@ -27,9 +27,7 @@ export default async function DevScheduleViewsPage({ searchParams }: PageProps) 
         ? Math.max(1, Math.min(30, currentCampusWeek))
         : 1;
 
-  const board = await backendGet<ScheduleBoardResponse>(
-    "/api/dev/schedule-board",
-  );
+  const board = await callEndpoint(getScheduleBoard);
 
   return (
     <div className="container mx-auto max-w-6xl space-y-8 py-12">

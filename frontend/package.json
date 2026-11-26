@@ -9,9 +9,15 @@
     "lint": "eslint",
     "test": "TZ=America/New_York vitest run",
     "test:watch": "TZ=America/New_York vitest",
-    "check:theme-safety": "node ../scripts/check-theme-safety.mjs"
+    "check:theme-safety": "node ../scripts/check-theme-safety.mjs",
+    "lint:baseline": "node ../tools/lint-baseline.mjs --check",
+    "deps": "depcruise app components lib hooks --config .dependency-cruiser.cjs --ignore-known",
+    "deps:baseline": "depcruise-baseline app components lib hooks --config .dependency-cruiser.cjs",
+    "guardrails": "npm run typecheck && npm run lint && npm run lint:baseline && npm run deps",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@css-atlas/shared": "file:../shared",
     "@date-fns/utc": "^2.1.1",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-checkbox": "^1.3.3",
@@ -24,7 +30,6 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.56.0",
-    "@vercel/analytics": "^2.0.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "d3": "^7.9.0",
@@ -37,8 +42,7 @@
     "react-dom": "19.1.0",
     "server-only": "^0.0.1",
     "sonner": "^2.0.7",
-    "tailwind-merge": "^3.3.1",
-    "zod": "^4.3.6"
+    "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -48,6 +52,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.3",
+    "dependency-cruiser": "^17.4.3",
     "eslint": "^9",
     "eslint-config-next": "15.5.0",
     "jsdom": "^30.0.1",

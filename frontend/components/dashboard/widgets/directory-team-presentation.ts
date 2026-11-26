@@ -97,6 +97,6 @@ export function directoryTeamPresentationFor(team: string): DirectoryTeamPresent
   };
 }
 
-export function directoryTeamFilterOptions(teams: string[]) {
+export function directoryTeamFilterOptions(teams: readonly string[]) {
   return teams.map((value) => ({ value, label: directoryTeamPresentationFor(value).label }));
 }

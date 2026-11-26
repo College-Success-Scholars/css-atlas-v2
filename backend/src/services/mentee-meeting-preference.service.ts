@@ -9,7 +9,6 @@
  * layer (see the mentee_meeting_preferences migration).
  *
  * ## Responsibilities
- * - Validate weekday (1-7) and program-local HH:MM
  * - Read the caller's own preference for one mentee
  * - Atomically upsert both fields for the caller's own active pair
  *
@@ -19,7 +18,6 @@
  * - MCF prefill (task 6.x)
  */
 import { getSupabaseClient } from "../supabase/client.js";
-import { WEEKDAY_MAX, WEEKDAY_MIN } from "../models/meeting-preference.model.js";
 import type {
   MeetingPreferenceOutput,
   MeetingPreferenceRow,
@@ -42,55 +40,13 @@ interface UntypedClient {
   from: (table: string) => Chain;
 }
 
-const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
-
-export function isValidWeekday(value: unknown): value is number {
-  return (
-    typeof value === "number" &&
-    Number.isInteger(value) &&
-    value >= WEEKDAY_MIN &&
-    value <= WEEKDAY_MAX
-  );
-}
-
-/** Accepts only program-local 24-hour "HH:MM". */
-export function normalizeMeetingTime(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const match = TIME_PATTERN.exec(value.trim());
-  return match ? `${match[1]}:${match[2]}` : null;
-}
-
-export type ValidationResult =
-  | { ok: true; value: { weekday: number; meetingTime: string } }
-  | { ok: false; error: { code: "invalid_weekday" | "invalid_time"; message: string } };
-
-export function validateMeetingPreferenceInput(input: {
-  weekday: unknown;
-  meetingTime: unknown;
-}): ValidationResult {
-  if (!isValidWeekday(input.weekday)) {
-    return {
-      ok: false,
-      error: { code: "invalid_weekday", message: "Weekday must be an integer from 1 to 7." },
-    };
-  }
-  const meetingTime = normalizeMeetingTime(input.meetingTime);
-  if (!meetingTime) {
-    return {
-      ok: false,
-      error: { code: "invalid_time", message: "Meeting time must be 24-hour HH:MM." },
-    };
-  }
-  return { ok: true, value: { weekday: input.weekday, meetingTime } };
-}
-
 export function toMeetingPreferenceOutput(row: MeetingPreferenceRow): MeetingPreferenceOutput {
   return { weekday: Number(row.weekday), meetingTime: String(row.meeting_time).slice(0, 5) };
 }
 
 export type SaveMeetingPreferenceResult =
   | { ok: true; data: MeetingPreferenceOutput }
-  | { ok: false; error: { code: string; message: string } };
+  | { ok: false; error: { code: "not_assigned" | "save_failed"; message: string } };
 
 /** Re-checked on every write: the caller must currently mentor this mentee. */
 export async function isMenteeAssignedToMentor(
@@ -131,17 +87,9 @@ export async function getMeetingPreference(
 export async function saveMeetingPreference(params: {
   mentorId: string;
   menteeUid: string;
-  weekday: unknown;
-  meetingTime: unknown;
+  weekday: number;
+  meetingTime: string;
 }): Promise<SaveMeetingPreferenceResult> {
-  const validation = validateMeetingPreferenceInput({
-    weekday: params.weekday,
-    meetingTime: params.meetingTime,
-  });
-  if (!validation.ok) {
-    return { ok: false, error: validation.error };
-  }
-
   const assigned = await isMenteeAssignedToMentor(params.mentorId, params.menteeUid);
   if (!assigned) {
     return {
@@ -157,8 +105,8 @@ export async function saveMeetingPreference(params: {
       {
         mentor_id: params.mentorId,
         mentee_uid: params.menteeUid,
-        weekday: validation.value.weekday,
-        meeting_time: `${validation.value.meetingTime}:00`,
+        weekday: params.weekday,
+        meeting_time: `${params.meetingTime}:00`,
       },
       { onConflict: "mentor_id,mentee_uid" }
     )

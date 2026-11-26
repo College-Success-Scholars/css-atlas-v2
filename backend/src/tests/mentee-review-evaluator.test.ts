@@ -434,7 +434,7 @@ describe("evaluateTutoring", () => {
     expect(summary.status).toBe("recorded");
     expect(summary.recordedAttendance).toBe(true);
     expect(summary.reports).toHaveLength(1);
-    expect(summary.reports[0]!.courses.sort()).toEqual(["CMSC420", "MATH141"]);
+    expect([...summary.reports[0]!.courses].sort()).toEqual(["CMSC420", "MATH141"]);
   });
 });
 

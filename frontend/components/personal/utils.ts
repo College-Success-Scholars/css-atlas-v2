@@ -3,14 +3,9 @@ import {
   differenceInMilliseconds,
   differenceInCalendarDays,
 } from "date-fns"
-import type { WahfRow, McfRow, WplRow, MenteeRow } from "@/lib/types/supabase"
-import {
-  getWhafDeadlineForWeek,
-  getMcfWplDeadlineForWeek,
-  isWhafLateForWeek,
-  isMcfLateForWeek,
-  isWplLateForWeek,
-} from "@/lib/format/form-deadlines"
+import type { WahfRow, McfRow, WplRow } from "@/lib/types/supabase"
+import type { MenteeRow } from "@css-atlas/shared/contracts/mentees"
+import { formDeadline, isLate } from "@css-atlas/shared/form-status"
 import { campusWeekToDateRange, dateToCampusWeek, getEasternDateParts, ONE_DAY_MS } from "@/lib/format/time"
 
 // ---------------------------------------------------------------------------
@@ -93,26 +88,27 @@ export type McfMenteeOption = {
   submission: McfRow | null
 }
 
-export function findSubmissionsForCampusWeek<T extends { created_at: string }>(
-  rows: T[],
+export function findSubmissionsForCampusWeek<T extends { readonly created_at: string | null }>(
+  rows: readonly T[],
   weekNum: number,
 ): T[] {
   return rows.filter((r) => {
+    if (r.created_at == null) return false
     const created = new Date(r.created_at)
     if (Number.isNaN(created.getTime())) return false
     return dateToCampusWeek(created) === weekNum
   })
 }
 
-export function findSubmissionForCampusWeek<T extends { created_at: string }>(
-  rows: T[],
+export function findSubmissionForCampusWeek<T extends { readonly created_at: string | null }>(
+  rows: readonly T[],
   weekNum: number,
 ): T | null {
   return findSubmissionsForCampusWeek(rows, weekNum)[0] ?? null
 }
 
-export function latestSubmissionForCampusWeek<T extends { created_at: string }>(
-  rows: T[],
+export function latestSubmissionForCampusWeek<T extends { readonly created_at: string | null }>(
+  rows: readonly T[],
   weekNum: number,
 ): T | null {
   const matches = findSubmissionsForCampusWeek(rows, weekNum)
@@ -147,8 +143,8 @@ export function mcfMenteeKey(row: Pick<McfRow, "id" | "mentee_uid" | "mentee_nam
  * Duplicate logs for the same mentee keep the latest `created_at`.
  */
 export function buildMcfMenteeOptions(
-  mentees: MenteeRow[],
-  mcf: McfRow[],
+  mentees: ReadonlyArray<MenteeRow>,
+  mcf: readonly McfRow[],
   weekNum: number,
 ): McfMenteeOption[] {
   const byKey = new Map<string, McfMenteeOption>()
@@ -180,7 +176,7 @@ export function buildMcfMenteeOptions(
   return [...byKey.values()].sort((a, b) => a.menteeName.localeCompare(b.menteeName))
 }
 
-export function countDistinctMcfMentees(mcf: McfRow[], weekNum: number): number {
+export function countDistinctMcfMentees(mcf: readonly McfRow[], weekNum: number): number {
   const keys = new Set(findSubmissionsForCampusWeek(mcf, weekNum).map(mcfMenteeKey))
   return keys.size
 }
@@ -222,23 +218,22 @@ function incompleteStatusForWeek(
 
 export function getFormStatusForWeek(
   formType: FormType,
-  wahf: WahfRow[],
-  mcf: McfRow[],
-  wpl: WplRow[],
+  wahf: readonly WahfRow[],
+  mcf: readonly McfRow[],
+  wpl: readonly WplRow[],
   weekNum: number,
   currentCampusWeek: number | null,
   menteeCount: number | null = null,
 ): FormStatusResult {
   const now = new Date()
-  const deadline =
-    formType === "WAHF" ? getWhafDeadlineForWeek(weekNum) : getMcfWplDeadlineForWeek(weekNum)
+  const deadline = formDeadline(formType, weekNum)
 
   if (formType === "MCF") {
     const weekLogs = findSubmissionsForCampusWeek(mcf, weekNum)
     const submission = latestSubmissionForCampusWeek(mcf, weekNum)
     const requiredCount = countableMcfRequired(menteeCount)
     const completedCount = countDistinctMcfMentees(mcf, weekNum)
-    const isLate = weekLogs.some((row) => isMcfLateForWeek(row.created_at, weekNum))
+    const late = weekLogs.some((row) => isLate("MCF", row.created_at, weekNum))
     const complete = requiredCount <= 0 || completedCount >= requiredCount
     const partial = requiredCount > 1 && completedCount > 0 && completedCount < requiredCount
     const clock = complete
@@ -255,7 +250,7 @@ export function getFormStatusForWeek(
       formType,
       status,
       submittedAt: submission?.created_at ?? null,
-      isLate,
+      isLate: late,
       daysOverdue: clock.daysOverdue,
       hoursLeft: clock.hoursLeft,
       daysLeft: clock.daysLeft,
@@ -269,11 +264,7 @@ export function getFormStatusForWeek(
     formType === "WAHF"
       ? findSubmissionForCampusWeek(wahf, weekNum)
       : findSubmissionForCampusWeek(wpl, weekNum)
-  const isLate = submission
-    ? formType === "WAHF"
-      ? isWhafLateForWeek(submission.created_at, weekNum)
-      : isWplLateForWeek(submission.created_at, weekNum)
-    : false
+  const late = submission?.created_at ? isLate(formType, submission.created_at, weekNum) : false
   const complete = submission != null
   const incomplete = complete
     ? { status: "done" as const, daysOverdue: 0, hoursLeft: 0, daysLeft: 0 }
@@ -283,7 +274,7 @@ export function getFormStatusForWeek(
     formType,
     status: incomplete.status,
     submittedAt: submission?.created_at ?? null,
-    isLate,
+    isLate: late,
     daysOverdue: incomplete.daysOverdue,
     hoursLeft: incomplete.hoursLeft,
     daysLeft: incomplete.daysLeft,

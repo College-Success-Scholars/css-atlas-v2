@@ -20,8 +20,9 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar"
 import { redirect } from "next/navigation";
-import { getCurrentUser, type DevTestProfileListItem } from "@/lib/server/queries";
-import { backendGet } from "@/lib/server/api-client";
+import { getCurrentUser } from "@/lib/server/queries";
+import { listTestProfiles, type DevTestProfile } from "@css-atlas/shared/contracts/dev";
+import { callEndpoint } from "@/lib/server/api-client";
 import { isDeveloperProfile } from "@/lib/auth";
 import { ProfilesRow } from "@/lib/supabase/server";
 
@@ -42,10 +43,10 @@ export default async function DashboardLayout({
 
   const profile = meResult.profile as ProfilesRow;
   const isDeveloper = isDeveloperProfile(meResult.realProfile ?? null);
-  let testProfiles: DevTestProfileListItem[] = [];
+  let testProfiles: readonly DevTestProfile[] = [];
   if (isDeveloper) {
     try {
-      testProfiles = await backendGet<DevTestProfileListItem[]>("/api/dev/test-profiles");
+      testProfiles = await callEndpoint(listTestProfiles);
     } catch {
       testProfiles = [];
     }

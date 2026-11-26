@@ -21,6 +21,9 @@
  * - Frozen *_records_legacy tables
  */
 import { getSupabaseClient } from "../supabase/client.js";
+import { Effect } from "effect";
+import { CurrentCaller } from "../context/current-caller.js";
+import { ValidationError } from "../utils/domain-error.js";
 import {
   campusWeekToDateRange,
   getEasternDateParts,
@@ -42,8 +45,8 @@ import type {
   CampusWeekAttendance,
   CampusWeekAttendanceTotals,
   ScholarWeekExcuseRow,
-  UpsertExcusePayload,
 } from "../models/attendance-week.model.js";
+import type { ExcuseInput } from "@css-atlas/shared/contracts/attendance";
 
 export function loggedMinutes(m: WeeklyMinutesByDay): number {
   return m.mon_min + m.tues_min + m.wed_min + m.thurs_min + m.fri_min;
@@ -63,13 +66,6 @@ export function completionPct(
 
 function isAttendanceKind(value: string): value is AttendanceKind {
   return value === "front_desk" || value === "study_session";
-}
-
-export function parseAttendanceKind(
-  value: string | undefined | null
-): AttendanceKind | null {
-  if (!value) return null;
-  return isAttendanceKind(value) ? value : null;
 }
 
 /** Eastern YYYY-MM-DD of campusWeekToDateRange(weekNum).startDate. */
@@ -192,7 +188,7 @@ function buildTotalsMap(
   return map;
 }
 
-function uniqueUids(uids: string[]): string[] {
+function uniqueUids(uids: ReadonlyArray<string>): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const raw of uids) {
@@ -300,7 +296,7 @@ export async function getCampusWeekAttendance(
  */
 export async function getWeekAttendanceForUids(
   weekNum: number,
-  uids: string[]
+  uids: ReadonlyArray<string>
 ): Promise<AttendanceForUids> {
   const range = campusWeekToDateRange(weekNum);
   if (!range) throw new Error(`Invalid week number: ${weekNum}`);
@@ -432,54 +428,46 @@ export async function getWeekBoard(
   };
 }
 
-export async function upsertExcuse(
-  payload: UpsertExcusePayload
-): Promise<ScholarWeekExcuseRow> {
-  const {
-    scholar_uid,
-    week_num,
-    kind,
-    excuse_min,
-    description,
-    updated_by,
-  } = payload;
+/**
+ * Create, replace or clear one excuse. The input is already validated by the
+ * attendance contract; who made the change and when come from CurrentCaller.
+ */
+export const upsertExcuse = (
+  input: ExcuseInput
+): Effect.Effect<ScholarWeekExcuseRow, ValidationError, CurrentCaller> =>
+  Effect.gen(function* () {
+    const { actorId, asOf } = yield* CurrentCaller;
 
-  if (!scholar_uid) throw new Error("Missing scholar_uid");
-  if (!week_num || week_num < 1) throw new Error("Invalid week_num");
-  if (!isAttendanceKind(kind)) throw new Error("Invalid kind");
-  const weekStart = campusWeekStartDate(week_num);
-  if (!weekStart) throw new Error("Invalid week_num");
-  if (excuse_min != null && (Number.isNaN(excuse_min) || excuse_min < 0)) {
-    throw new Error("excuse_min must be null or a non-negative number");
-  }
-  if (
-    excuse_min != null &&
-    excuse_min > 0 &&
-    !(description && description.trim())
-  ) {
-    throw new Error("description is required when excuse_min > 0");
-  }
+    const weekStart = campusWeekStartDate(input.week_num);
+    if (!weekStart) {
+      return yield* new ValidationError({ field: "week_num", message: "is outside the campus calendar" });
+    }
 
-  const supabase = getSupabaseClient();
-  const row = {
-    scholar_uid: String(scholar_uid),
-    week_start: weekStart,
-    week_num,
-    kind,
-    excuse_min: excuse_min ?? null,
-    description: description?.trim() ? description.trim() : null,
-    updated_by: updated_by ?? null,
-    updated_at: new Date().toISOString(),
-  };
+    const { data, error } = yield* Effect.promise(async () =>
+      getSupabaseClient()
+        .from("scholar_week_excuses")
+        .upsert(
+          {
+            scholar_uid: input.scholar_uid,
+            week_start: weekStart,
+            week_num: input.week_num,
+            kind: input.kind,
+            excuse_min: input.excuse_min,
+            description: input.description,
+            updated_by: actorId,
+            updated_at: asOf.toISOString(),
+          },
+          { onConflict: "scholar_uid,week_start,kind" }
+        )
+        .select()
+        .single()
+    );
+    // Database failures are not the caller's to fix: the error handler decides the status.
+    if (error) return yield* Effect.die(error);
 
-  const { data, error } = await supabase
-    .from("scholar_week_excuses")
-    .upsert(row, { onConflict: "scholar_uid,week_start,kind" })
-    .select()
-    .single();
-  if (error) throw error;
-
-  const mapped = mapExcuseRow(data);
-  if (!mapped) throw new Error("Invalid kind");
-  return mapped;
-}
+    const mapped = mapExcuseRow(data);
+    if (!mapped) {
+      return yield* Effect.die(new Error(`scholar_week_excuses returned an unknown kind: ${data.kind}`));
+    }
+    return mapped;
+  });

@@ -1,0 +1,16 @@
+[
+  {
+    "type": "dependency",
+    "from": "app/dashboard/mentee/page.test.tsx",
+    "to": "app/dashboard/directory/[uid]/page.tsx",
+    "unresolvedTo": "../directory/[uid]/page",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "dashboard-routes-are-isolated"
+    }
+  }
+]

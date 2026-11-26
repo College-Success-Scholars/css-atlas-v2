@@ -1,6 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import type {
+  FreshmanGradeHoursWeek,
+  FreshmanGradeRow,
+  FreshmanGradesReport,
+  FreshmanGradeWeekBreakdown,
+} from "@css-atlas/shared/contracts/dev";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,41 +32,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-export type FreshmanGradeHoursWeek = {
-  loggedMinutes: number;
-  excuseMinutes: number;
-  effectiveMinutes: number;
-  requiredMinutes: number | null;
-  rawPct: number | null;
-  cappedPct: number | null;
-};
-
-export type FreshmanGradeWeekBreakdown = {
-  weekNum: number;
-  fd: FreshmanGradeHoursWeek;
-  ss: FreshmanGradeHoursWeek;
-  wahfStatus: "on-time" | "late" | "missing";
-  wahfPct: number;
-};
-
-export type FreshmanGradeRow = {
-  scholarId: string;
-  scholarName: string;
-  mentor: string;
-  cohort: number;
-  fdPct: number | null;
-  ssPct: number | null;
-  wahfPct: number | null;
-  weeks: FreshmanGradeWeekBreakdown[];
-};
-
-export type FreshmanGradesReport = {
-  throughWeek: number;
-  scoredWeeks: { fromWeek: number; throughWeek: number } | null;
-  weights: { fd: number; ss: number; wahf: number; outOfApp: number };
-  scholars: FreshmanGradeRow[];
-};
 
 export type FreshmanGradesCsvMode = "overall" | "in-depth";
 

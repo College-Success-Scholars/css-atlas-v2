@@ -8,12 +8,12 @@
 import { redirect } from "next/navigation";
 import { dateToCampusWeek } from "@/lib/format/time";
 import { getAttendanceWeekBoard } from "@/lib/server/data";
-import { parseWeekParam } from "@/app/dashboard/memo/_lib/week-navigation";
+import { parseWeekParam } from "@/lib/format/campus-week";
 import {
   TeamsAttendanceClient,
   TeamsPageFallback,
 } from "./teams-attendance-client";
-import type { AttendanceKind, AttendanceWeekBoard } from "@/lib/types/attendance-week";
+import type { AttendanceKind, AttendanceWeekBoard } from "@css-atlas/shared/contracts/attendance";
 
 export { TeamsPageFallback };
 

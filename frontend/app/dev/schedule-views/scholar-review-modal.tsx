@@ -11,7 +11,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { backendGet } from "@/lib/client/api-client";
+import { getDirectoryMenteeReview } from "@css-atlas/shared/contracts/mentees";
+import { callEndpoint } from "@/lib/client/api-client";
 import type { MenteeReview } from "@/lib/types/mentee-review";
 
 type ScholarReviewModalProps = {
@@ -49,14 +50,10 @@ export function ScholarReviewModal({
     setLoading(true);
     setError(null);
 
-    const params = new URLSearchParams();
-    if (week != null && week > 0) params.set("week", String(week));
-    const query = params.toString();
-    const path = `/api/auth/mentees/${encodeURIComponent(uid)}/directory-review${
-      query ? `?${query}` : ""
-    }`;
-
-    void backendGet<MenteeReview>(path).then((result) => {
+    void callEndpoint(getDirectoryMenteeReview, {
+      params: { uid },
+      query: week != null && week > 0 ? { week } : {},
+    }).then((result) => {
       if (cancelled) return;
       if (result.ok) {
         setReview(result.data);

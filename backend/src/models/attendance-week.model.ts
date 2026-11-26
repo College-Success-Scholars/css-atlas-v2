@@ -16,63 +16,19 @@ import type { WeeklyMinutesByDay } from "./weekly-minutes.model.js";
 import type { MemoUserRow } from "./user.model.js";
 import type { ScholarWithCompletedSession } from "./session-log.model.js";
 
-export type AttendanceKind = "front_desk" | "study_session";
+// Wire shapes are defined once, in the API contract.
+import type { ScholarWeekExcuse } from "@css-atlas/shared/contracts/attendance";
 
-export interface ScholarWeekExcuseRow {
-  scholar_uid: string;
-  week_start: string;
-  week_num: number;
-  kind: AttendanceKind;
-  excuse_min: number | null;
-  description: string | null;
-  updated_by: string | null;
-  updated_at: string;
-}
+export type {
+  AttendanceForUids,
+  AttendanceKind,
+  AttendanceWeekBoard,
+  AttendanceWeekBoardRow,
+  AttendanceWeekBoardSummary,
+} from "@css-atlas/shared/contracts/attendance";
 
-export interface UpsertExcusePayload {
-  scholar_uid: string;
-  week_num: number;
-  kind: AttendanceKind;
-  excuse_min: number | null;
-  description: string | null;
-  updated_by?: string | null;
-}
+export type ScholarWeekExcuseRow = ScholarWeekExcuse;
 
-export interface AttendanceWeekBoardRow extends WeeklyMinutesByDay {
-  scholar_uid: string;
-  scholar_name: string | null;
-  week_num: number;
-  kind: AttendanceKind;
-  logged_min: number;
-  excuse_min: number;
-  description: string | null;
-  required_min: number | null;
-  effective_min: number;
-  completion_pct: number | null;
-}
-
-export interface AttendanceWeekBoardSummary {
-  scholar_count: number;
-  at_or_above_90: number;
-  below_75: number;
-}
-
-export interface AttendanceWeekBoard {
-  week_num: number;
-  week_start: string;
-  kind: AttendanceKind;
-  rows: AttendanceWeekBoardRow[];
-  summary: AttendanceWeekBoardSummary;
-}
-
-/** FD + SS rows for specific UIDs in one campus week (mentees page). */
-export interface AttendanceForUids {
-  week_num: number;
-  week_start: string;
-  rows: AttendanceWeekBoardRow[];
-}
-
-/** Per-scholar logged minutes + excuse for one duty kind. */
 export interface CampusWeekAttendanceTotals {
   minutes: WeeklyMinutesByDay;
   loggedMin: number;

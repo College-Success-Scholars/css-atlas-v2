@@ -1,64 +1,19 @@
-/** Types mirroring backend/src/models/session-log.model.ts */
+/** Frontend views of session logs. The wire types live in @css-atlas/shared/contracts/session-logs. */
+import type {
+  CleanedAndErroredScholar,
+  ProcessedTicket,
+  ScholarWithCompletedSession,
+} from "@css-atlas/shared/contracts/session-logs";
 
 export const SESSION_TYPE_STUDY = "Study Session";
 export const SESSION_TYPE_FRONT_DESK = "Front Desk";
 export type SessionType = typeof SESSION_TYPE_STUDY | typeof SESSION_TYPE_FRONT_DESK;
 
-export interface SessionLogRow {
-  id: string;
-  created_at: string;
-  scholar_uid: string | null;
-  scholar_name?: string | null;
-  action_type: string | null;
-  session_type?: string | null;
-  [key: string]: unknown;
-}
-
-export interface SessionLogConfig {
-  entryAction: string;
-  exitAction: string;
-}
-
-export type TicketErrorType =
-  | "DOUBLE_EXIT"
-  | "DOUBLE_ENTER"
-  | "EXIT_BEFORE_ENTER"
-  | "EXIT_WITHOUT_ENTER"
-  | "ENTRY_WITHOUT_SAME_DAY_EXIT";
-
-export interface ProcessedTicket {
-  ticket: SessionLogRow;
-  error?: TicketErrorType;
-  pairedEntryAt?: string;
-}
-
+/** The cleaned/errored endpoints answer a record; callers work with this Map. */
 export interface CleanedAndErroredResult {
-  byScholarUid: Map<
-    string,
-    { cleaned: ProcessedTicket[]; errored: ProcessedTicket[]; scholarName: string | null }
-  >;
-  allCleaned: ProcessedTicket[];
-  allErrored: ProcessedTicket[];
-}
-
-export interface ScholarInRoom {
-  scholarId: string;
-  scholarName: string | null;
-  entryTicket: SessionLogRow;
-  entryAt: string;
-  timeInRoomMs: number;
-  sessionType?: string | null;
-}
-
-export interface ScholarWithCompletedSession {
-  scholarId: string;
-  scholarName: string | null;
-  entryTicket: SessionLogRow;
-  exitTicket: SessionLogRow;
-  entryAt: string;
-  exitAt: string;
-  durationMs: number;
-  sessionType?: string | null;
+  byScholarUid: Map<string, CleanedAndErroredScholar>;
+  allCleaned: readonly ProcessedTicket[];
+  allErrored: readonly ProcessedTicket[];
 }
 
 export interface DoubleEntry {
@@ -94,8 +49,8 @@ function computeOverlapMs(s1: number, e1: number, s2: number, e2: number) {
 }
 
 export function getDoubleEntries(
-  completedStudy: ScholarWithCompletedSession[],
-  completedFrontDesk: ScholarWithCompletedSession[],
+  completedStudy: readonly ScholarWithCompletedSession[],
+  completedFrontDesk: readonly ScholarWithCompletedSession[],
   options: { toleranceMinutes?: number } = {}
 ): DoubleEntry[] {
   const toleranceMs = (options.toleranceMinutes ?? 5) * MS_PER_MINUTE;
@@ -136,14 +91,4 @@ export function getDoubleEntries(
     }
   }
   return result;
-}
-
-export interface ScholarNoShow {
-  scholarId: string;
-  scholarName: string;
-  phoneNumber: string | null;
-  /** ISO start of the missed shift occurrence (Eastern wall clock). */
-  scheduledStart: string;
-  /** ISO end of the missed shift occurrence (Eastern wall clock). */
-  scheduledEnd: string;
 }

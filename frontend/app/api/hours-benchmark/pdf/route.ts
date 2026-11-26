@@ -7,7 +7,8 @@
  *
  * Query: `scope=low` (default, ≤50% heatmap) or `scope=all` (every eligible scholar).
  */
-import { getHoursBenchmarkPdf } from "@/lib/server/data";
+import { downloadEndpoint } from "@/lib/server/api-client";
+import * as hoursBenchmark from "@css-atlas/shared/contracts/hours-benchmark";
 import { NextResponse, type NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +21,7 @@ function parseScope(raw: string | null): "low" | "all" {
 export async function GET(request: NextRequest) {
   try {
     const scope = parseScope(request.nextUrl.searchParams.get("scope"));
-    const upstream = await getHoursBenchmarkPdf(scope);
+    const upstream = await downloadEndpoint(hoursBenchmark.getPdf, { query: { scope } });
     const headers = new Headers();
     const contentType = upstream.headers.get("Content-Type");
     const contentDisposition = upstream.headers.get("Content-Disposition");

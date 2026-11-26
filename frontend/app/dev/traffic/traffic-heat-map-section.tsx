@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import type { TrafficSession } from "@/lib/types/traffic";
+import type { TrafficSession } from "@css-atlas/shared/contracts/traffic";
 import { TrafficHeatMap } from "./traffic-heat-map";
 
 const SLOT_OPTIONS = [15, 30, 60] as const;
 
 interface TrafficHeatMapSectionProps {
-  sessions: TrafficSession[];
+  sessions: readonly TrafficSession[];
   /** Initial slot size from URL (default 15). */
   initialSlotMinutes?: number;
 }

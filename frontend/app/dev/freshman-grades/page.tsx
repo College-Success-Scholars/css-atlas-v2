@@ -1,10 +1,8 @@
 import Link from "next/link";
 import { freshmanCohortYear, sophomoreCohortYear } from "@/lib/format/time";
-import { backendGet } from "@/lib/server/api-client";
-import {
-  FreshmanGradesTable,
-  type FreshmanGradesReport,
-} from "./freshman-grades-table";
+import { getFreshmanGrades } from "@css-atlas/shared/contracts/dev";
+import { callEndpoint } from "@/lib/server/api-client";
+import { FreshmanGradesTable } from "./freshman-grades-table";
 
 export const metadata = {
   title: "Freshman and sophomore grades | Dev Tools",
@@ -15,7 +13,7 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function DevFreshmanGradesPage() {
-  const report = await backendGet<FreshmanGradesReport>("/api/dev/freshman-grades");
+  const report = await callEndpoint(getFreshmanGrades);
   const { weights } = report;
   const freshmanYear = freshmanCohortYear();
   const sophomoreYear = sophomoreCohortYear();

@@ -59,7 +59,7 @@ npm run test:watch # vitest
 - **Entry point is `src/server.ts`** — do not run `app.ts` directly; server.ts handles env validation and process lifecycle.
 - **Build output goes to `dist/`** — never commit the `dist/` directory.
 - `**.js` extensions on all local imports** — required for Node ESM even though source is `.ts`.
-- **No `.env` files committed** — use Railway/Vercel environment variable injection in production.
+- **No `.env` files committed** — use Railway environment variable injection in production.
 - **API reference must stay updated** — when adding or changing endpoints, update `API.md`.
 - **All routes must be registered in `src/app.ts`** — do not create loose route files outside `src/routes/`.
 

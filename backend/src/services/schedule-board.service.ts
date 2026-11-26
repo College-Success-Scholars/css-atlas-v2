@@ -5,33 +5,19 @@
  * Schedule board for /dev/schedule-views: eligible scholars + standing shifts,
  * plus developer replace of one scholar's active FD/SS assignments.
  */
-import { scholarYearLabel } from "../../../shared/dist/time.js";
+import type {
+  ReplaceShiftsResult,
+  ScheduleBoard,
+  ScheduleBoardScholar,
+  ScheduleBoardShift,
+  StandingShiftInput,
+} from "@css-atlas/shared/contracts/dev";
+import { scholarYearLabel } from "@css-atlas/shared/time";
 import type { ShiftSessionKind, ScholarShiftAssignment } from "../models/session-log.model.js";
 import { getSupabaseClient } from "../supabase/client.js";
+import { ConflictError, ValidationError } from "../utils/domain-error.js";
 import { getActiveSemesterRow } from "./semester.service.js";
 import { fetchAllUsersForMemo, isEligibleScholar } from "./user.service.js";
-
-export type ScheduleBoardShiftDto = {
-  id: string;
-  kind: ShiftSessionKind;
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
-};
-
-export type ScheduleBoardScholarDto = {
-  uid: string;
-  name: string;
-  cohort: number | null;
-  classYearLabel: "Freshman" | "Sophomore" | null;
-  fd_required: number;
-  ss_required: number;
-  shifts: ScheduleBoardShiftDto[];
-};
-
-export type ScheduleBoardResponse = {
-  scholars: ScheduleBoardScholarDto[];
-};
 
 function shortTime(value: string): string {
   return value.trim().slice(0, 5);
@@ -62,7 +48,7 @@ async function fetchActiveAssignmentsForScholars(
   return (data ?? []) as ScholarShiftAssignment[];
 }
 
-function toShiftDto(row: ScholarShiftAssignment): ScheduleBoardShiftDto | null {
+function toShiftDto(row: ScholarShiftAssignment): ScheduleBoardShift | null {
   if (row.session_kind !== "front_desk" && row.session_kind !== "study_session") {
     return null;
   }
@@ -80,13 +66,13 @@ function toShiftDto(row: ScholarShiftAssignment): ScheduleBoardShiftDto | null {
 }
 
 /** Hour-eligible scholars with standing FD/SS assignments for the schedule board. */
-export async function getScheduleBoard(): Promise<ScheduleBoardResponse> {
+export async function getScheduleBoard(): Promise<ScheduleBoard> {
   const users = await fetchAllUsersForMemo();
   const eligible = users.filter(isEligibleScholar);
   const uids = eligible.map((u) => u.uid);
   const assignments = await fetchActiveAssignmentsForScholars(uids);
 
-  const shiftsByUid = new Map<string, ScheduleBoardShiftDto[]>();
+  const shiftsByUid = new Map<string, ScheduleBoardShift[]>();
   for (const row of assignments) {
     if (!row.is_active) continue;
     const dto = toShiftDto(row);
@@ -96,7 +82,7 @@ export async function getScheduleBoard(): Promise<ScheduleBoardResponse> {
     shiftsByUid.set(row.scholar_id, list);
   }
 
-  const scholars: ScheduleBoardScholarDto[] = eligible.map((u) => {
+  const scholars: ScheduleBoardScholar[] = eligible.map((u) => {
     const name = [u.first_name, u.last_name].filter(Boolean).join(" ").trim();
     const shifts = (shiftsByUid.get(u.uid) ?? []).sort((a, b) => {
       if (a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek;
@@ -123,25 +109,13 @@ export async function getScheduleBoard(): Promise<ScheduleBoardResponse> {
   return { scholars };
 }
 
-export type StandingShiftInput = {
-  kind: ShiftSessionKind;
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
-};
-
-export type ReplaceScholarShiftsResult = {
-  uid: string;
-  shifts: ScheduleBoardShiftDto[];
-};
-
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/;
 
 function normalizeClock(value: string, label: string): string {
   const trimmed = value.trim();
   const match = TIME_RE.exec(trimmed);
   if (!match) {
-    throw new Error(`Invalid ${label}: expected HH:MM`);
+    throw new ValidationError({ field: "", message: `Invalid ${label}: expected HH:MM` });
   }
   return `${match[1]}:${match[2]}:00`;
 }
@@ -154,17 +128,14 @@ function parseMinutes(clockWithSeconds: string): number {
 }
 
 function validateStandingShiftInput(raw: StandingShiftInput, index: number): StandingShiftInput {
-  if (raw.kind !== "front_desk" && raw.kind !== "study_session") {
-    throw new Error(`shifts[${index}].kind must be front_desk or study_session`);
-  }
   const dayOfWeek = Number(raw.dayOfWeek);
   if (!Number.isInteger(dayOfWeek) || dayOfWeek < 0 || dayOfWeek > 6) {
-    throw new Error(`shifts[${index}].dayOfWeek must be an integer 0–6`);
+    throw new ValidationError({ field: "", message: `shifts[${index}].dayOfWeek must be an integer 0–6` });
   }
   const startTime = normalizeClock(String(raw.startTime ?? ""), `shifts[${index}].startTime`);
   const endTime = normalizeClock(String(raw.endTime ?? ""), `shifts[${index}].endTime`);
   if (parseMinutes(endTime) <= parseMinutes(startTime)) {
-    throw new Error(`shifts[${index}]: endTime must be after startTime`);
+    throw new ValidationError({ field: "", message: `shifts[${index}]: endTime must be after startTime` });
   }
   return {
     kind: raw.kind,
@@ -234,7 +205,7 @@ async function setAssignmentsActive(
 async function insertStandingShifts(
   scholarId: string,
   semesterId: number,
-  shifts: StandingShiftInput[],
+  shifts: ReadonlyArray<StandingShiftInput>,
 ): Promise<ScholarShiftAssignment[]> {
   if (shifts.length === 0) return [];
   const supabase = getSupabaseClient() as unknown as ShiftTableClient;
@@ -262,17 +233,14 @@ async function insertStandingShifts(
  */
 export async function replaceScholarStandingShifts(
   uid: string,
-  shiftsInput: StandingShiftInput[],
-): Promise<ReplaceScholarShiftsResult> {
-  if (!uid.trim()) throw new Error("Missing uid");
-  if (!Array.isArray(shiftsInput)) throw new Error("shifts must be an array");
-
+  shiftsInput: ReadonlyArray<StandingShiftInput>,
+): Promise<ReplaceShiftsResult> {
   const shifts = shiftsInput.map((raw, index) =>
     validateStandingShiftInput(raw, index),
   );
 
   const semester = await getActiveSemesterRow();
-  if (!semester) throw new Error("No active semester");
+  if (!semester) throw new ConflictError({ message: "No active semester" });
 
   const existing = await fetchActiveAssignmentsForScholarSemester(
     uid,
@@ -294,7 +262,7 @@ export async function replaceScholarStandingShifts(
     const inserted = await insertStandingShifts(uid, semester.id, shifts);
     const dtos = inserted
       .map(toShiftDto)
-      .filter((dto): dto is ScheduleBoardShiftDto => dto != null)
+      .filter((dto): dto is ScheduleBoardShift => dto != null)
       .sort((a, b) => {
         if (a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek;
         return a.startTime.localeCompare(b.startTime);

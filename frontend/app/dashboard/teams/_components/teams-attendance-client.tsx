@@ -31,7 +31,7 @@ import type {
   AttendanceKind,
   AttendanceWeekBoard,
   AttendanceWeekBoardRow,
-} from "@/lib/types/attendance-week";
+} from "@css-atlas/shared/contracts/attendance";
 
 export type TeamsAttendanceClientProps = {
   kind: AttendanceKind;
@@ -314,8 +314,8 @@ export function TeamsAttendanceClient({
           initialExcuseMin={excuseRow.excuse_min}
           onSubmit={async (values) => {
             const result = await upsertAttendanceExcuseAction({
-              uid: excuseRow.scholar_uid,
-              weekNum: excuseRow.week_num,
+              scholar_uid: excuseRow.scholar_uid,
+              week_num: excuseRow.week_num,
               kind: excuseRow.kind,
               excuse_min: values.excuse_min,
               description: values.description,

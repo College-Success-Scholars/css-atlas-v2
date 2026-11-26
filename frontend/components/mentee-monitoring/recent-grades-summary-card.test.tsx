@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { renderToStaticMarkup } from "react-dom/server"
 
-import type { LatestGradeEntry, LatestGradesSummary } from "@/lib/types/mentee-review"
+import type { LatestGradeEntry, LatestGradesSummary } from "@css-atlas/shared/contracts/mentees"
 
 import { RecentGradesSummaryCard } from "./recent-grades-summary-card"
 

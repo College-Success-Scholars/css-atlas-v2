@@ -9,9 +9,10 @@
  * obtain a user-scoped Supabase client via getSupabaseClient().
  *
  * ## Responsibilities
- * - Define the AuthenticatedRequest / AuthedRequest request shapes
- * - requireAuth, requireTeamLeaderOrAbove, requireTeamLeaderRole,
- *   requireDeveloper, requireSelfOrTeamLeader, requireSelfScholarIdOrTeamLeader
+ * - Define the AuthenticatedRequest request shape
+ * - requireAuth, requireTeamLeaderOrAbove, requireDeveloper: the role gates
+ *   http/endpoint.ts attaches for each contract's `access` (self-or-team-leader
+ *   is checked in endpoint.ts after validation)
  *
  * ## What does NOT belong here
  * - Endpoint handlers (controllers/*.controller.ts)
@@ -24,7 +25,7 @@ import {
   isDeveloperProfile,
   mergeProfileWithRoster,
   parseRequestedScholarId,
-} from "../../../shared/dist/auth.js";
+} from "@css-atlas/shared/auth";
 import type { ProfilesRow } from "../models/user.model.js";
 import { getSupabaseAuthClient, getSupabaseClient, runWithToken } from "../supabase/client.js";
 import { resolveEffectiveProfile } from "../services/dev-profile.service.js";
@@ -40,11 +41,6 @@ export interface AuthenticatedRequest extends Request {
   isActingAsTestProfile?: boolean;
   /** Raw bearer token — available after auth middleware runs. */
   accessToken?: string;
-}
-
-/** Request after `requireAuth` (or equivalent) has populated `authUser`. */
-export interface AuthedRequest extends AuthenticatedRequest {
-  authUser: { id: string; email?: string };
 }
 
 async function authenticate(req: AuthenticatedRequest): Promise<boolean> {
@@ -140,60 +136,3 @@ export const requireDeveloper = buildAuthMiddleware({
   check: (req) => isDeveloperProfile(req.realProfile),
   message: "Forbidden: Developer access required",
 });
-
-// requireTeamLeaderRole stays — it's a genuinely different job: a role-only
-// gate for routers where requireAuth already ran. No re-verification needed.
-export function requireTeamLeaderRole(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-  if (!hasRoleAtLeast(req.profile?.app_role ?? null, "team_leader")) {
-    res.status(403).json({ error: "Forbidden: Team leader or above required" });
-    return;
-  }
-  next();
-}
-
-/**
- * Requires that the authenticated user is either:
- * 1. Accessing their own data (req.params.uid matches their student_id), or
- * 2. A team leader or above (can access any uid).
- *
- * Must be used AFTER requireAuth (needs req.profile to be populated).
- * The :uid route param is compared against profile.student_id.
- */
-export function requireSelfOrTeamLeader(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-  const requestedUid = Array.isArray(req.params.uid) ? req.params.uid[0] : req.params.uid;
-  if (!requestedUid) {
-    res.status(400).json({ error: "Missing uid parameter" });
-    return;
-  }
-
-  if (canAccessRequestedScholarId(req.profile, requestedUid)) {
-    next();
-    return;
-  }
-
-  res.status(403).json({ error: "Forbidden: Can only access your own data" });
-}
-
-/**
- * Same gate as requireSelfOrTeamLeader, but the roster uid comes from the JSON
- * body (`scholarId` or legacy `studentId`). Missing id is allowed (handler
- * returns empty). Must run AFTER requireAuth.
- */
-export function requireSelfScholarIdOrTeamLeader(
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction,
-) {
-  const scholarId = parseRequestedScholarId(req.body);
-  if (!scholarId) {
-    next();
-    return;
-  }
-
-  if (canAccessRequestedScholarId(req.profile, scholarId)) {
-    next();
-    return;
-  }
-
-  res.status(403).json({ error: "Forbidden: Can only access your own data" });
-}

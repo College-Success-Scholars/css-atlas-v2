@@ -9,12 +9,9 @@
  *
  * ## Responsibilities
  * - getAccessToken(): extract JWT from @supabase/ssr chunked auth cookies
- * - backendFetch<T>(path, options): authenticated fetch to backend, unwraps data
- * - backendGet<T>(path): GET shorthand
- * - backendPost<T>(path, body): POST shorthand
- * - backendPatch<T>(path, body): PATCH shorthand
- * - backendDelete<T>(path): DELETE shorthand
+ * - callEndpoint(contract, request): the only way server code calls the backend; types come from the contract
  * - backendDownload(path): authenticated binary GET (no JSON unwrap)
+ * - callEndpoint(contract, request): typed call to a contract-backed endpoint (preferred)
  *
  * ## What belongs here
  * - The low-level server-side authenticated fetch infrastructure
@@ -35,16 +32,17 @@ import {
   resolveBackendBaseUrl,
 } from "@/lib/api-log";
 import {
+  endpointPath,
+  type Endpoint,
+  type EndpointOutput,
+  type EndpointRequest,
+} from "@css-atlas/shared/contract";
+import {
   DEV_ACTIVE_PROFILE_COOKIE,
   DEV_ACTIVE_PROFILE_HEADER,
-} from "../../../shared/dist/auth.js";
+} from "@css-atlas/shared/auth";
 
-const BACKEND_URL = resolveBackendBaseUrl(
-  process.env.BACKEND_URL,
-  process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}/_/backend`
-    : DEFAULT_LOCAL_BACKEND_URL
-);
+const BACKEND_URL = resolveBackendBaseUrl(process.env.BACKEND_URL, DEFAULT_LOCAL_BACKEND_URL);
 const BASE64_PREFIX = "base64-";
 
 function getSupabaseProjectRef(): string | null {
@@ -124,7 +122,7 @@ async function getAccessToken(): Promise<string | null> {
   }
 }
 
-export async function backendFetch<T>(
+async function backendFetch<T>(
   path: string,
   options?: { method?: string; body?: unknown }
 ): Promise<T> {
@@ -157,35 +155,40 @@ export async function backendFetch<T>(
 
   logApiResponse("server", method, requestUrl, res.status, durationMs);
   const json = await res.json();
-  // Unwrap { data: ... } — most routes; exceptions: GET /api/auth/me returns { user, profile }
+  // Unwrap { data: ... }
   if (json != null && typeof json === "object" && "data" in json) {
     return json.data as T;
   }
   return json as T;
 }
 
-export async function backendGet<T>(path: string): Promise<T> {
-  return backendFetch<T>(path);
+/**
+ * Call a contract-backed endpoint. The path, method, request shape and return
+ * type all come from the contract in @css-atlas/shared/contracts/*, so there
+ * is nothing to restate here or in lib/types.
+ */
+type RequestArgs<E extends Endpoint> =
+  Record<string, never> extends EndpointRequest<E> ? [request?: EndpointRequest<E>] : [request: EndpointRequest<E>];
+
+export async function callEndpoint<E extends Endpoint>(contract: E, ...[request]: RequestArgs<E>): Promise<EndpointOutput<E>> {
+  const { params, query, body } = (request ?? {}) as { params?: unknown; query?: unknown; body?: unknown };
+  return backendFetch<EndpointOutput<E>>(endpointPath(contract, { params, query }), {
+    method: contract.method,
+    ...(contract.method === "GET" ? {} : { body: body ?? {} }),
+  });
 }
 
-export async function backendPost<T>(path: string, body: unknown): Promise<T> {
-  return backendFetch<T>(path, { method: "POST", body });
-}
-
-export async function backendPut<T>(path: string, body: unknown): Promise<T> {
-  return backendFetch<T>(path, { method: "PUT", body });
-}
-
-export async function backendPatch<T>(path: string, body: unknown): Promise<T> {
-  return backendFetch<T>(path, { method: "PATCH", body });
-}
-
-export async function backendDelete<T>(path: string): Promise<T> {
-  return backendFetch<T>(path, { method: "DELETE" });
+/**
+ * Fetch a contract-backed download (e.g. a PDF export) and return the raw
+ * Response, so a route handler can stream it or forward its error status.
+ */
+export async function downloadEndpoint<E extends Endpoint>(contract: E, ...[request]: RequestArgs<E>): Promise<Response> {
+  const { params, query } = (request ?? {}) as { params?: unknown; query?: unknown };
+  return backendDownload(endpointPath(contract, { params, query }));
 }
 
 /** Authenticated binary GET. Forwards non-OK responses so callers can proxy status. */
-export async function backendDownload(path: string): Promise<Response> {
+async function backendDownload(path: string): Promise<Response> {
   const requestUrl = buildBackendRequestUrl(BACKEND_URL, path);
   const start = Date.now();
   logApiRequest("server", "GET", requestUrl);

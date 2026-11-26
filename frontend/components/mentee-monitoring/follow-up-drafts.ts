@@ -11,13 +11,8 @@
  * unsupported).
  */
 import { EASTERN_TIMEZONE } from "@/lib/format/time";
-import type {
-  HourWeekSummary,
-  ShiftEvidence,
-  ShiftSessionKind,
-  WahfWeekSummary,
-  WeekPhase,
-} from "@/lib/types/mentee-review";
+import type { HourWeekSummary } from "@/lib/types/mentee-review";
+import type { ShiftEvidence, ShiftSessionKind, WahfWeekSummary, WeekPhase } from "@css-atlas/shared/contracts/mentees";
 
 export const FRONT_DESK_FOLLOW_UP_CC = "cssfd@umd.edu";
 export const STUDY_FOLLOW_UP_CC = "css_ss@umd.edu";
@@ -47,7 +42,7 @@ export interface BuildFollowUpDraftsInput {
   weekStart: string;
   weekEnd: string;
   phase: WeekPhase;
-  hours: HourWeekSummary[];
+  hours: ReadonlyArray<HourWeekSummary>;
   wahf: WahfWeekSummary;
 }
 

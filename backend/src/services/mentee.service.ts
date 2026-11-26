@@ -18,9 +18,7 @@
  * - HTTP request/response logic
  */
 import { getSupabaseClient } from "../supabase/client.js";
-import type { MenteeRow, MenteeTeamLeaderRow, MenteeWithCompliance } from "../models/mentee.model.js";
-import type { ShiftComplianceDateRange } from "../models/session-log.model.js";
-import { getShiftComplianceForScholars } from "./session-log.service.js";
+import type { MenteeRow, MenteeTeamLeaderRow } from "../models/mentee.model.js";
 
 /** Follow-up TL column when the scholar has no mentor_mentee row. */
 export const UNASSIGNED_TEAM_LEADER = "Unassigned";
@@ -184,29 +182,6 @@ export async function getMenteeByUid(menteeUid: string): Promise<MenteeRow | nul
   if (error) throw error;
   const row = data?.[0];
   return row ? mapMenteeRow(row as Record<string, unknown>) : null;
-}
-
-export async function getMenteesWithComplianceByMentorKey(
-  mentorKey: string,
-  range: ShiftComplianceDateRange
-): Promise<MenteeWithCompliance[]> {
-  const mentees = await getMenteesByMentorKey(mentorKey);
-  const scholarIds = mentees.flatMap((mentee) => mentee.scholar_uid ? [mentee.scholar_uid] : []);
-  const complianceByScholar = await getShiftComplianceForScholars(scholarIds, range);
-
-  return mentees.map((mentee) => {
-    const compliance = mentee.scholar_uid ? complianceByScholar.get(mentee.scholar_uid) : undefined;
-    // Explicit mapping keeps contact and cohort fields out of the compliance response.
-    return {
-      scholar_uid: mentee.scholar_uid,
-      first_name: mentee.first_name,
-      last_name: mentee.last_name,
-      fd_required: mentee.fd_required,
-      ss_required: mentee.ss_required,
-      fdCompliance: compliance?.fdCompliance ?? null,
-      ssCompliance: compliance?.ssCompliance ?? null,
-    };
-  });
 }
 
 /** @deprecated Use getMenteesByMentorKey */

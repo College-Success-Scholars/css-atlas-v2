@@ -7,7 +7,6 @@ import {
   completionPct,
   effectiveMinutes,
   loggedMinutes,
-  parseAttendanceKind,
 } from "../services/attendance-week.service.js";
 import {
   campusWeekToDateRange,
@@ -16,13 +15,6 @@ import {
 import { EMPTY_WEEKLY_MINUTES } from "../models/weekly-minutes.model.js";
 
 describe("Attendance week helpers", () => {
-  it("parseAttendanceKind accepts only FD/SS kinds", () => {
-    expect(parseAttendanceKind("front_desk")).toBe("front_desk");
-    expect(parseAttendanceKind("study_session")).toBe("study_session");
-    expect(parseAttendanceKind("study")).toBeNull();
-    expect(parseAttendanceKind(null)).toBeNull();
-  });
-
   it("loggedMinutes sums Mon–Fri", () => {
     expect(loggedMinutes(EMPTY_WEEKLY_MINUTES)).toBe(0);
     expect(
@@ -135,8 +127,8 @@ describe("Attendance routes — auth gating", () => {
     const res = await request(app)
       .patch("/api/attendance/excuse")
       .send({
-        uid: "123",
-        weekNum: 1,
+        scholar_uid: "123",
+        week_num: 1,
         kind: "front_desk",
         excuse_min: 30,
         description: "Sick",

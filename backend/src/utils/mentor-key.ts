@@ -7,10 +7,10 @@
  * profile's student_id stands in so the acting view sees that scholar's
  * mentees rather than the developer's own.
  */
-import type { AuthenticatedRequest } from "../middleware/auth.middleware.js";
+import type { Caller } from "../context/current-caller.js";
 
-export function resolveMentorKey(req: AuthenticatedRequest): string {
-  return req.isActingAsTestProfile && req.profile?.student_id != null
-    ? String(req.profile.student_id)
-    : req.authUser!.id;
+export function resolveMentorKey(caller: Caller): string {
+  return caller.isActingAsTestProfile && caller.profile?.student_id != null
+    ? String(caller.profile.student_id)
+    : caller.userId;
 }

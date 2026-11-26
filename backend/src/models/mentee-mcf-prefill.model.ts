@@ -56,12 +56,5 @@ export const MCF_TASK_MIN_PERCENT = 90;
 export const MCF_TUTORING_YES = "Yes";
 export const MCF_TUTORING_NO = "No";
 
-/** Result of a click-time prefill build; carries no submission side effects. */
-export interface McfPrefill {
-  /** Fully encoded Google Forms URL, ready to open in a new tab. */
-  url: string;
-  /** Program-local current-week Monday, YYYY-MM-DD. */
-  weekStart: string;
-  /** ISO instant the URL was constructed. */
-  generatedAt: string;
-}
+// Wire shape is defined once, in the API contract.
+export type { McfPrefill } from "@css-atlas/shared/contracts/mentees";

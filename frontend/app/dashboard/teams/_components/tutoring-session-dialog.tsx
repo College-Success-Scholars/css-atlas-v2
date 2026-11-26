@@ -11,7 +11,7 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { ArrowDown, ArrowUp, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { TutorReportWeekRow } from "@/lib/types/tutor-report-log";
+import type { TutorReportWeekRow } from "@css-atlas/shared/contracts/tutor-reports";
 import {
   normalizeCourses,
   receiptTimingLabel,

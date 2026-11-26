@@ -20,15 +20,4 @@ export interface TrafficRow {
   traffic_type: string | null;
 }
 
-export interface TrafficSession {
-  uid: string;
-  entryAt: string;
-  exitAt: string;
-  durationMs: number;
-  assumedExit?: boolean;
-}
-
-export type WeekEntryCount = {
-  weekNumber: number;
-  entryCount: number;
-};
+export type { TrafficSession, WeekEntryCount } from "@css-atlas/shared/contracts/traffic";

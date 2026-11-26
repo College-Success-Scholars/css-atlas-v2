@@ -7,7 +7,7 @@
  * configuration and campus week date range types.
  *
  * ## What belongs here
- * - Re-exports of time constants and types from shared/dist/
+ * - Re-exports of time constants and types from @css-atlas/shared
  *
  * ## What does NOT belong here
  * - Any runtime functions (those are in time.service.ts)
@@ -19,6 +19,6 @@ export {
   WINTER_BREAK_LAST_DAY,
   WEEKS_IGNORE_FORMS,
   WEEKS_IGNORE_SESSIONS,
-} from "../../../shared/dist/time-config.js";
+} from "@css-atlas/shared/time-config";
 
-export type { CampusWeekDateRange, WeekDateRange } from "../../../shared/dist/time-types.js";
+export type { CampusWeekDateRange, WeekDateRange } from "@css-atlas/shared/time-types";

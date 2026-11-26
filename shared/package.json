@@ -6,9 +6,18 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "watch": "tsc -p tsconfig.json --watch --preserveWatchOutput",
-    "test": "npx --prefix ../backend vitest run --environment node time.test.ts"
+    "test": "npx --prefix ../backend vitest run --environment node"
   },
   "devDependencies": {
     "typescript": "^5.9.3"
+  },
+  "exports": {
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
+    }
+  },
+  "dependencies": {
+    "effect": "~4.1.2"
   }
 }

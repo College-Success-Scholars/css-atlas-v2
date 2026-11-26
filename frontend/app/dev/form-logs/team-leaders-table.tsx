@@ -5,12 +5,12 @@ import {
   type ScholarDataTableColumn,
 } from "@/components/data-display/scholar-data-table";
 import { ProgressCell } from "@/components/data-display/progress-cell";
-import type { TeamLeaderFormStatsRow } from "@/lib/types/form-log";
+import type { TeamLeaderFormStatsRow } from "@css-atlas/shared/contracts/form-logs";
 
 export function TeamLeadersTable({
   rows,
 }: {
-  rows: TeamLeaderFormStatsRow[];
+  rows: readonly TeamLeaderFormStatsRow[];
 }) {
   const programRoleOrder = [
     "Program Coordinator",

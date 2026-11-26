@@ -10,9 +10,7 @@
  * ## Responsibilities
  * - getAccessToken(): get JWT from browser Supabase session
  * - backendFetch<T>(path, options): authenticated browser fetch to backend
- * - backendGet<T>(path): GET shorthand
- * - backendPost<T>(path, body): POST shorthand
- * - backendPatch<T>(path, body): PATCH shorthand
+ * - callEndpoint(contract, request): typed call to a contract-backed endpoint (preferred)
  *
  * ## What belongs here
  * - Client-side authenticated fetch to the backend
@@ -25,6 +23,12 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
+import {
+  endpointPath,
+  type Endpoint,
+  type EndpointOutput,
+  type EndpointRequest,
+} from "@css-atlas/shared/contract";
 import {
   buildBackendRequestUrl,
   logApiError,
@@ -47,7 +51,7 @@ async function getAccessToken(): Promise<string | null> {
   }
 }
 
-export async function backendFetch<T>(
+async function backendFetch<T>(
   path: string,
   options?: { method?: string; body?: unknown }
 ): Promise<{ data: T; ok: true } | { error: string; ok: false; status: number }> {
@@ -104,18 +108,20 @@ export async function backendFetch<T>(
   }
 }
 
-export async function backendGet<T>(path: string) {
-  return backendFetch<T>(path);
+/** The request a caller sends to a contract; omittable when every part is empty. */
+type RequestArgs<E extends Endpoint> =
+  Record<string, never> extends EndpointRequest<E> ? [request?: EndpointRequest<E>] : [request: EndpointRequest<E>];
+
+/**
+ * Call a contract-backed endpoint from a Client Component. Path, method,
+ * request shape and result type all come from the contract. Never rejects:
+ * resolves to `{ ok: false, error, status }` on any failure.
+ */
+export async function callEndpoint<E extends Endpoint>(contract: E, ...[request]: RequestArgs<E>) {
+  const { params, query, body } = (request ?? {}) as { params?: unknown; query?: unknown; body?: unknown };
+  return backendFetch<EndpointOutput<E>>(endpointPath(contract, { params, query }), {
+    method: contract.method,
+    ...(contract.method === "GET" ? {} : { body: body ?? {} }),
+  });
 }
 
-export async function backendPost<T>(path: string, body: unknown) {
-  return backendFetch<T>(path, { method: "POST", body });
-}
-
-export async function backendPatch<T>(path: string, body: unknown) {
-  return backendFetch<T>(path, { method: "PATCH", body });
-}
-
-export async function backendPut<T>(path: string, body: unknown) {
-  return backendFetch<T>(path, { method: "PUT", body });
-}

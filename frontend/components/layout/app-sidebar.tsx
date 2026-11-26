@@ -25,7 +25,7 @@ import { NavUser } from "@/components/layout/nav-user"
 import { getRoleBasedTeams } from "@/components/layout/sidebar-teams"
 import { ProfileSwitcher } from "@/components/dev/profile-switcher"
 import { DevActingBanner } from "@/components/dev/dev-acting-banner"
-import type { DevTestProfileListItem } from "@/lib/server/queries"
+import type { DevTestProfile } from "@css-atlas/shared/contracts/dev"
 import { isDeveloperProfile } from "@/lib/auth"
 import {
   Sidebar,
@@ -44,7 +44,7 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   realProfile?: Record<string, unknown> | null;
   isActingAsTestProfile?: boolean;
   activeTestProfileId?: string | null;
-  testProfiles?: DevTestProfileListItem[];
+  testProfiles?: readonly DevTestProfile[];
   userRole?: UserRole
 }
 

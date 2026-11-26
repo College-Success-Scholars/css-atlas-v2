@@ -11,7 +11,7 @@
  *
  * ## What does NOT belong here
  * - Route navigation (`?week=` pushes live in the week selector component)
- * - Form deadline math (see form-deadlines.ts)
+ * - Form deadline math (see @css-atlas/shared/form-status)
  */
 
 import { format } from "date-fns"

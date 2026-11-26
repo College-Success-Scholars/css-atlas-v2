@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { endpointPath } from "@css-atlas/shared/contract";
+import { getDirectory } from "@css-atlas/shared/contracts/users";
 import {
   activeFilterCount,
   directoryMenteePath,
-  directoryPath,
+  directoryQuery,
   initialDirectoryState,
 } from "./directory-state";
 
@@ -12,8 +14,9 @@ describe("directory state", () => {
   });
 
   it("serializes the supported directory query contract", () => {
-    expect(directoryPath({ ...initialDirectoryState, search: "Ada", team: "Study,Front Desk", cohort: "2026" }, "next", "Study"))
-      .toBe("/api/users/directory?view=flat&sort=asc&search=Ada&team=Study%2CFront+Desk&cohort=2026&cursor=next&group=Study");
+    expect(endpointPath(getDirectory, {
+      query: directoryQuery({ ...initialDirectoryState, search: "Ada", team: "Study,Front Desk", cohort: "2026" }, "next", "Study"),
+    })).toBe("/api/users/directory?view=flat&sort=asc&search=Ada&team=Study%2CFront+Desk&cohort=2026&cursor=next&group=Study");
   });
 
   it("opens a detail page only for a mentee with a UID", () => {

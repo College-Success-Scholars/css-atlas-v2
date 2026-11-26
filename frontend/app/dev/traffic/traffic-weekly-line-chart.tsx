@@ -11,12 +11,12 @@ import {
 } from "@/components/ui/card";
 import { WINTER_BREAK_CAMPUS_WEEK_NUMBER } from "@/lib/format/time";
 import { cssColor } from "@/lib/theme/css-color";
-import type { WeekEntryCount } from "@/lib/types/traffic";
+import type { WeekEntryCount } from "@css-atlas/shared/contracts/traffic";
 
 export type { WeekEntryCount };
 
 interface TrafficWeeklyLineChartProps {
-  data: WeekEntryCount[];
+  data: readonly WeekEntryCount[];
   /** When set, x-axis shows all these weeks and missing weeks are plotted as 0. */
   allWeekNumbers?: number[];
   /** Label shown underneath the chart (e.g. "Fall semester"). */
@@ -208,7 +208,7 @@ export function TrafficWeeklyLineChart({
 export type TrafficSemesterFilter = "fall" | "spring" | "both";
 
 interface TrafficWeeklyLineChartBySemesterProps {
-  data: WeekEntryCount[];
+  data: readonly WeekEntryCount[];
   /** Today's campus week; extends fall/spring axes through this week when in that segment. */
   currentCampusWeek?: number | null;
   /** Minimum last week on the spring axis before extending by current campus week (e.g. 25). */

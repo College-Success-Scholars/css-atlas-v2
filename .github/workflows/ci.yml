@@ -12,7 +12,7 @@ env:
 
 jobs:
   backend-test:
-    name: Backend Test & Build
+    name: Backend Guardrails, Test & Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -31,9 +31,10 @@ jobs:
           npm run build
         working-directory: shared
 
-      - name: Test & Build Backend
+      - name: Guardrails, Test & Build Backend
         run: |
           npm ci
+          npm run guardrails
           npm test
           npm run build
         working-directory: backend
@@ -66,7 +67,7 @@ jobs:
           npm ci
           npm test
           npm run check:theme-safety
-          npm run lint
+          npm run guardrails
           npm run build
         working-directory: frontend
 

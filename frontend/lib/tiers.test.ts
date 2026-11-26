@@ -5,12 +5,8 @@ import {
   getClassYear,
   getHourTier,
 } from "./tiers"
-import type {
-  HourWeekSummary,
-  MenteeReview,
-  ShiftSessionKind,
-  WeekReviewSummary,
-} from "@/lib/types/mentee-review"
+import type { HourWeekSummary, MenteeReview, WeekReviewSummary } from "@/lib/types/mentee-review"
+import type { ShiftSessionKind } from "@css-atlas/shared/contracts/mentees"
 
 const FALL_2026 = new Date("2026-08-31T04:00:00.000Z") // Monday, Aug 31, Eastern
 const SPRING_2027 = new Date("2027-01-19T05:00:00.000Z") // Tuesday, Jan 19, Eastern
@@ -165,15 +161,16 @@ describe("applyWeekTiers", () => {
   })
 
   it("ignores excuse-adjusted percent and uses exact logged minutes", () => {
-    const summary = week(1, 180, 300, 180, 300)
-    summary.hours.forEach((h) => { h.percent = 150 })
+    const base = week(1, 180, 300, 180, 300)
+    const summary = { ...base, hours: base.hours.map((h) => ({ ...h, percent: 150 })) }
     expect(tiers(applyWeekTiers(review([summary])))).toEqual({ grid: [null, null], cards: [null, null] })
   })
 
   it("a missing front-desk target does not suppress study tiers", () => {
     const summary = week(1, 0, 360, 180, 300)
-    summary.hours[0] = { ...summary.hours[0]!, targetMinutes: null, percent: null, band: null }
-    expect(tiers(applyWeekTiers(review([summary])))).toEqual({ grid: [null, "epic"], cards: [null, "epic"] })
+    const [frontDesk, study] = summary.hours
+    const withoutTarget = { ...summary, hours: [{ ...frontDesk!, targetMinutes: null, percent: null, band: null }, study!] }
+    expect(tiers(applyWeekTiers(review([withoutTarget])))).toEqual({ grid: [null, "epic"], cards: [null, "epic"] })
   })
 
   it("defaults to freshman cutoffs when the API omits cohort", () => {
@@ -183,8 +180,8 @@ describe("applyWeekTiers", () => {
   })
 
   it("does not tier weeks without a semester start", () => {
-    const source = review([week(1, 330, 330)])
-    source.calendar.semesterStart = null
+    const loaded = review([week(1, 330, 330)])
+    const source = { ...loaded, calendar: { ...loaded.calendar, semesterStart: null } }
     expect(tiers(applyWeekTiers(source))).toEqual({ grid: [null, null], cards: [null, null] })
   })
 
@@ -211,8 +208,7 @@ describe("applyWeekTiers", () => {
   })
 
   it("never awards a future week's tiers", () => {
-    const summary = week(1, 500, 500)
-    summary.phase = "future"
+    const summary = { ...week(1, 500, 500), phase: "future" as const }
     expect(tiers(applyWeekTiers(review([summary])))).toEqual({ grid: [null, null], cards: [null, null] })
   })
 })

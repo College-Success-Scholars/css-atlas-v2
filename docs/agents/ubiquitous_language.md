@@ -50,6 +50,21 @@
 | **Low-grade alert** | A scholar risk signal indicating academic performance in the low-grade band for the week. | Grade warning, poor grade |
 | **Scholar ID** | The canonical scholar identity key (University ID) used across systems, sometimes represented as `uid`. | Name-only identity |
 
+## Events and opportunities
+
+Planned boards. These terms are settled ahead of the build so module names follow them.
+
+| Term | Definition | Aliases to avoid |
+| --- | --- | --- |
+| **Event** | Something a scholar attends at a set time and place, publicized by the program on the **Events board**. | Meeting, session, opportunity |
+| **Events board** | The list of upcoming **Events** where scholars RSVP. | Calendar |
+| **RSVP** | A scholar's answer to an **Event**: going, maybe, or not going. One per scholar per event; changeable until the event starts. | Registration, sign-up, RCP |
+| **Capacity** | An optional limit on the number of going **RSVPs** for an **Event**. | Seat limit |
+| **Event check-in** | The record that a scholar attended an **Event**. Separate from the **RSVP**. | Attendance (overloaded with front desk and study session) |
+| **Opportunity** | Something a scholar applies to or pursues elsewhere for career, professional, or academic development. Internship is one category. | Posting, job, event |
+| **Opportunity board** | The list of open **Opportunities** scholars can browse and bookmark. Replaces the internship board. | Internship board, job board |
+| **Bookmark** | A scholar's private marker on an **Opportunity** they want to return to. | Save, favorite |
+
 ## Time and compliance windows
 
 | Term | Definition | Aliases to avoid |
@@ -65,6 +80,10 @@
 
 ## Relationships
 
+- An **Event** has many **RSVPs** and many **Event check-ins**; a scholar can check in without having answered going.
+- An **Opportunity** may link to an **Event** (an info session for it), but the two stay separate concepts.
+- Team Leaders and above post **Events** and **Opportunities**; scholars RSVP, check in, and bookmark.
+- Waitlists are not part of the model until a real **Event** needs one.
 - A **Weekly Memo** is scoped to exactly one **Campus Week**.
 - A **Weekly Memo** contains multiple **KPI cards**, one **Recognition board** (**WAHF** grade census), one **Attendance detail** section (hours census + overall **WAHF** counts), and one **Team leader performance** section. Missing or late **WAHF** also appears as an **Issue** on **Scholar follow-up**. The export PDF additionally has **Scholar WAHF** and **TL WAHF** snapshot tiles; Needs Attention lists scholar WAHF names separately and folds TL WAHF into Team Leader Submissions with WPL and MCF.
 - A **Scholar** has exactly one **Primary Team Leader** per **Campus Week**, except Team Leaders do not have mentors.

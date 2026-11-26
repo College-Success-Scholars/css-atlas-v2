@@ -8,11 +8,8 @@ import {
   getFrontDeskCompletedSessions,
 } from "@/lib/server/data";
 import { SESSION_TYPE_STUDY, SESSION_TYPE_FRONT_DESK } from "@/lib/types/session-log";
-import type {
-  ScholarInRoom,
-  ScholarWithCompletedSession,
-  CleanedAndErroredResult,
-} from "@/lib/types/session-log";
+import type { CleanedAndErroredResult } from "@/lib/types/session-log";
+import type { ScholarInRoom, ScholarWithCompletedSession } from "@css-atlas/shared/contracts/session-logs";
 import {
   dateToCampusWeek,
   campusWeekToDateRange,
@@ -264,7 +261,7 @@ function ScholarsInRoomTableSection({
   formatEntryDate,
 }: {
   title: string;
-  data: ScholarInRoom[];
+  data: readonly ScholarInRoom[];
   formatDuration: (ms: number) => string;
   formatEntryDate: (iso: string) => string;
 }) {
@@ -334,7 +331,7 @@ function CompletedSessionsTableSection({
   formatEntryDate,
 }: {
   title: string;
-  data: ScholarWithCompletedSession[];
+  data: readonly ScholarWithCompletedSession[];
   formatDuration: (ms: number) => string;
   formatEntryDate: (iso: string) => string;
 }) {

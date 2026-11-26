@@ -4,7 +4,7 @@
  *
  * Resolves the effective scholar/roster uid from a profile (real or test overlay).
  */
-import { getEffectiveScholarId } from "../../../shared/dist/auth.js";
+import { getEffectiveScholarId } from "@css-atlas/shared/auth";
 
 export { getEffectiveScholarId };
 

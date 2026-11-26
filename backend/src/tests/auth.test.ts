@@ -8,18 +8,15 @@ import { app } from "../app.js";
 const AUTH_PROTECTED_ROUTES = [
   "/api/auth/me",
   "/api/auth/profile",
-  "/api/auth/mentees/compliance",
-  "/api/users",
-  "/api/session-logs",
-  "/api/traffic",
-  "/api/form-logs",
-  "/api/daily-activity",
+  "/api/auth/mentees",
+  "/api/users/memo-users",
+  "/api/traffic/entry-count/1",
+  "/api/form-logs/mcf/week/1/with-late",
+  "/api/daily-activity/minutes?menteeUid=1&weekNum=1&logSource=front_desk",
 ] as const;
 
 const TEAM_LEADER_ROUTES = [
-  "/api/memo/page-data",
-  "/api/memo/traffic-count",
-  "/api/tutor-reports",
+  "/api/memo",
 ] as const;
 
 describe("Auth gating — unauthenticated requests", () => {

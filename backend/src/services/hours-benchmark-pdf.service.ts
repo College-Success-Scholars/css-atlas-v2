@@ -62,11 +62,11 @@ function formatCell(cell: HoursBenchmarkCell): string {
   return `${cell.completionPercent}${star}`;
 }
 
-function weekHeaders(weekNumbers: number[]): string {
+function weekHeaders(weekNumbers: readonly number[]): string {
   return weekNumbers.map((week) => `<th class="week">W${week}</th>`).join("");
 }
 
-function scholarCells(cells: HoursBenchmarkCell[]): string {
+function scholarCells(cells: readonly HoursBenchmarkCell[]): string {
   return cells
     .map((cell) => {
       const cls = cellClass(cell.completionPercent);
@@ -77,7 +77,7 @@ function scholarCells(cells: HoursBenchmarkCell[]): string {
     .join("");
 }
 
-function heatmapRows(scholars: HoursBenchmarkScholarRow[], scope: HoursBenchmarkHeatmapScope): string {
+function heatmapRows(scholars: readonly HoursBenchmarkScholarRow[], scope: HoursBenchmarkHeatmapScope): string {
   if (scholars.length === 0) {
     const empty =
       scope === "all"
@@ -174,7 +174,7 @@ function detailRows(report: HoursBenchmarkReport): string {
 
 type TutoringListMode = "scholar" | "tutor" | "day";
 
-function tutoringGroupHtml(groups: HoursBenchmarkTutoringGroup[], mode: TutoringListMode): string {
+function tutoringGroupHtml(groups: readonly HoursBenchmarkTutoringGroup[], mode: TutoringListMode): string {
   if (groups.length === 0) {
     return `<p class="empty">No tutoring sessions were recorded for the scored weeks.</p>`;
   }

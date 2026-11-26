@@ -44,10 +44,6 @@ describe("resolveDashboardBreadcrumb", () => {
       { label: "Dashboard", href: "/dashboard" },
       { label: "Room" },
     ]);
-    expect(resolveDashboardBreadcrumb("/dashboard/memo-legacy")).toEqual([
-      { label: "Dashboard", href: "/dashboard" },
-      { label: "Memo (Legacy)" },
-    ]);
   });
 
   it("labels a directory scholar detail page without exposing the raw UID", () => {

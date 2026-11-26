@@ -1,11 +1,8 @@
 import { describe, expect, it, vi } from "vitest"
 import { renderToStaticMarkup } from "react-dom/server"
 
-import type {
-  HourWeekSummary,
-  ShiftEvidence,
-  WeekTier,
-} from "@/lib/types/mentee-review"
+import type { HourWeekSummary, WeekTier } from "@/lib/types/mentee-review"
+import type { ShiftEvidence } from "@css-atlas/shared/contracts/mentees"
 
 import { HourSummaryCard } from "./hour-summary-card"
 import { TIER_UI } from "./tier-badge"

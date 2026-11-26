@@ -10,14 +10,14 @@ RUN npm install --include=dev --prefix ./shared
 
 COPY shared/ ./shared/
 RUN npm run --prefix ./shared build
+# Runtime images copy shared/ (package.json, dist, production node_modules).
+RUN npm prune --omit=dev --prefix ./shared
 
 # 2. Install frontend deps
 COPY frontend/package.json frontend/package-lock.json ./frontend/
 RUN npm ci --prefix ./frontend
 
 # 3. Copy source and build
-#    frontend build script runs "npm --prefix ../shared run build && next build --turbopack"
-#    shared is already installed + built above, so the prefix build is a no-op rebuild (fast)
 COPY frontend/ ./frontend/
 ENV NEXT_TELEMETRY_DISABLED=1
 
@@ -30,7 +30,8 @@ ENV NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 ENV BACKEND_URL=$BACKEND_URL
 ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
 
-RUN cd frontend && npm run build
+# shared is already built above; run next directly (as Dockerfile.backend does with tsc)
+RUN cd frontend && npx next build --turbopack
 
 # ── Production stage ─────────────────────────────────────────────────────────
 FROM node:22-alpine AS runner
@@ -47,7 +48,12 @@ COPY --from=builder /app/frontend/next.config.ts  ./frontend/next.config.ts
 COPY --from=builder /app/frontend/package.json    ./frontend/package.json
 COPY --from=builder /app/frontend/node_modules/   ./frontend/node_modules/
 
-# shared/ is bundled into .next by Next.js at build time, no separate copy needed
+# @css-atlas/shared is a file: dependency — node_modules/@css-atlas/shared is a
+# symlink to /app/shared, so the package (manifest, dist, its own production
+# deps) must exist at that path at runtime.
+COPY --from=builder /app/shared/package.json ./shared/package.json
+COPY --from=builder /app/shared/dist/ ./shared/dist/
+COPY --from=builder /app/shared/node_modules/ ./shared/node_modules/
 
 EXPOSE 3000
 WORKDIR /app/frontend

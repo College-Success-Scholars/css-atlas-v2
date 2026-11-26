@@ -23,14 +23,34 @@ One `*.controller.ts` per domain (auth, user, session-log, form-log, memo, traff
 
 ## Standards
 
-- **One controller per domain** — matches the corresponding service and route files.
-- **Controllers do not import from `@supabase/supabase-js`** — all DB access goes through services.
-- **Input validation at the top** — check params/query before any service call; return 400 immediately on bad input.
-- **Response shape** — success: `res.json({ data: ... })` · error: `res.status(4xx|5xx).json({ error: "message" })`.
-- **Use `AuthenticatedRequest`** from `auth.controller.ts` instead of plain `Request` so TypeScript knows about `authUser`, `profile`, and `accessToken`.
-- **Auth middleware goes in the route file**, not the controller. Controllers assume auth has already been verified.
-- **No `next()` calls** — controllers are terminal handlers; they always send a response.
-- **Naming** — export functions as camelCase verbs: `getScholarNames`, `upsertExcuse`.
+New and migrated endpoints are **contract-backed**. `attendance-week.controller.ts` is the reference.
+
+1. **Describe the endpoint once** in `shared/contracts/<domain>.ts` with `endpoint({ method, path, access, params, query, body, output })`. One name per field, no aliases.
+2. **Bind a handler** in the controller with `implement(contract, handler)` from `http/endpoint.ts`. A handler maps validated `params` / `query` / `body` to one service call.
+3. **Mount** with `toRouter(endpoints)` in the route file. Path, method and minimum role come from the contract.
+4. **Call it from the frontend** with `callEndpoint(contract, request)`. Types come from the contract; do not add a mirror type under `frontend/lib/types`.
+
+### Services return Effects
+
+New and migrated services return `Effect.Effect<Output, DomainError, CurrentCaller>` (see ADR 003; `upsertExcuse` in `attendance-week.service.ts` is the reference):
+
+- **Fail with a domain error:** `return yield* new NotFoundError({ resource: "Scholar", id })`. The four kinds live in `utils/domain-error.ts` and map to 400 / 403 / 404 / 409. The type says which ones a service can produce.
+- **Read who and when from `CurrentCaller`:** `const { actorId, asOf } = yield* CurrentCaller`. Never read the clock or pass the request around.
+- **Database errors are defects:** `if (error) return yield* Effect.die(error)`. They are not the caller's to fix; the error handler still turns PostgREST data errors into 400s.
+- **Never run the Effect.** `http/endpoint.ts` runs it once and provides `CurrentCaller`. Tests run it with `Effect.provideService(effect, CurrentCaller, caller)`.
+
+Promise services are still accepted during migration; they may `throw` the same domain errors.
+
+What a handler never does (each is a lint error in new files):
+
+- import Express, call `res.status(...)`, or build the `{ data }` / `{ error }` envelope
+- `try/catch`
+- parse or validate input by hand, or import a schema library (use `Schema` from `@css-atlas/shared/contract`)
+- read the clock
+- query Supabase — call a service
+- run an Effect
+
+Every controller follows this shape; `atlas/no-express-import` and `atlas/no-try-catch` have no grandfathered files.
 
 <!-- AUTO-API-REFERENCE:START -->
 

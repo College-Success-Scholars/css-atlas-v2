@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { getDoubleEntries, type DoubleEntry } from "@/lib/types/session-log";
-import type { ScholarWithCompletedSession } from "@/lib/types/session-log";
+import type { ScholarWithCompletedSession } from "@css-atlas/shared/contracts/session-logs";
 import { formatDuration, formatDate } from "@/lib/format/time";
 import {
   Card,
@@ -16,8 +16,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export interface DoubleEntryCheckerProps {
-  completedStudy: ScholarWithCompletedSession[];
-  completedFrontDesk: ScholarWithCompletedSession[];
+  completedStudy: readonly ScholarWithCompletedSession[];
+  completedFrontDesk: readonly ScholarWithCompletedSession[];
   /** Default tolerance in minutes (default: 5). User can adjust in UI. */
   defaultToleranceMinutes?: number;
 }

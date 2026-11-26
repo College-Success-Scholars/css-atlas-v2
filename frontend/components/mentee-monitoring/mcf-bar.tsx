@@ -6,13 +6,13 @@ import { AlertCircle, ExternalLink } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { backendGet } from "@/lib/client/api-client"
-import type {
-  McfPrefill,
-  MeetingPreferenceOutput,
-  SectionResult,
-  WeekReviewSummary,
-} from "@/lib/types/mentee-review"
+import { callEndpoint } from "@/lib/client/api-client"
+import type { WeekReviewSummary } from "@/lib/types/mentee-review"
+import {
+  getMenteeMcfPrefill,
+  type MeetingPreferenceOutput,
+  type SectionResult,
+} from "@css-atlas/shared/contracts/mentees"
 
 import { MeetingPreferenceEditor } from "./meeting-preference-editor"
 import { formatWeekFriday } from "./utils"
@@ -52,9 +52,7 @@ export function McfBar({
     if (preopened) preopened.opener = null
 
     setLoading(true)
-    const result = await backendGet<McfPrefill>(
-      `/api/auth/mentees/${encodeURIComponent(menteeUid)}/mcf-prefill`,
-    )
+    const result = await callEndpoint(getMenteeMcfPrefill, { params: { uid: menteeUid } })
     setLoading(false)
 
     if (!result.ok) {

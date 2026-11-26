@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import type { ScholarNoShow } from "@/lib/types/session-log"
+import type { ScholarNoShow } from "@css-atlas/shared/contracts/session-logs"
 import { filterRoomScholarsByName } from "../_lib/filter-room-scholars"
 import { formatMissedShiftRange } from "../_lib/room-format"
 
@@ -32,7 +32,7 @@ export function RoomNoShowsPanel({
 }: {
   title: string
   variant: RoomNoShowsPanelVariant
-  scholars: ScholarNoShow[]
+  scholars: readonly ScholarNoShow[]
   error: string | null
   emptyMessage: string
 }) {

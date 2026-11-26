@@ -44,6 +44,12 @@ export default defineRailway((ctx) => {
     networking: { privateNetworkEndpoint: "inspiring-success" },
     // Railway-generated *.up.railway.app domains are not managed here.
     ...(prod ? { domains: [{ domain: "cssatlas.org", port: 8080 }] } : {}),
+    // Railway's edge CDN, both environments, default settings: honours each
+    // response's Cache-Control (dynamic pages are private/no-store, auth
+    // redirects are marked no-store in frontend/lib/supabase/middleware.ts)
+    // and purges cached HTML on every deploy. Not enabled on the backend: it
+    // is an authenticated API whose responses mostly lack Cache-Control.
+    cdn: { enabled: true },
     // Migrated from frontend/railway.toml (Config as Code, retired 2026-12-01).
     healthcheck: "/",
     healthcheckTimeout: 30,
