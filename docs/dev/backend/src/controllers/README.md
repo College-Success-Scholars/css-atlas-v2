@@ -61,10 +61,14 @@ Generated from TypeScript signatures. Module indexes below; full catalog: [API R
 | Module | Reference |
 |--------|----------|
 | `activity.controller` | [API](../../../../reference/api/backend/src/controllers/activity.controller/README.md) |
+| `attendance-week.controller` | [API](../../../../reference/api/backend/src/controllers/attendance-week.controller/README.md) |
 | `auth.controller` | [API](../../../../reference/api/backend/src/controllers/auth.controller/README.md) |
 | `dev.controller` | [API](../../../../reference/api/backend/src/controllers/dev.controller/README.md) |
 | `form-log.controller` | [API](../../../../reference/api/backend/src/controllers/form-log.controller/README.md) |
+| `hours-benchmark.controller` | [API](../../../../reference/api/backend/src/controllers/hours-benchmark.controller/README.md) |
 | `memo.controller` | [API](../../../../reference/api/backend/src/controllers/memo.controller/README.md) |
+| `mentees.controller` | [API](../../../../reference/api/backend/src/controllers/mentees.controller/README.md) |
+| `semester.controller` | [API](../../../../reference/api/backend/src/controllers/semester.controller/README.md) |
 | `session-log.controller` | [API](../../../../reference/api/backend/src/controllers/session-log.controller/README.md) |
 | `traffic.controller` | [API](../../../../reference/api/backend/src/controllers/traffic.controller/README.md) |
 | `tutor-report-log.controller` | [API](../../../../reference/api/backend/src/controllers/tutor-report-log.controller/README.md) |
