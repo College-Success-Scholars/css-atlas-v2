@@ -300,9 +300,6 @@ export function scholarIdFromProfile(profile: { student_id?: unknown } | null): 
   return getEffectiveScholarId(profile);
 }
 
-/** @deprecated Use scholarIdFromProfile */
-export const scholarUidFromProfile = scholarIdFromProfile;
-
 export async function getRecentFormSubmissions(params: {
   profile: { student_id?: string | null } | null;
 }): Promise<readonly RecentFormSubmission[]> {
