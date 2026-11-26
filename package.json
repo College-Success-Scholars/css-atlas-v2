@@ -19,6 +19,7 @@
     "lint": "npm run lint --workspaces --if-present",
     "guardrails": "npm run guardrails --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
+    "hygiene": "syncpack lint && knip --exclude exports,types",
     "docs:rewrite-links": "node scripts/docs-rewrite-links.mjs",
     "docs:copy-api": "node scripts/docs-copy-api-md.mjs",
     "docs:typedoc": "rm -rf docs/reference/api && typedoc --options typedoc.json",
@@ -32,11 +33,14 @@
     "link:staging": "supabase link --project-ref xhcnncsgxrgxwmgjhbnz",
     "link:prod": "supabase link --project-ref qclgoapaleomceugftre",
     "audit:staging": "supabase migration list --project-ref xhcnncsgxrgxwmgjhbnz",
-    "audit:prod": "supabase migration list --project-ref qclgoapaleomceugftre"
+    "audit:prod": "supabase migration list --project-ref qclgoapaleomceugftre",
+    "prepare": "husky || true"
   },
   "devDependencies": {
     "concurrently": "^9",
+    "husky": "^9.1.7",
     "knip": "^6.48.0",
+    "lint-staged": "^17.6.2",
     "railway": "^3.18.0",
     "syncpack": "^15.3.4",
     "typedoc": "^0.28.5",

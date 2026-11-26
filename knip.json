@@ -3,7 +3,6 @@
   "workspaces": {
     ".": {
       "entry": [
-        ".railway/railway.ts",
         "scripts/*.mjs",
         "tools/**/*.mjs"
       ],
@@ -24,7 +23,6 @@
     },
     "backend": {
       "entry": [
-        "src/server.ts",
         "src/domains/notifications/detectors/*-detector.ts",
         "src/domains/notifications/__manual_test__/*.ts",
         "scripts/**/*.{ts,mjs}"
@@ -41,11 +39,7 @@
         "*.d.ts"
       ],
       "project": [
-        "**/*.{ts,tsx,mjs}"
-      ],
-      "ignoreDependencies": [
-        "tailwindcss",
-        "tw-animate-css"
+        "**/*.{ts,tsx,mjs,css}"
       ]
     }
   },
