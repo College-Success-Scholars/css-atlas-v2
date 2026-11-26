@@ -10,7 +10,6 @@
     "app/dashboard/room/page.tsx",
     "app/dashboard/teams/_components/teams-attendance-view.tsx",
     "app/dashboard/teams/_components/teams-tutoring-view.tsx",
-    "app/dev/form-logs/form-logs-test-client.tsx",
     "app/dev/form-logs/page.tsx",
     "app/dev/profiles/[uid]/page.tsx",
     "app/dev/schedule-views/page.tsx",
@@ -19,7 +18,6 @@
     "app/dev/traffic/page.tsx",
     "app/traffic/_components/traffic-format.ts",
     "app/traffic/page.tsx",
-    "components/dashboard/widgets/daily-activity-minutes-note.tsx",
     "components/data-display/campus-week-card.tsx",
     "components/personal/personal-client.tsx",
     "components/personal/utils.ts",
@@ -28,7 +26,6 @@
   ],
   "atlas/no-process-env": [
     "app/layout.tsx",
-    "components/dashboard/widgets/daily-activity-minutes-note.tsx",
     "lib/client/api-client.ts",
     "lib/server/api-client.ts",
     "lib/server/dev-profile-actions.ts",
@@ -43,7 +40,6 @@
     "app/dashboard/memo/_components/weekly-memo-export-button.tsx"
   ],
   "atlas/no-supabase-query": [
-    "app/dashboard/roster/roster-data.ts",
     "lib/server/actions.ts",
     "lib/supabase/server.ts"
   ],
