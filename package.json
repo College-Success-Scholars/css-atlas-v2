@@ -37,11 +37,12 @@
     "prepare": "husky || true"
   },
   "devDependencies": {
+    "@railway/cli": "^5.75.0",
     "concurrently": "^9",
     "husky": "^9.1.7",
     "knip": "^6.48.0",
     "lint-staged": "^17.6.2",
-    "railway": "^3.18.0",
+    "railway": "~3.18.0",
     "syncpack": "^15.3.4",
     "typedoc": "^0.28.5",
     "typedoc-plugin-markdown": "^4.7.0",
@@ -51,6 +52,7 @@
     "esbuild@0.28.2": true,
     "sharp@0.34.5": true,
     "puppeteer@25.19.0": true,
-    "fsevents@2.3.3": true
+    "fsevents@2.3.3": true,
+    "@railway/cli@5.75.0": true
   }
 }

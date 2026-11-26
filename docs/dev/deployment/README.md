@@ -45,6 +45,8 @@ Supabase (Postgres + Auth + RLS)
 
 Production and staging run on Railway, defined as code in [`.railway/railway.ts`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/.railway/railway.ts) (one file for both environments; `production` deploys `main`, `develop` deploys `develop`). Change settings there, not in the dashboard, and check `railway config plan` for both environments before merging.
 
+Run the Railway CLI through the repo, not a global install: `npx railway environment` to pick staging or production, then `npx railway config plan`. The CLI (`@railway/cli`) and the SDK (`railway`) are both root devDependencies, so everyone gets the versions the lockfile pins.
+
 | Piece | How |
 |-------|-----|
 | Backend | Railway service, repo root, `Dockerfile.backend` |

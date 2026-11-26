@@ -30,7 +30,7 @@ Before this change the repo had four lockfiles, Bun in some places and npm in ot
 
 - Install and run everything from the repo root (`npm install`, `npm run dev`, `npm run <script> -w @css-atlas/<package>`).
 - Branch protection still requires the original CI job names (`backend-test`, `frontend-test`); `repo-hygiene` is a new job.
-- npm 11's `allowScripts` approvals are pinned to versions and need re-approving after upgrading `esbuild`, `sharp`, `puppeteer` or `fsevents`.
+- npm 11's `allowScripts` approvals are pinned to versions and need re-approving after upgrading `esbuild`, `sharp`, `puppeteer`, `fsevents` or `@railway/cli`.
 - `prepare` is `husky || true` because the backend image's `npm ci --omit=dev` does not install husky.
 - The backend image includes Chromium (for the memo PDF export), so the crons carry it too. That costs disk space, not runtime.
 
