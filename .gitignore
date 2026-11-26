@@ -55,7 +55,9 @@ scripts/build-data-inventory-pdf.sh
 # ==============================================================================
 # AI Tooling & Local Audit Scratchpads
 # ==============================================================================
-.claude
+.claude/*
+!.claude/skills/
+.claude/skills/openspec-*/
 .cursor
 .opencode/
 openspec/
