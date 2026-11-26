@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(__dirname, "..");
+const repoRoot = path.resolve(__dirname, "../..");
 const outFile = path.join(repoRoot, "backend/src/supabase/database.types.ts");
 
 const header = `/**

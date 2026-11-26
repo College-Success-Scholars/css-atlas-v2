@@ -3,12 +3,11 @@
  * @module frontend
  *
  * Next.js configuration for the CSS Atlas frontend.
- * Enables access to files above the Next.js project root (externalDir)
- * so both webpack and Turbopack can resolve the symlinked @css-atlas/shared package.
+ * Builds a standalone server (see Dockerfile.frontend). outputFileTracingRoot
+ * is the repo root so the trace includes the @css-atlas/shared workspace package.
  *
  * ## What belongs here
  * - Next.js build and runtime configuration
- * - Turbopack/webpack root settings for shared library resolution
  *
  * ## What does NOT belong here
  * - Environment variable defaults (use .env.local)
@@ -19,7 +18,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const frontendDir = path.dirname(fileURLToPath(import.meta.url));
-/** Repo root — @css-atlas/shared is a symlink to ../shared, so Turbopack needs the repo root. */
+/** Repo root: npm workspaces hoist dependencies here, and @css-atlas/shared lives under it. */
 const repoRoot = path.resolve(frontendDir, "..");
 
 const nextConfig: NextConfig = {

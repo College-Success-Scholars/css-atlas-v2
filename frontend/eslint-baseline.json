@@ -70,5 +70,22 @@
     "components/dashboard/widgets/directory-dashboard.tsx",
     "components/layout/theme-toggle.tsx",
     "components/ui/sidebar.tsx"
+  ],
+  "react-hooks/purity": [
+    "components/ui/sidebar.tsx"
+  ],
+  "react-hooks/set-state-in-effect": [
+    "app/dashboard/internship-board/page.tsx",
+    "app/dashboard/room/_components/room-no-shows-section.tsx",
+    "app/dev/schedule-views/schedule-views-client.tsx",
+    "app/dev/schedule-views/scholar-review-modal.tsx",
+    "app/dev/schedule-views/shift-edit-dialog.tsx",
+    "app/dev/schedule-views/use-day-shifts.ts",
+    "app/traffic/_components/traffic-check-in-form.tsx",
+    "app/traffic/page.tsx",
+    "components/attendance/excuse-dialog.tsx",
+    "components/auth/login-form.tsx",
+    "components/layout/theme-toggle.tsx",
+    "hooks/use-mobile.ts"
   ]
 }

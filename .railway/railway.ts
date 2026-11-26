@@ -34,7 +34,7 @@ export default defineRailway((ctx) => {
       buildEnvironment: "V3",
       builder: "DOCKERFILE",
       dockerfilePath: "/Dockerfile.frontend",
-      watchPatterns: ["/frontend/**", "/shared/**", "Dockerfile.frontend"],
+      watchPatterns: ["/frontend/**", "/shared/**", "/package.json", "/package-lock.json", "Dockerfile.frontend"],
     },
     replicas: region,
     deploy: {
@@ -60,14 +60,17 @@ export default defineRailway((ctx) => {
     },
   });
 
+  // The API and both notification crons build from the same image.
+  const backendBuild = {
+    buildEnvironment: "V3" as const,
+    builder: "DOCKERFILE" as const,
+    dockerfilePath: "/Dockerfile.backend",
+    watchPatterns: ["/backend/**", "/shared/**", "/package.json", "/package-lock.json", "Dockerfile.backend"],
+  };
+
   const backend = service("backend", {
     source,
-    build: {
-      buildEnvironment: "V3",
-      builder: "DOCKERFILE",
-      dockerfilePath: "/Dockerfile.backend",
-      watchPatterns: ["/backend/**", "/shared/**", "Dockerfile.backend"],
-    },
+    build: backendBuild,
     replicas: region,
     deploy: { ipv6EgressEnabled: true },
     networking: { privateNetworkEndpoint: "clever-eagerness" },
@@ -85,20 +88,18 @@ export default defineRailway((ctx) => {
   // Each environment has its own pair of cron services (d-* in staging,
   // p-* in production), so each pair is only declared for its environment.
 
-  const cronBuild = (dockerfile: string) => ({
-    buildEnvironment: "V3" as const,
-    builder: "DOCKERFILE" as const,
-    dockerfilePath: `/${dockerfile}`,
-    watchPatterns: ["/backend/**", "/shared/**", dockerfile],
-  });
+  // Same image as the API; the start command picks which compiled entry point runs.
+  // Every cron service MUST set `start`, or it would boot the API server instead.
+  const signinStart = "node dist/domains/notifications/detectors/signin-detector.js";
+  const reconStart = "node dist/domains/notifications/detectors/reconciliation-detector.js";
 
   // Staging: no cronSchedule (run by hand), no SLACK_BOT_TOKEN, no APP_BASE_URL.
   // That's what guarantees staging can never message team leaders.
   const stagingCrons = () => [
     service("d-signin-notif-cron", {
       source,
-      build: cronBuild("Dockerfile.signin"),
-      start: "bun run backend/src/domains/notifications/detectors/signin-detector.ts",
+      build: backendBuild,
+      start: signinStart,
       replicas: region,
       networking: { privateNetworkEndpoint: "signin-notification-cron" },
       env: {
@@ -109,8 +110,8 @@ export default defineRailway((ctx) => {
     }),
     service("d-recon-notif-cron", {
       source,
-      build: cronBuild("Dockerfile.recon"),
-      start: "bun run backend/src/domains/notifications/detectors/reconciliation-detector.ts",
+      build: backendBuild,
+      start: reconStart,
       replicas: region,
       networking: { privateNetworkEndpoint: "reconciliation-notification-cron" },
       env: {
@@ -126,7 +127,8 @@ export default defineRailway((ctx) => {
   const productionCrons = () => [
     service("p-signin-notif-cron", {
       source,
-      build: cronBuild("Dockerfile.signin"),
+      build: backendBuild,
+      start: signinStart,
       replicas: region,
       deploy: { cronSchedule: "*/5 * * * *", restartPolicyType: "NEVER" },
       networking: { privateNetworkEndpoint: "signin-cron" },
@@ -140,7 +142,8 @@ export default defineRailway((ctx) => {
     }),
     service("p-recon-notif-cron", {
       source,
-      build: cronBuild("Dockerfile.recon"),
+      build: backendBuild,
+      start: reconStart,
       replicas: region,
       deploy: { cronSchedule: "0 12 * * *", restartPolicyType: "NEVER" },
       networking: { privateNetworkEndpoint: "reconciliation-cron" },

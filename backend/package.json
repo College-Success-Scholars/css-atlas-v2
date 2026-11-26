@@ -13,7 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "install:chrome": "puppeteer browsers install chrome",
-    "db:types": "./scripts/gen-db-types.mjs",
+    "db:types": "node scripts/gen-db-types.mjs",
     "lint": "eslint",
     "lint:baseline": "node ../tools/lint-baseline.mjs --check",
     "deps": "depcruise src --config .dependency-cruiser.cjs --ignore-known",

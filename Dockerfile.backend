@@ -1,59 +1,50 @@
-# ── Build stage ──────────────────────────────────────────────────────────────
-FROM node:26-alpine AS builder
+# Backend image. Runs the API by default (CMD below). The two notification
+# crons use this same image; Railway overrides the start command per cron
+# service (see .railway/railway.ts).
 
+# ── Manifests: the one root lockfile + every workspace's package.json ────────
+# npm ci checks the lockfile against all workspaces, so all three are copied
+# even though only shared and backend get installed.
+FROM node:26-alpine AS manifests
 WORKDIR /app
-
-# 1. Install shared devDeps (typescript) and compile shared
-COPY shared/package.json ./shared/
-RUN npm install --include=dev --prefix ./shared
-
-COPY shared/ ./shared/
-RUN npm run --prefix ./shared build
-# Runtime images copy shared/ (package.json, dist, production node_modules).
-RUN npm prune --omit=dev --prefix ./shared
-
-# 2. Install ALL backend deps (devDeps needed for tsc)
-COPY backend/package.json backend/package-lock.json ./backend/
+# Puppeteer's postinstall would download Chrome; the runtime uses Alpine's chromium.
 ENV PUPPETEER_SKIP_DOWNLOAD=true
-RUN npm ci --prefix ./backend
+COPY package.json package-lock.json ./
+COPY shared/package.json shared/
+COPY backend/package.json backend/
+COPY frontend/package.json frontend/
 
-# 3. Compile backend — run tsc directly so we skip the redundant shared rebuild
-COPY backend/src/      ./backend/src/
-COPY backend/tsconfig.json ./backend/
-RUN cd backend && npx tsc
+# ── Build: all deps (tsc is a devDependency), compile shared then backend ────
+FROM manifests AS build
+RUN npm ci -w @css-atlas/shared -w @css-atlas/backend
+COPY shared/ shared/
+COPY backend/ backend/
+RUN npm run build -w @css-atlas/shared -w @css-atlas/backend
 
-# ── Production stage ─────────────────────────────────────────────────────────
-FROM node:26-alpine AS runner
+# ── Production deps only ─────────────────────────────────────────────────────
+FROM manifests AS prod-deps
+RUN npm ci --omit=dev -w @css-atlas/shared -w @css-atlas/backend
 
-ARG SUPABASE_URL
-ARG SUPABASE_PUBLISHABLE_KEY
-ARG CORS_ORIGIN
-ENV SUPABASE_URL=$SUPABASE_URL
-ENV SUPABASE_PUBLISHABLE_KEY=$SUPABASE_PUBLISHABLE_KEY
-ENV CORS_ORIGIN=$CORS_ORIGIN
+# ── Runtime ──────────────────────────────────────────────────────────────────
+FROM node:26-alpine AS runtime
 
-WORKDIR /app
-
-# @css-atlas/shared is a file: dependency — node_modules/@css-atlas/shared is a
-# symlink to /app/shared, so the package (manifest, dist, its own production
-# deps) must exist at that path at runtime.
-COPY --from=builder /app/shared/package.json ./shared/package.json
-COPY --from=builder /app/shared/dist/ ./shared/dist/
-COPY --from=builder /app/shared/node_modules/ ./shared/node_modules/
-
-# Compiled backend
-COPY --from=builder /app/backend/dist/ ./backend/dist/
-
-# Chromium for weekly memo PDF. Skip Puppeteer's Chrome download (glibc
-# binary) and use Alpine's package instead. Launch also uses
-# --disable-dev-shm-usage because container /dev/shm is often 64MB.
+# Chromium for the weekly memo PDF. Alpine's package instead of Puppeteer's
+# glibc download; launch also passes --disable-dev-shm-usage.
 RUN apk add --no-cache chromium nss freetype harfbuzz ca-certificates ttf-freefont
-ENV PUPPETEER_SKIP_DOWNLOAD=true
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+ENV NODE_ENV=production \
+    PUPPETEER_SKIP_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
-# Production-only deps
-COPY backend/package.json backend/package-lock.json backend/.puppeteerrc.cjs ./backend/
-RUN npm ci --omit=dev --prefix ./backend
+WORKDIR /app
+# node_modules/@css-atlas/shared is a workspace symlink to /app/shared.
+COPY --from=prod-deps /app/node_modules node_modules
+COPY --from=build /app/shared/package.json shared/
+COPY --from=build /app/shared/dist shared/dist
+COPY --from=build /app/backend/package.json /app/backend/.puppeteerrc.cjs backend/
+COPY --from=build /app/backend/dist backend/dist
 
+# Runtime config (SUPABASE_*, CORS_ORIGIN, secrets) is injected by Railway or
+# docker compose at container start. Nothing is baked into the image.
+WORKDIR /app/backend
 EXPOSE 3001
-CMD ["node", "/app/backend/dist/server.js"]
+CMD ["node", "dist/server.js"]

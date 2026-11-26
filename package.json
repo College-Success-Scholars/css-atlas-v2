@@ -36,6 +36,7 @@
   },
   "devDependencies": {
     "concurrently": "^9",
+    "railway": "^3.18.0",
     "typedoc": "^0.28.5",
     "typedoc-plugin-markdown": "^4.7.0",
     "typescript": "^5.9.3"
