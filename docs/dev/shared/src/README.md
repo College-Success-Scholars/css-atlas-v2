@@ -65,7 +65,7 @@ WEEKS_IGNORE_SESSIONS: number[]
 - **Update `time.ts` barrel** when adding a new export to any other file.
 - **`time-config.ts` is the only place to change calendar dates** — do not hardcode academic year dates anywhere else.
 - **No side effects** — all source files are pure declarations and function definitions.
-- **Run `npm run build --prefix shared`** after every change — backend and frontend use the compiled `dist/`.
+- **`npm run dev` rebuilds `shared` on every change.** Outside it, run `npm run build -w @css-atlas/shared` first: backend and frontend use the compiled `dist/`.
 
 <!-- AUTO-API-REFERENCE:START -->
 
@@ -77,7 +77,21 @@ Generated from TypeScript signatures. Module indexes below; full catalog: [API R
 |--------|----------|
 | `auth` | [API](../../../reference/api/shared/auth/README.md) |
 | `campus-calendar` | [API](../../../reference/api/shared/campus-calendar/README.md) |
+| `contract` | [API](../../../reference/api/shared/contract/README.md) |
+| `contracts/attendance` | [API](../../../reference/api/shared/contracts/attendance/README.md) |
+| `contracts/auth` | [API](../../../reference/api/shared/contracts/auth/README.md) |
+| `contracts/daily-activity` | [API](../../../reference/api/shared/contracts/daily-activity/README.md) |
+| `contracts/dev` | [API](../../../reference/api/shared/contracts/dev/README.md) |
+| `contracts/form-logs` | [API](../../../reference/api/shared/contracts/form-logs/README.md) |
+| `contracts/hours-benchmark` | [API](../../../reference/api/shared/contracts/hours-benchmark/README.md) |
+| `contracts/memo` | [API](../../../reference/api/shared/contracts/memo/README.md) |
+| `contracts/mentees` | [API](../../../reference/api/shared/contracts/mentees/README.md) |
+| `contracts/session-logs` | [API](../../../reference/api/shared/contracts/session-logs/README.md) |
+| `contracts/traffic` | [API](../../../reference/api/shared/contracts/traffic/README.md) |
+| `contracts/tutor-reports` | [API](../../../reference/api/shared/contracts/tutor-reports/README.md) |
+| `contracts/users` | [API](../../../reference/api/shared/contracts/users/README.md) |
 | `eastern-time` | [API](../../../reference/api/shared/eastern-time/README.md) |
+| `form-status` | [API](../../../reference/api/shared/form-status/README.md) |
 | `time` | [API](../../../reference/api/shared/time/README.md) |
 | `time-config` | [API](../../../reference/api/shared/time-config/README.md) |
 | `time-types` | [API](../../../reference/api/shared/time-types/README.md) |

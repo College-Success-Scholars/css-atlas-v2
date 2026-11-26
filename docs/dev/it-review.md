@@ -109,7 +109,7 @@ Domain data goes **frontend → backend → Supabase**. The frontend does not ru
 | Layer | Choice | Why it matters to IT |
 |-------|--------|----------------------|
 | Frontend | Next.js 16, React 19, Tailwind 4, Radix / shadcn-ui | Browser app; no third-party analytics |
-| Backend | Node.js 22, Express 5, TypeScript | REST under `/api/*`; no Supabase Edge Functions |
+| Backend | Node.js 26, Express 5, TypeScript | REST under `/api/*`; no Supabase Edge Functions |
 | Shared | `@css-atlas/shared` TypeScript library | Campus calendar / week math only — no database access |
 | Auth + database | Supabase (PostgreSQL, JWT, RLS) | System of record for education records; **no service-role key in application code** |
 | Hosting | Railway (separate frontend and backend services, defined in `.railway/railway.ts`); Docker Compose for CI | Off-campus cloud |

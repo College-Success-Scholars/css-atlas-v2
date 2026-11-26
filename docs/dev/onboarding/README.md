@@ -8,7 +8,7 @@
 
 | Guide | When |
 |-------|------|
-| [Day 0 setup](day-0-setup.md) | First clone — get the stack running (`dev.sh` / Windows `dev.ps1`) |
+| [Day 0 setup](day-0-setup.md) | First clone — get the stack running (`npm install && npm run dev`) |
 | [Branching & reviews](branching-and-reviews.md) | `develop` / `main`, teams, CODEOWNERS, rulesets |
 | [Golden path (first PR)](golden-path-first-pr.md) | First real change end-to-end |
 | [Roles & personas](roles-and-personas.md) | Understanding scholar / team leader / developer |
@@ -33,7 +33,7 @@ Do **not** duplicate architecture encyclopedias here. Link out to existing docs 
 
 | Day | Goal |
 |-----|------|
-| 0–1 | [Day 0 setup](day-0-setup.md) — `scripts/dev.sh` (macOS/Linux) or `scripts/dev.ps1` (Windows), sign in, one authenticated `/api/*` call |
+| 0–1 | [Day 0 setup](day-0-setup.md) — `npm install && npm run dev`, sign in, one authenticated `/api/*` call |
 | 2 | Trace one request using [codebase notes](../../agents/codebase-notes.md) (no code changes yet) |
 | 3 | [Roles & personas](roles-and-personas.md) — switch test personas, compare UI |
 | 4 | [Campus weeks](campus-weeks.md) — verify a Memo week against `shared/time-config.ts` |

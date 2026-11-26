@@ -7,7 +7,7 @@ config({ path: fileURLToPath(new URL("../../../../.env", import.meta.url)) });
 
 // Requires the SLACK_BOT_TOKEN to be set in backend/.env
 // Run a manual test with the following command
-// npm --prefix backend exec -- tsx backend/src/domains/notifications/__manual_test__/send-test-dm.ts
+// npm exec -w @css-atlas/backend -- tsx src/domains/notifications/__manual_test__/send-test-dm.ts
 
 const result = await new SlackChannel().send("MEMBER_ID", {
     text: "TEST MESSAGE HERE",

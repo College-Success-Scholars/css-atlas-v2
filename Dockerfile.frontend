@@ -1,60 +1,49 @@
-# ── Build stage ──────────────────────────────────────────────────────────────
-FROM node:22-alpine AS builder
+# Frontend image. Next.js standalone output: a minimal server.js plus only
+# the node_modules it traced (next.config.ts: output "standalone").
 
+# ── Build ────────────────────────────────────────────────────────────────────
+FROM node:26-alpine AS build
 WORKDIR /app
-
-# 1. Build shared (frontend build script calls this too, but doing it here first
-#    ensures it's cached as a separate layer)
-COPY shared/package.json ./shared/
-RUN npm install --include=dev --prefix ./shared
-
-COPY shared/ ./shared/
-RUN npm run --prefix ./shared build
-# Runtime images copy shared/ (package.json, dist, production node_modules).
-RUN npm prune --omit=dev --prefix ./shared
-
-# 2. Install frontend deps
-COPY frontend/package.json frontend/package-lock.json ./frontend/
-RUN npm ci --prefix ./frontend
-
-# 3. Copy source and build
-COPY frontend/ ./frontend/
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# npm ci checks the lockfile against all workspaces, so all three manifests are copied.
+COPY package.json package-lock.json ./
+COPY shared/package.json shared/
+COPY backend/package.json backend/
+COPY frontend/package.json frontend/
+RUN npm ci -w @css-atlas/shared -w @css-atlas/frontend
+
+COPY shared/ shared/
+COPY frontend/ frontend/
+
+# NEXT_PUBLIC_* values are inlined into the browser bundle at build time, and
+# next.config.ts aliases NEXT_PUBLIC_BACKEND_URL from BACKEND_URL, so these
+# must be present during `next build`.
 ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 ARG BACKEND_URL
 ARG NEXT_PUBLIC_BACKEND_URL
-ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
-ENV NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-ENV BACKEND_URL=$BACKEND_URL
-ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY \
+    BACKEND_URL=$BACKEND_URL \
+    NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
 
-# shared is already built above; run next directly (as Dockerfile.backend does with tsc)
-RUN cd frontend && npx next build --turbopack
+RUN npm run build -w @css-atlas/shared -w @css-atlas/frontend
 
-# ── Production stage ─────────────────────────────────────────────────────────
-FROM node:22-alpine AS runner
-
+# ── Runtime ──────────────────────────────────────────────────────────────────
+FROM node:26-alpine AS runtime
 WORKDIR /app
+# HOSTNAME=0.0.0.0: the standalone server otherwise only listens inside the
+# container. PORT comes from Railway at runtime (server.js defaults to 3000).
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    HOSTNAME=0.0.0.0
 
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
+# Owned by the unprivileged `node` user so Next can write its .next/cache.
+COPY --from=build --chown=node:node /app/frontend/.next/standalone ./
+COPY --from=build --chown=node:node /app/frontend/.next/static frontend/.next/static
+COPY --from=build --chown=node:node /app/frontend/public frontend/public
 
-# Copy built Next.js output + runtime dependencies
-COPY --from=builder /app/frontend/.next/          ./frontend/.next/
-COPY --from=builder /app/frontend/public/         ./frontend/public/
-COPY --from=builder /app/frontend/next.config.ts  ./frontend/next.config.ts
-COPY --from=builder /app/frontend/package.json    ./frontend/package.json
-COPY --from=builder /app/frontend/node_modules/   ./frontend/node_modules/
-
-# @css-atlas/shared is a file: dependency — node_modules/@css-atlas/shared is a
-# symlink to /app/shared, so the package (manifest, dist, its own production
-# deps) must exist at that path at runtime.
-COPY --from=builder /app/shared/package.json ./shared/package.json
-COPY --from=builder /app/shared/dist/ ./shared/dist/
-COPY --from=builder /app/shared/node_modules/ ./shared/node_modules/
-
+USER node
 EXPOSE 3000
-WORKDIR /app/frontend
-CMD ["npm", "run", "start"]
+CMD ["node", "frontend/server.js"]

@@ -45,11 +45,13 @@ Supabase (Postgres + Auth + RLS)
 
 Production and staging run on Railway, defined as code in [`.railway/railway.ts`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/.railway/railway.ts) (one file for both environments; `production` deploys `main`, `develop` deploys `develop`). Change settings there, not in the dashboard, and check `railway config plan` for both environments before merging.
 
+Run the Railway CLI through the repo, not a global install: `npx railway environment` to pick staging or production, then `npx railway config plan`. The CLI (`@railway/cli`) and the SDK (`railway`) are both root devDependencies, so everyone gets the versions the lockfile pins.
+
 | Piece | How |
 |-------|-----|
 | Backend | Railway service, repo root, `Dockerfile.backend` |
 | Frontend | Railway service, repo root, `Dockerfile.frontend`; `cssatlas.org` in production |
-| Crons | `Dockerfile.signin` / `Dockerfile.recon`; scheduled in production only, no Slack token in staging |
+| Crons | `Dockerfile.backend` (the API image) with a per-cron start command, `node dist/domains/notifications/detectors/{signin,reconciliation}-detector.js`; scheduled in production only, no Slack token in staging |
 | Health | Frontend and backend: `GET /`, 30s timeout |
 | Wiring | Set `CORS_ORIGIN` to the public frontend origin(s). Set frontend `BACKEND_URL` and `NEXT_PUBLIC_BACKEND_URL` to the public backend URL. |
 
@@ -66,7 +68,7 @@ Nixpacks alone is not enough: `shared/` lives outside a package root, so builds 
 
 ## Local and CI containers
 
-[`docker-compose.yml`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/docker-compose.yml) runs production-style images for **CI smoke** and optional local parity — not the default day-to-day loop (`./scripts/dev.sh` on the host is faster).
+[`docker-compose.yml`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/docker-compose.yml) runs production-style images for **CI smoke** and optional local parity — not the default day-to-day loop (`npm run dev` on the host is faster).
 
 | Service | Host ports (default) | Notes |
 |---------|----------------------|--------|
@@ -119,6 +121,6 @@ Never commit real `.env` files; inject secrets in Railway / CI.
 
 - **Infrastructure is code** — change `.railway/railway.ts`, not the Railway dashboard; keep env examples aligned with it.
 - **Root Dockerfiles for container deploys** — needed because `shared/` is outside `backend/` and `frontend/`.
-- **Compose is CI/parity** — prefer `scripts/dev.sh` for iterative development.
+- **Compose is CI/parity** — prefer `npm run dev` for iterative development.
 - **Smoke is shallow by design** — unit/integration tests live under `backend/src/tests/` and `frontend/`; deepen smoke only with a safe staging token / project.
 - **Schema deploys are separate from app deploys** — ship DDL via `supabase/migrations/` (staging → prod) before relying on new columns/RPCs in an app release; Dashboard SQL remains emergency-only.

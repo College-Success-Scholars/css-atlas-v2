@@ -1,6 +1,6 @@
 /**
  * Generated Postgres types for public schema. Do not edit by hand.
- * Regen: npm run db:types --prefix backend
+ * Regen: npm run db:types -w @css-atlas/backend
  */
 
 export type Json =

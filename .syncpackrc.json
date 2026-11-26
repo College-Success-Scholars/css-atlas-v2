@@ -1,0 +1,14 @@
+{
+  "versionGroups": [
+    {
+      "label": "Our own package.json \"version\" fields are not checked: nothing is published",
+      "dependencyTypes": ["local"],
+      "isIgnored": true
+    },
+    {
+      "label": "Internal workspace packages are always depended on as \"*\"",
+      "dependencies": ["@css-atlas/**"],
+      "pinVersion": "*"
+    }
+  ]
+}

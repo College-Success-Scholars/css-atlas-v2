@@ -92,15 +92,24 @@ Follow package standards:
 
 ### 3. Test what you touched
 
+From the repo root. If `shared` changed, build it first:
+
 ```bash
-# If shared changed:
-npm run build --prefix shared
+npm run build -w @css-atlas/shared
+```
 
-# Backend
-cd backend && npm test && npm run build
+Backend:
 
-# Frontend
-cd frontend && npm test && npm run build
+```bash
+npm test -w @css-atlas/backend
+npm run build -w @css-atlas/backend
+```
+
+Frontend:
+
+```bash
+npm test -w @css-atlas/frontend
+npm run build -w @css-atlas/frontend
 ```
 
 Skip packages you did not change; never skip the package you did. Docker only if containers / shared packaging are involved: `docker compose build` from repo root.

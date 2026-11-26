@@ -39,13 +39,18 @@ Generated from TypeScript signatures. Module indexes below; full catalog: [API R
 
 | Module | Reference |
 |--------|----------|
+| `attendance-week.model` | [API](../../../../reference/api/backend/src/models/attendance-week.model/README.md) |
 | `daily-scholar-activity.model` | [API](../../../../reference/api/backend/src/models/daily-scholar-activity.model/README.md) |
 | `form-log.model` | [API](../../../../reference/api/backend/src/models/form-log.model/README.md) |
+| `meeting-preference.model` | [API](../../../../reference/api/backend/src/models/meeting-preference.model/README.md) |
+| `mentee-mcf-prefill.model` | [API](../../../../reference/api/backend/src/models/mentee-mcf-prefill.model/README.md) |
+| `mentee-review.model` | [API](../../../../reference/api/backend/src/models/mentee-review.model/README.md) |
 | `mentee.model` | [API](../../../../reference/api/backend/src/models/mentee.model/README.md) |
 | `session-log.model` | [API](../../../../reference/api/backend/src/models/session-log.model/README.md) |
 | `time.model` | [API](../../../../reference/api/backend/src/models/time.model/README.md) |
 | `traffic.model` | [API](../../../../reference/api/backend/src/models/traffic.model/README.md) |
 | `tutor-report-log.model` | [API](../../../../reference/api/backend/src/models/tutor-report-log.model/README.md) |
 | `user.model` | [API](../../../../reference/api/backend/src/models/user.model/README.md) |
+| `weekly-minutes.model` | [API](../../../../reference/api/backend/src/models/weekly-minutes.model/README.md) |
 
 <!-- AUTO-API-REFERENCE:END -->

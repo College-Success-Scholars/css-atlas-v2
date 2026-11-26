@@ -6,10 +6,12 @@ on:
   pull_request:
 
 env:
-  NODE_VERSION: "22"
+  HUSKY: 0
   SUPABASE_URL: https://example.supabase.co
   SUPABASE_PUBLISHABLE_KEY: sb_publishable_placeholder
 
+# Job ids and names are referenced by branch protection's required checks.
+# Renaming one means updating the protection rules in the same change.
 jobs:
   backend-test:
     name: Backend Guardrails, Test & Build
@@ -21,23 +23,20 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: .node-version
           cache: npm
-          cache-dependency-path: backend/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
 
       - name: Build Shared Package
-        run: |
-          npm ci
-          npm run build
-        working-directory: shared
+        run: npm run build -w @css-atlas/shared
 
       - name: Guardrails, Test & Build Backend
         run: |
-          npm ci
-          npm run guardrails
-          npm test
-          npm run build
-        working-directory: backend
+          npm run guardrails -w @css-atlas/backend
+          npm test -w @css-atlas/backend
+          npm run build -w @css-atlas/backend
 
   frontend-test:
     name: Frontend Test & Build
@@ -49,27 +48,43 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: .node-version
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
 
       - name: Build Shared Package
-        run: |
-          npm ci
-          npm run build
-        working-directory: shared
+        run: npm run build -w @css-atlas/shared
 
       - name: Test, Lint & Build Frontend
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ env.SUPABASE_PUBLISHABLE_KEY }}
         run: |
-          npm ci
-          npm test
-          npm run check:theme-safety
-          npm run guardrails
-          npm run build
-        working-directory: frontend
+          npm test -w @css-atlas/frontend
+          npm run check:theme-safety -w @css-atlas/frontend
+          npm run guardrails -w @css-atlas/frontend
+          npm run build -w @css-atlas/frontend
+
+  repo-hygiene:
+    name: Repo Hygiene (syncpack, knip)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Check Dependency Versions and Unused Code
+        run: npm run hygiene
 
   docker-build:
     name: Build Docker Images
@@ -88,10 +103,6 @@ jobs:
           SUPABASE_URL: ${{ env.SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ env.SUPABASE_PUBLISHABLE_KEY }}
 
-      - name: Build Cron Images
-        run: |
-          docker build -f Dockerfile.recon -t recon .
-          docker build -f Dockerfile.signin -t signin .
 
   smoke-test:
     name: Run Smoke Tests

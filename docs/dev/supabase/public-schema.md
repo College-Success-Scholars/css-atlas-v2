@@ -1,6 +1,6 @@
 # Public schema (`public`)
 
-Column catalog for Postgres `public` as applied by [`supabase/migrations/`](../../../supabase/migrations). Types and nullability come from those migrations; generated TypeScript is [`backend/src/supabase/database.types.ts`](../../../backend/src/supabase/database.types.ts).
+Column catalog for Postgres `public` as applied by [`supabase/migrations/`](../../../supabase/migrations). Types and nullability come from those migrations; generated TypeScript is [`backend/src/supabase/database.types.ts`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/backend/src/supabase/database.types.ts).
 
 There are no views in `public`. Operational form and session-log tables are filled by Google Forms → Supabase; the app mostly reads them. See [Form / log intake](README.md#form--log-intake-google-forms).
 

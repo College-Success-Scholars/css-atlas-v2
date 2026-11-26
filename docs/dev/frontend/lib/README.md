@@ -86,10 +86,9 @@ Generated from TypeScript signatures. Module indexes below; full catalog: [API R
 | `api-log` | [API](../../../reference/api/frontend/lib/api-log/README.md) |
 | `auth` | [API](../../../reference/api/frontend/lib/auth/README.md) |
 | `client/api-client` | [API](../../../reference/api/frontend/lib/client/api-client/README.md) |
-| `dashboard/activity-log-dictionary` | [API](../../../reference/api/frontend/lib/dashboard/activity-log-dictionary/README.md) |
+| `dashboard/scholar-home-activity` | [API](../../../reference/api/frontend/lib/dashboard/scholar-home-activity/README.md) |
 | `dashboard-breadcrumb` | [API](../../../reference/api/frontend/lib/dashboard-breadcrumb/README.md) |
-| `dev/effective-uid` | [API](../../../reference/api/frontend/lib/dev/effective-uid/README.md) |
-| `format/form-deadlines` | [API](../../../reference/api/frontend/lib/format/form-deadlines/README.md) |
+| `format/campus-week` | [API](../../../reference/api/frontend/lib/format/campus-week/README.md) |
 | `format/form-view-helpers` | [API](../../../reference/api/frontend/lib/format/form-view-helpers/README.md) |
 | `format/time` | [API](../../../reference/api/frontend/lib/format/time/README.md) |
 | `nav-active` | [API](../../../reference/api/frontend/lib/nav-active/README.md) |
@@ -102,12 +101,13 @@ Generated from TypeScript signatures. Module indexes below; full catalog: [API R
 | `supabase/middleware` | [API](../../../reference/api/frontend/lib/supabase/middleware/README.md) |
 | `supabase/public-key` | [API](../../../reference/api/frontend/lib/supabase/public-key/README.md) |
 | `supabase/server` | [API](../../../reference/api/frontend/lib/supabase/server/README.md) |
-| `types/form-log` | [API](../../../reference/api/frontend/lib/types/form-log/README.md) |
+| `theme/css-color` | [API](../../../reference/api/frontend/lib/theme/css-color/README.md) |
+| `theme/theme-safety` | [API](../../../reference/api/frontend/lib/theme/theme-safety/README.md) |
+| `theme/theme-safety.test-helpers` | [API](../../../reference/api/frontend/lib/theme/theme-safety.test-helpers/README.md) |
+| `tiers` | [API](../../../reference/api/frontend/lib/tiers/README.md) |
+| `types/mentee-review` | [API](../../../reference/api/frontend/lib/types/mentee-review/README.md) |
 | `types/session-log` | [API](../../../reference/api/frontend/lib/types/session-log/README.md) |
 | `types/supabase` | [API](../../../reference/api/frontend/lib/types/supabase/README.md) |
-| `types/time` | [API](../../../reference/api/frontend/lib/types/time/README.md) |
-| `types/traffic` | [API](../../../reference/api/frontend/lib/types/traffic/README.md) |
-| `types/tutor-report-log` | [API](../../../reference/api/frontend/lib/types/tutor-report-log/README.md) |
 | `utils` | [API](../../../reference/api/frontend/lib/utils/README.md) |
 
 <!-- AUTO-API-REFERENCE:END -->

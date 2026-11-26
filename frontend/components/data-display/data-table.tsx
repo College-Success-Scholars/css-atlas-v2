@@ -428,11 +428,3 @@ export function CollapsibleTableSection({
     </Collapsible>
   );
 }
-
-// Re-export old names for backward compatibility during migration
-/** @deprecated Use DataTableColumn */
-export type ScholarDataTableColumn<T> = DataTableColumn<T>;
-/** @deprecated Use DataTableColumnConfig */
-export type ScholarDataTableColumnConfig<T> = DataTableColumnConfig<T>;
-/** @deprecated Use DataTable */
-export const ScholarDataTable = DataTable;

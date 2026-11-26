@@ -39,24 +39,23 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version-file: .node-version
           cache: npm
-          cache-dependency-path: package-lock.json
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Install Node docs tooling
+      - name: Install dependencies
         run: npm ci
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: "true"
 
       - name: Install MkDocs
         run: pip install -r requirements-docs.txt
 
       - name: Build shared (types for imports)
-        run: |
-          npm ci --prefix shared
-          npm run build --prefix shared
+        run: npm run build -w @css-atlas/shared
 
       - name: Prepare docs (API mirror, link rewrite, TypeDoc, indexes)
         run: npm run docs:prepare

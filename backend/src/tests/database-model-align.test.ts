@@ -1,6 +1,6 @@
 /**
  * Compile-time guard: table-backed models stay aligned with generated Database types.
- * After `npm run db:types --prefix backend`, fix models if these assertions fail.
+ * After `npm run db:types -w @css-atlas/backend`, fix models if these assertions fail.
  */
 import { describe, expectTypeOf, it } from "vitest";
 import type { TutorReportLogRow } from "../models/tutor-report-log.model.js";

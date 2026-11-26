@@ -1,25 +1,19 @@
-import path from "node:path"
-import react from "@vitejs/plugin-react"
-import { defineConfig } from "vitest/config"
+import path from "node:path";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vitest/config";
+
+process.env.TZ = "America/New_York";
 
 export default defineConfig({
   plugins: [react()],
   test: {
     environment: "node",
     globals: true,
-    include: [
-      "lib/**/*.test.ts",
-      "app/**/*.test.ts",
-      "app/**/*.test.tsx",
-      "components/**/*.test.ts",
-      "components/**/*.test.tsx",
-      "../shared/*.test.ts",
-      "../shared/contracts/**/*.test.ts",
-    ],
+    include: ["{app,components,lib,hooks}/**/*.test.{ts,tsx}"],
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./"),
+      "@": path.resolve(import.meta.dirname, "./"),
     },
   },
-})
+});

@@ -33,8 +33,8 @@ The codebase has a specfic structure to follow and to generally maintain. See `d
 Patterns that need judgement are banned outright and enforced by lint and a dependency checker. Read `docs/dev/guardrails.md` before writing code. After every change run, in the app you touched:
 
 ```bash
-npm --prefix backend run guardrails
-npm --prefix frontend run guardrails
+npm run guardrails -w @css-atlas/backend
+npm run guardrails -w @css-atlas/frontend
 ```
 
 - Never add a file to `eslint-baseline.json` or `.dependency-cruiser-known-violations.json`, and never add an `eslint-disable` comment, to get green. Those lists only shrink.

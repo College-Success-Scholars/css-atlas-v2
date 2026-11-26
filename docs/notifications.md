@@ -12,8 +12,8 @@ The public notification boundary is `backend/src/domains/notifications/index.ts`
 
 Both detectors start with active `scholar_shift_assignments`; they never inspect unmatched logs as anomalies. An Entry matches an assignment when it falls within the scheduled time plus the shared 15-minute grace window. Ad hoc sessions outside all assignment windows are ignored.
 
-- `npm --prefix backend run start:signin-detector` checks today's assignments every five minutes in Railway. Once an assignment is 25 minutes past its start without an Entry, it sends a check-in prompt.
-- `npm --prefix backend run start:reconciliation-detector` runs daily. It evaluates yesterday and the preceding six calendar days, skips dates before `NOTIFICATIONS_LAUNCH_DATE`, and classifies each assignment as complete, incomplete, or missing.
+- `npm run start:signin-detector -w @css-atlas/backend` checks today's assignments every five minutes in Railway. Once an assignment is 25 minutes past its start without an Entry, it sends a check-in prompt.
+- `npm run start:reconciliation-detector -w @css-atlas/backend` runs daily. It evaluates yesterday and the preceding six calendar days, skips dates before `NOTIFICATIONS_LAUNCH_DATE`, and classifies each assignment as complete, incomplete, or missing.
 - Reconciliation does not send an incomplete notification if a missing notification already exists for that occurrence.
 - Scholars with zero or multiple team leaders are skipped. Missing Slack IDs are recorded as `skipped_missing_slack_id`; provider failures as `failed`; successful sends as `sent`.
 

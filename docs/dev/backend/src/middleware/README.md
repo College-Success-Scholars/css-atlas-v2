@@ -56,6 +56,7 @@ Generated from TypeScript signatures. Module indexes below; full catalog: [API R
 
 | Module | Reference |
 |--------|----------|
+| `auth.middleware` | [API](../../../../reference/api/backend/src/middleware/auth.middleware/README.md) |
 | `reject-writes-when-acting` | [API](../../../../reference/api/backend/src/middleware/reject-writes-when-acting/README.md) |
 | `request-logger` | [API](../../../../reference/api/backend/src/middleware/request-logger/README.md) |
 

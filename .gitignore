@@ -1,19 +1,48 @@
+# ==============================================================================
+# Environment & Secrets
+# ==============================================================================
 .env
-.claude
-.next
-.cursor
-node_modules
 .env.local
-.DS_Store
+.env.*.local
+!.env.example
+
+# ==============================================================================
+# Dependencies & Package Manager Enforcement (npm only)
+# ==============================================================================
+node_modules
 .pnpm-store
+pnpm-lock.yaml
+yarn.lock
+bun.lock
+bun.lockb
+
+# ==============================================================================
+# Build Outputs & Caches
+# ==============================================================================
+# Node / Next.js / TypeScript
+.next
 shared/dist
 backend/dist
+*.tsbuildinfo
+.vitest-cache
+
+# Python (scripts & Ruff linter)
+__pycache__/
+*.py[cod]
+.ruff_cache/
+
+# MkDocs build output
 site/
+
+# ==============================================================================
+# Generated Documentation & Internal Reports
+# ==============================================================================
+# Auto-generated API & schema docs
 docs/dev/backend/api.md
 docs/reference/api/
 docs/dev/supabase/tables-overview.md
-openspec/
-.opencode/
+
+# Data inventory & cost request exports
 docs/dev/supabase/CSS-Atlas-Data-Inventory.pdf
 docs/dev/supabase/css-atlas-data-inventory.html
 docs/dev/supabase/css-atlas-data-inventory.md
@@ -22,5 +51,21 @@ docs/dev/supabase/css-atlas-director-cost-request.html
 docs/dev/supabase/css-atlas-director-cost-request.md
 docs/dev/supabase/inventory-print.css
 scripts/build-data-inventory-pdf.sh
-*.swp
+
+# ==============================================================================
+# AI Tooling & Local Audit Scratchpads
+# ==============================================================================
+.claude/*
+!.claude/skills/
+.claude/skills/openspec-*/
+.cursor
+.opencode/
+openspec/
 .audit/
+.cursorignore
+
+# ==============================================================================
+# OS & Editor Files
+# ==============================================================================
+.DS_Store
+*.swp

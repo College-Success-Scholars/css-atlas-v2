@@ -13,7 +13,7 @@ Use GitHub’s issue forms under **New issue**:
 | Chore | Tooling, cleanup, docs, CI |
 | Architecture alert | Structural/runtime finding |
 
-Forms apply type labels (`bug` / `feature` / `chore` / `architecture-alert`). The [issue-triage](../../.github/workflows/issue-triage.yml) Action adds `needs-triage` when no triage label is present.
+Forms apply type labels (`bug` / `feature` / `chore` / `architecture-alert`). The [issue-triage](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/.github/workflows/issue-triage.yml) Action adds `needs-triage` when no triage label is present.
 
 Bootstrap labels once per repo (or after fork):
 

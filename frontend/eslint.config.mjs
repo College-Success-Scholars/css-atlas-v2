@@ -1,15 +1,7 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { readFileSync } from "fs";
-import { FlatCompat } from "@eslint/eslintrc";
+import { readFileSync } from "node:fs";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
 import atlas, { baselineOverrides } from "../tools/eslint-plugin-atlas/index.mjs";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
 
 // Guardrails: categorical bans. Files that predate a rule are grandfathered in
 // eslint-baseline.json, which may only shrink (`npm run lint:baseline`).
@@ -19,7 +11,8 @@ const SOURCE = ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "lib/**/*.{ts,t
 const TESTS = ["**/*.test.{ts,tsx}", "**/*.test-helpers.ts", "**/mock-data.ts"];
 
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  ...nextVitals,
+  ...nextTs,
   {
     ignores: [
       "node_modules/**",

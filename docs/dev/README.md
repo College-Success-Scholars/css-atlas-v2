@@ -41,7 +41,7 @@ repo root
 
 | Layer | Technology |
 |-------|-----------|
-| Backend runtime | Node.js 22, Express 5, TypeScript |
+| Backend runtime | Node.js 26, Express 5, TypeScript |
 | Frontend | Next.js App Router (16.x), React, Tailwind CSS |
 | Shared utilities | TypeScript compiled library |
 | Database + Auth | Supabase (PostgreSQL + JWT) |
@@ -112,23 +112,18 @@ Roles are stored in `profiles.app_role` (or `user_roster.app_role`).
 
 ## Local Development
 
-**New developers:** follow [Onboarding — Day 0 setup](onboarding/day-0-setup.md) (preferred: `./scripts/dev.sh --install`; Windows: `.\scripts\dev.ps1 -Install`).
+**New developers:** follow [Onboarding — Day 0 setup](onboarding/day-0-setup.md).
+
+From the repo root, after creating the env files:
 
 ```bash
-# Install dependencies
-npm install --prefix backend
-npm install --prefix frontend
-npm install --prefix shared
-
-# Build shared library (must come first)
-npm run build --prefix shared
-
-# Start backend
-npm run dev --prefix backend    # port 3001
-
-# Start frontend
-npm run dev --prefix frontend   # port 3000
+npm install
+npm run dev
 ```
+
+`npm install` installs all three packages (`shared`, `backend`, `frontend`) from the root `package-lock.json`. `npm run dev` builds `shared` once, then runs the `shared` watcher, the backend (`:3001`) and the frontend (`:3000`) together. To work on one package, use its workspace scripts, for example `npm run dev -w @css-atlas/backend` (build `shared` first with `npm run build -w @css-atlas/shared`).
+
+Which tool does which job, and why: [Tooling](tooling.md) and [ADR 004](../adr/004-one-toolchain-npm-workspaces-node.md).
 
 ---
 

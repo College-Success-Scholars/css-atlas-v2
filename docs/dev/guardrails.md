@@ -5,9 +5,11 @@
 The codebase is the largest input to every agent and every new developer. Whatever pattern exists gets copied. So where a pattern needs judgement to use well, we ban it outright and enforce the ban mechanically.
 
 ```bash
-npm --prefix backend run guardrails    # lint + baseline check + import direction
-npm --prefix frontend run guardrails
+npm run guardrails -w @css-atlas/backend
+npm run guardrails -w @css-atlas/frontend
 ```
+
+Each runs lint, the baseline check and the import-direction check (`npm run guardrails` at the root runs both). The pre-commit hook lints staged files with the same configs, so most findings show up before CI.
 
 CI runs both. A red guardrail is fixed by changing the code, never by widening a baseline.
 
