@@ -8,12 +8,6 @@ config();
 export default defineConfig({
   test: {
     environment: "node",
-    globals: true,
     include: ["src/tests/**/*.test.ts"],
-    // Run tests sequentially to avoid port conflicts
-    pool: "forks",
-    poolOptions: {
-      forks: { singleFork: true },
-    },
   },
 });

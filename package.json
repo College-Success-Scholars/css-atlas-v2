@@ -2,8 +2,15 @@
   "name": "css-atlas",
   "private": true,
   "type": "module",
-  "workspaces": ["shared", "backend", "frontend"],
-  "engines": { "node": ">=22 <23", "npm": ">=10" },
+  "workspaces": [
+    "shared",
+    "backend",
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=26 < 27",
+    "npm": ">=11"
+  },
   "scripts": {
     "predev": "npm run build -w @css-atlas/shared",
     "dev": "concurrently -k -n shared,api,web -c blue,green,magenta \"npm run watch -w @css-atlas/shared\" \"npm run dev -w @css-atlas/backend\" \"npm run dev -w @css-atlas/frontend\"",
@@ -32,5 +39,11 @@
     "typedoc": "^0.28.5",
     "typedoc-plugin-markdown": "^4.7.0",
     "typescript": "^5.9.3"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "sharp@0.34.5": true,
+    "puppeteer@25.19.0": true,
+    "fsevents@2.3.3": true
   }
 }
