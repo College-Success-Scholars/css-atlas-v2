@@ -71,6 +71,6 @@ Fixes #<!-- issue -->
 <!-- Concrete, reproducible checks. Include the package scripts you actually ran. -->
 
 - [ ] <!-- Manual / product path -->
-- [ ] `cd frontend && npm test` <!-- and/or `npm run build` if FE touched -->
-- [ ] `cd backend && npm test` <!-- and/or `npm run build` if BE touched -->
+- [ ] `npm test -w @css-atlas/frontend` <!-- and/or `npm run build -w @css-atlas/frontend` if FE touched -->
+- [ ] `npm test -w @css-atlas/backend` <!-- and/or `npm run build -w @css-atlas/backend` if BE touched -->
 - [ ] <!-- `docker compose build` / CI green / docs:coverage if relevant -->
