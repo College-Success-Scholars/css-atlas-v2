@@ -19,8 +19,6 @@ Shell scripts for deployment validation and operational tasks. These run outside
 
 | File | Source Link | Description |
 |------|-------------|-------------|
-| `dev.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/dev.sh) | Start local full-stack development (shared watch + backend + frontend) |
-| `dev.ps1` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/dev.ps1) | Windows PowerShell mirror of `dev.sh` |
 | `smoke-test.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/smoke-test.sh) | Deployment health-check: tests health endpoint, auth gating, and CORS headers |
 | `alert.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/alert.sh) | Opens an architectural alert as a GitHub Issue (`architecture-alert`). Requires `gh` auth — no markdown fallback |
 | `resolve-alert.sh` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/scripts/resolve-alert.sh) | Resolves an alert by issue number: logs session via `log-agent-session.sh`, then closes the issue (or comments if already closed) |
@@ -50,14 +48,6 @@ Shell scripts for deployment validation and operational tasks. These run outside
 
 ## Usage
 
-### `dev.sh` / `dev.ps1`
-
-Starts the local full-stack loop: builds `shared/`, optionally watches it, then runs backend (`:3001`) and frontend (`:3000`) in one process group (Ctrl+C stops all).
-
-Also ensures `<repo>/node_modules/next` → `frontend/node_modules/next` so Turbopack (whose root is the monorepo for the symlinked `@css-atlas/shared` package) can find the Next.js package during HMR. Without that link, Next 16.2 prints `FATAL: … Next.js package not found` and remounts the dashboard in a loop. If a panic log still appears after a config change, clear the cache once: `rm -rf frontend/.next`.
-
-**Before you run it**, create env files from the examples — the script exits with an error if they are missing:
-
 ```bash
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env.local
@@ -67,16 +57,6 @@ cp frontend/.env.example frontend/.env.local
 Day 0 walkthrough (order matters): [Onboarding — Day 0 setup](../onboarding/day-0-setup.md).
 
 ```bash
-# Start local full-stack dev (frontend :3000, backend :3001)
-./scripts/dev.sh
-./scripts/dev.sh --install     # npm install in shared, backend, frontend first
-./scripts/dev.sh --no-watch    # build shared once; skip tsc --watch
-
-# Windows PowerShell (same behavior)
-.\scripts\dev.ps1
-.\scripts\dev.ps1 -Install
-.\scripts\dev.ps1 -NoWatch
-
 # Run against local backend (Docker Compose CORS — Origin :3000)
 BASE_URL=http://localhost:3001 bash scripts/smoke-test.sh
 

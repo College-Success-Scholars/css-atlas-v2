@@ -19,7 +19,7 @@ Backend-only Supabase infrastructure: generated Postgres `Database` types and th
 
 | File | Description |
 |------|-------------|
-| `database.types.ts` | Generated from linked project (`npm run db:types --prefix backend`). Do not edit by hand. |
+| `database.types.ts` | Generated from linked project (`npm run db:types -w @css-atlas/backend`). Do not edit by hand. |
 | `client.ts` | `createClient<Database>`, `getSupabaseClient`, `getSupabaseAuthClient`, `runWithToken` — **import this** from services/controllers |
 
 ## Standards
@@ -27,7 +27,7 @@ Backend-only Supabase infrastructure: generated Postgres `Database` types and th
 - **Import from `backend/src/supabase/client.js`** (relative path from caller) — there is no `services/supabase.service.ts`.
 - **Schema types live here only** — not under `shared/` (frontend must not import `Database`).
 - **Frontend types describe API responses**, not table rows — routes return only what the page needs.
-- **Regen after schema migrations** — `npm run db:types --prefix backend` (requires `supabase link`), then run backend tests/typecheck so `database-model-align` catches model drift.
+- **Regen after schema migrations** — `npm run db:types -w @css-atlas/backend` (requires `supabase link`), then run backend tests/typecheck so `database-model-align` catches model drift.
 - **No Edge Functions** — see [Cloud Supabase access pattern](../../../supabase/README.md#access-pattern).
 
 ## Related

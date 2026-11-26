@@ -32,6 +32,6 @@ NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
 
 ## Architecture
 
-- **Auth:** Supabase via `lib/supabase/`; session refresh in `middleware.ts`
+- **Auth:** Supabase via `lib/supabase/`; session refresh in `proxy.ts`
 - **Domain data:** Express backend at `/api/*` via `lib/server/data.ts` (server) or `lib/client/api-client.ts` (client)
 - **Shared utilities:** `@css-atlas/shared` (campus weeks, role hierarchy)

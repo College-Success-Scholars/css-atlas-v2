@@ -23,7 +23,7 @@ The Express + TypeScript REST API server. It validates user JWTs from Supabase, 
 | File               | Source Link                                 | Description                                                           |
 | ------------------ | ------------------------------------------- | --------------------------------------------------------------------- |
 | `package.json`     | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/backend/package.json)     | NPM workspace config, scripts, and dependencies                       |
-| `tsconfig.json`    | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/backend/tsconfig.json)    | TypeScript compiler config (ESM, Node 22 target)                      |
+| `tsconfig.json`    | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/backend/tsconfig.json)    | TypeScript compiler config (ESM, Node 26 runtime)                     |
 | `vitest.config.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/backend/vitest.config.ts) | Vitest test runner configuration                                      |
 | `railway.toml`     | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/backend/railway.toml)     | Railway deployment configuration — see [Deployment](../deployment/README.md) |
 | `API.md`           | [REST API (Pages)](api.md) · [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/backend/API.md) | Comprehensive REST API reference (all endpoints, auth levels, params) |

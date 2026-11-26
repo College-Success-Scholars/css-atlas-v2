@@ -54,6 +54,7 @@ nav:
       - Auth & RLS runbook: dev/onboarding/auth-rls-runbook.md
       - Ask / don’t touch: dev/onboarding/ask-and-dont-touch.md
       - Guardrails: dev/guardrails.md
+      - Tooling: dev/tooling.md
       - PR template: dev/pr/TEMPLATE.md
   - Backend:
       - Overview: dev/backend/README.md

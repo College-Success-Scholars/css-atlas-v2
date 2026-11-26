@@ -21,7 +21,7 @@ Supabase client factories and authentication helpers. Used **only for auth** (se
 |------|-------------|-------------|-------------|
 | `server.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/lib/supabase/server.ts) | Server only | Server-side Supabase client (PKCE flow) + all auth helper functions |
 | `client.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/lib/supabase/client.ts) | Client only | Browser-side Supabase client for session refresh and client-side auth |
-| `middleware.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/lib/supabase/middleware.ts) | Middleware | Session refresh logic — called by `frontend/middleware.ts` |
+| `middleware.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/lib/supabase/middleware.ts) | Middleware | Session refresh logic — called by `frontend/proxy.ts` |
 | `public-key.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/lib/supabase/public-key.ts) | Both | Reads `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` from env |
 
 ---
@@ -58,7 +58,7 @@ For page redirects and nav, prefer `getCurrentProfile()` / `GET /api/auth/me` so
 - **`client.ts` is for browser use only** — session refresh and client-side Supabase mutations.
 - **Never query domain tables here** — `profiles`, `semesters` for auth is OK. `session_logs`, `form_logs`, etc. must go through the backend.
 - **Do not create a Supabase client at module scope** — always call `createClient()` inside the function body (important for Fluid Compute / Edge compatibility).
-- **`middleware.ts` is called from `frontend/middleware.ts`** — do not call it directly from components.
+- **`middleware.ts` is called from `frontend/proxy.ts`** — do not call it directly from components.
 
 <!-- AUTO-API-REFERENCE:START -->
 

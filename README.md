@@ -76,25 +76,23 @@ Railway deployments configure `GET /` health checks for both application service
 
 ### Running It Yourself
 
-Prerequisites: Node.js 22 or newer, a Supabase project URL and publishable key, and an application login.
+Prerequisites: Node.js 26 (pinned in `.node-version`) with npm 11 or newer, a Supabase project URL and publishable key, and an application login.
 
 ```bash
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env.local
-./scripts/dev.sh --install
+npm install
+npm run dev
 ```
 
-The script installs dependencies, builds and watches `shared`, then starts the backend on port `3001` and frontend on port `3000`. On Windows, run `./scripts/dev.ps1 -Install` from PowerShell.
+`npm install` at the repo root installs `shared`, `backend` and `frontend` from one lockfile. `npm run dev` builds `shared`, then watches it and starts the backend on port `3001` and the frontend on port `3000` in one terminal. Ctrl+C stops all three. The commands are the same on macOS, Linux and Windows.
 
-To run the services manually:
+To run one package on its own:
 
 ```bash
-npm install --prefix shared
-npm install --prefix backend
-npm install --prefix frontend
-npm run build --prefix shared
-npm run dev --prefix backend
-npm run dev --prefix frontend
+npm run build -w @css-atlas/shared
+npm run dev -w @css-atlas/backend
+npm run dev -w @css-atlas/frontend
 ```
 
 Run the local smoke check after the services start:

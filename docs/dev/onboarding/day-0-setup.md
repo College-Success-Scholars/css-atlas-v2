@@ -18,23 +18,18 @@ Copy-paste checklist from a fresh clone to a running stack. Done when frontend (
 
 ## Prerequisites
 
-- Node.js 22+
+- Node.js 26 with npm 11 or newer. The repo pins the version in `.node-version`, which version managers like fnm and mise switch to automatically. Check with `node -v`.
 - Access to the team’s Supabase project (URL + publishable/anon key)
 - A developer (or test-capable) login for the app — ask [Miguel](mailto:miguelventura1123@gmail.com) / [Ben](mailto:bsaenz454@gmail.com) if you do not have one yet
-- **macOS / Linux:** a normal shell (`bash` / `zsh`) so you can run `./scripts/dev.sh`
-- **Windows:** [PowerShell](https://learn.microsoft.com/powershell/) 5.1+ (Windows PowerShell or PowerShell 7). Use `.\scripts\dev.ps1` — do not expect `./scripts/dev.sh` to run in CMD. If scripts are blocked, unblock once for the session: `Set-ExecutionPolicy -Scope Process Bypass`
+- Any terminal: macOS/Linux shell or Windows PowerShell. Every command below is the same on all three.
 
 ---
 
 ## Checklist
 
-Do these in order. **Environment files come before `dev.sh`** — the script checks for them and exits immediately if they are missing.
+Do these in order. **Create the environment files before starting the stack**: without them the backend cannot reach Supabase and the frontend cannot sign you in.
 
 ### 1. Clone
-
-Pick the script for your OS. `--install` / `-Install` runs `npm install` in `shared/`, `backend/`, and `frontend/`. Prefer this over ad-hoc installs.
-
-**macOS / Linux**
 
 ```bash
 git clone <repo-url>
@@ -74,55 +69,27 @@ NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
 
 Full variable table: [Handbook — Environment Variables](../README.md#environment-variables).
 
-### 3. Install and start with `dev.sh`
+### 3. Install and start
 
-**What this script does:** one command that (optionally) installs dependencies, builds `shared/`, then starts the backend (`:3001`) and frontend (`:3000`) together — plus a watcher that rebuilds `shared/` when it changes. Ctrl+C stops everything. It is the preferred Day 0 path over opening multiple terminals by hand.
-
-**Prerequisite:** `backend/.env` and `frontend/.env.local` must already exist (step 2). If either is missing, `dev.sh` prints an error and exits — it will not create the files for you.
-
-First time (install + start):
+From the repo root:
 
 ```bash
-./scripts/dev.sh --install
+npm install
+npm run dev
 ```
 
-`--install` runs `npm install` in `shared/`, `backend/`, and `frontend/`. Prefer this over ad-hoc installs.
+`npm install` installs `shared/`, `backend/` and `frontend/` together from the root `package-lock.json`, and sets up the pre-commit hook. Only run it from the root: running it inside a package folder creates a second lockfile.
 
-**Windows (PowerShell):** use `.\scripts\dev.ps1` instead of `./scripts/dev.sh` (same flags: `-Install`, `-NoWatch`, or `--install` / `--no-watch`).
+`npm run dev` builds `shared/` once, then runs three things in one terminal, each with a colored prefix: the `shared` watcher (rebuilds when you edit `shared/`), the backend on `:3001` and the frontend on `:3000`. Ctrl+C stops all three.
 
-Later sessions (deps already installed):
+Later sessions only need `npm run dev`. Run `npm install` again after pulling changes to any `package.json` or `package-lock.json`.
+
+To run one package on its own (for example in separate terminals), build `shared` first:
 
 ```bash
-./scripts/dev.sh
-# or skip shared watch:
-./scripts/dev.sh --no-watch
-```
-
-**Windows (PowerShell)**
-
-```powershell
-git clone <repo-url>
-cd <repo>
-.\scripts\dev.ps1 -Install
-```
-
-Later starts (no reinstall):
-
-```powershell
-.\scripts\dev.ps1
-# or skip shared watch:
-.\scripts\dev.ps1 -NoWatch
-```
-
-Same flags also accept bash-style forms: `--install`, `--no-watch`, `-Help`. Details: [Scripts](../scripts/README.md).
-
-Manual equivalent (any OS, if you need separate terminals):
-
-```bash
-npm install --prefix shared && npm install --prefix backend && npm install --prefix frontend
-npm run build --prefix shared   # required before backend/frontend
-npm run dev --prefix backend    # :3001
-npm run dev --prefix frontend   # :3000
+npm run build -w @css-atlas/shared
+npm run dev -w @css-atlas/backend
+npm run dev -w @css-atlas/frontend
 ```
 
 ### 4. Verify “working”
@@ -148,20 +115,20 @@ Details: [Scripts](../scripts/README.md).
 
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
-| `dev.sh` exits: `Missing backend/.env` (or frontend `.env.local`) | Env files not created yet | Copy the `.env.example` files (step 2), fill in Supabase values, **then** re-run `./scripts/dev.sh` |
+| Backend crashes on start, or the frontend cannot sign in | Env files not created yet | Copy the `.env.example` files (step 2), fill in Supabase values, **then** re-run `npm run dev` |
 | Frontend can’t reach API / CORS errors | `CORS_ORIGIN` ≠ browser origin | Set `CORS_ORIGIN=http://localhost:3000` in `backend/.env`, restart backend |
-| Module / shared import errors | `shared/` not built | `npm run build --prefix shared` then restart |
+| Module / shared import errors | `shared/` not built | Restart `npm run dev` (it builds `shared` first), or run `npm run build -w @css-atlas/shared` |
 | Port already in use | Leftover Node process | Free `:3000` / `:3001` or change ports deliberately |
-| Sent to `/auth/login` (or bounce off dashboard) even though you just signed in | **Backend not running** on `:3001` (or wrong `BACKEND_URL`) — dashboard calls `GET /api/auth/me`; on failure it treats you as logged out and redirects | Confirm backend is up (`curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3001/` → `200`); use `./scripts/dev.sh` or `.\scripts\dev.ps1` so both processes stay alive; check `BACKEND_URL` / `NEXT_PUBLIC_BACKEND_URL` |
-| `.\scripts\dev.ps1` is blocked / “running scripts is disabled” | PowerShell execution policy | `Set-ExecutionPolicy -Scope Process Bypass`, then re-run the script from the repo root |
-| `./scripts/dev.sh` fails on Windows | Bash script not meant for CMD/PowerShell | Use `.\scripts\dev.ps1` instead ([Scripts](../scripts/README.md)) |
+| Sent to `/auth/login` (or bounce off dashboard) even though you just signed in | **Backend not running** on `:3001` (or wrong `BACKEND_URL`) — dashboard calls `GET /api/auth/me`; on failure it treats you as logged out and redirects | Confirm backend is up (`curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3001/` → `200`); run `npm run dev` so both processes stay up; check `BACKEND_URL` / `NEXT_PUBLIC_BACKEND_URL` |
 | Auth redirect loop / empty session (backend is up) | Bad Supabase URL/key in `.env.local` | Double-check `NEXT_PUBLIC_SUPABASE_*` |
 | Empty lists but data exists in Supabase | RLS / JWT not attached — see [Auth & RLS runbook](auth-rls-runbook.md) | Confirm cookie session + `Authorization` on API calls |
+| `EBADENGINE` warnings, or install/test failures nobody else sees | Wrong Node version | `node -v` should print `v26.x`; switch with your version manager and re-run `npm install` |
+| A `package-lock.json` appears in `backend/`, `frontend/` or `shared/` | `npm install` ran inside a package folder | Delete that file and run `npm install` from the repo root |
 
 ---
 
 ## Success criteria
 
-- [ ] `./scripts/dev.sh` or `.\scripts\dev.ps1` keeps both apps up
+- [ ] `npm run dev` keeps `shared`, backend and frontend up
 - [ ] You are signed in
 - [ ] You can explain in one sentence: backend Supabase queries are RLS-scoped via the JWT bound in `AsyncLocalStorage` ([codebase notes](../../agents/codebase-notes.md))

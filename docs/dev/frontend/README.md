@@ -24,7 +24,7 @@ The Next.js App Router web application. Provides the UI for scholars, team leade
 | `package.json` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/package.json) | Dependencies, scripts, workspace config |
 | `tsconfig.json` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/tsconfig.json) | TypeScript config with path aliases (`@/`) |
 | `next.config.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/next.config.ts) | Next.js config (externalDir, turbopack root for shared) |
-| `middleware.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/middleware.ts) | Thin re-export of `updateSession` from `lib/supabase/middleware.ts` |
+| `proxy.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/proxy.ts) | Thin re-export of `updateSession` from `lib/supabase/middleware.ts` |
 | `eslint.config.mjs` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/eslint.config.mjs) | ESLint configuration |
 | `vitest.config.ts` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/vitest.config.ts) | Vitest test runner (TZ=America/New_York required) |
 | `postcss.config.mjs` | [source](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/frontend/postcss.config.mjs) | PostCSS config for Tailwind CSS |

@@ -24,7 +24,7 @@ import type {
 } from "../models/meeting-preference.model.js";
 
 // The generated database types predate this live table (regenerate after the
-// migration is applied: npm run db:types --prefix backend).
+// migration is applied: npm run db:types -w @css-atlas/backend).
 interface UntypedResult {
   data: unknown;
   error: unknown;

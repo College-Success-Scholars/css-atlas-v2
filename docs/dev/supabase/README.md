@@ -20,7 +20,7 @@ Auth session management on the frontend still uses the Supabase JS client; that 
 
 ### Typed client (backend only)
 
-Generated schema types and `createClient<Database>` live under [`backend/src/supabase/`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/backend/src/supabase) — not in `shared/`, and not bundled for the frontend. Regen after migrations: `npm run db:types --prefix backend`, then fix backend models / frontend API types until `npm test` / `npm run typecheck` pass (see [`database-model-align.test.ts`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/backend/src/tests/database-model-align.test.ts)).
+Generated schema types and `createClient<Database>` live under [`backend/src/supabase/`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/backend/src/supabase) — not in `shared/`, and not bundled for the frontend. Regen after migrations: `npm run db:types -w @css-atlas/backend`, then fix backend models / frontend API types until `npm test` / `npm run typecheck` pass (see [`database-model-align.test.ts`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/backend/src/tests/database-model-align.test.ts)).
 
 **Architecture:** Postgres → generated `Database` (backend) → backend models/services → HTTP JSON → `frontend/lib/types/*` (route/API DTOs). There is no shared schema DTO package.
 

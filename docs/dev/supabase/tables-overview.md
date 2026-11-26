@@ -1,6 +1,6 @@
 # Public tables — importance, secrecy, Atlas use
 
-Schema inventory for CSS Atlas against the linked Supabase `public` schema (regenerated types: [`backend/src/supabase/database.types.ts`](../../../backend/src/supabase/database.types.ts)). Column types/descriptions: [`public-schema.md`](public-schema.md). Access pattern: [`README.md`](README.md).
+Schema inventory for CSS Atlas against the linked Supabase `public` schema (regenerated types: [`backend/src/supabase/database.types.ts`](https://github.com/College-Success-Scholars/css-atlas-v2/blob/develop/backend/src/supabase/database.types.ts)). Column types/descriptions: [`public-schema.md`](public-schema.md). Access pattern: [`README.md`](README.md).
 
 This doc describes **structure and product use only** — not row data.
 
@@ -546,7 +546,7 @@ If you only remember a short list:
 1. Prefer Express services over Dashboard SQL for lasting changes; new DDL goes in `supabase/migrations/`.
 2. Do not dump or `SELECT *` production tables when schema is enough — use types, migrations, or `information_schema`.
 3. When APIs need a subset of a row, **omit Critical columns** unless the endpoint’s purpose requires them (e.g. don’t ship `assignment_grades` to a presence widget).
-4. After remote schema drift, regen types with `npm run db:types --prefix backend` and update this overview if columns appear.
+4. After remote schema drift, regen types with `npm run db:types -w @css-atlas/backend` and update this overview if columns appear.
 5. As of the Oct 2026 types regen, remote has migrations `20261023120000` and `20261023140000` not yet present under local `supabase/migrations/`.
 
 *Generated for ops / architecture orientation. Not a legal FERPA memo — escalate policy questions to program leadership.*
