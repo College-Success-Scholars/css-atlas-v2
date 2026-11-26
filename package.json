@@ -13,7 +13,7 @@
   },
   "scripts": {
     "predev": "npm run build -w @css-atlas/shared",
-    "dev": "concurrently -k -n shared,api,web -c blue,green,magenta \"npm run watch -w @css-atlas/shared\" \"npm run dev -w @css-atlas/backend\" \"npm run dev -w @css-atlas/frontend\"",
+    "dev": "concurrently -k -n shared,backend,frontend -c blue,green,magenta \"npm run watch -w @css-atlas/shared\" \"npm run dev -w @css-atlas/backend\" \"npm run dev -w @css-atlas/frontend\"",
     "build": "npm run build -w @css-atlas/shared && npm run build -w @css-atlas/backend -w @css-atlas/frontend",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",

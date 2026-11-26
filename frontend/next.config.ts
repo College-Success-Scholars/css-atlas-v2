@@ -23,25 +23,14 @@ const frontendDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(frontendDir, "..");
 
 const nextConfig: NextConfig = {
-  // Allow webpack builds to access files above the Next.js project root.
-  experimental: {
-    externalDir: true,
-  },
-
-  // Absolute monorepo root so Turbopack can follow the @css-atlas/shared symlink.
-  // `next` itself is installed under frontend/node_modules — scripts/dev.sh
-  // symlinks it to <repo>/node_modules/next so HMR does not panic with
-  // "Next.js package not found".
-  turbopack: {
-    root: repoRoot,
-  },
-
   // Deployment envs only set the server-only BACKEND_URL (read by lib/server/api-client.ts).
   // Browser code can only ever see NEXT_PUBLIC_-prefixed vars inlined at build time, so alias
   // it here — this is a name bridge for one existing var, not a hardcoded default/fallback value.
   env: {
     NEXT_PUBLIC_BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_URL,
   },
+  output: "standalone",
+  outputFileTracingRoot: repoRoot,
 };
 
 export default nextConfig;
