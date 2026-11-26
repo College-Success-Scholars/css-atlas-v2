@@ -60,6 +60,7 @@ scripts/build-data-inventory-pdf.sh
 .opencode/
 openspec/
 .audit/
+.cursorignore
 
 # ==============================================================================
 # OS & Editor Files
