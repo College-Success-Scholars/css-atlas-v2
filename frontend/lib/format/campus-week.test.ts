@@ -6,6 +6,7 @@ import {
   formatCampusWeekDateRange,
   formatCampusWeekOptionLabel,
   parseWeekParam,
+  semesterCampusWeeks,
 } from "./campus-week"
 
 describe("parseWeekParam", () => {
@@ -42,6 +43,27 @@ describe("campusWeekNumbers", () => {
 
   it("lists weeks 1 through the max, ascending", () => {
     expect(campusWeekNumbers(3)).toEqual([1, 2, 3])
+  })
+})
+
+describe("semesterCampusWeeks", () => {
+  it("is empty before the collection year starts", () => {
+    expect(semesterCampusWeeks(null, 16)).toEqual([])
+  })
+
+  it("lists every Fall week, including weeks still to come", () => {
+    expect(semesterCampusWeeks(10, 16)).toEqual(campusWeekNumbers(15))
+  })
+
+  it("keeps showing Fall during winter break", () => {
+    expect(semesterCampusWeeks(16, 16)).toEqual(campusWeekNumbers(15))
+  })
+
+  it("assumes Spring runs as long as Fall, stretching past it if needed", () => {
+    const spring = semesterCampusWeeks(17, 16)
+    expect(spring[0]).toBe(17)
+    expect(spring.at(-1)).toBe(31)
+    expect(semesterCampusWeeks(33, 16).at(-1)).toBe(33)
   })
 })
 

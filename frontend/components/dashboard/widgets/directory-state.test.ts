@@ -3,7 +3,9 @@ import {
   activeFilterCount,
   directoryMenteePath,
   directoryPath,
+  directoryTeamLeaderFor,
   initialDirectoryState,
+  teamLeadersByUid,
 } from "./directory-state";
 
 describe("directory state", () => {
@@ -23,5 +25,13 @@ describe("directory state", () => {
     );
     expect(directoryMenteePath("123456789", false)).toBeNull();
     expect(directoryMenteePath(null, true)).toBeNull();
+  });
+
+  it("spots team leader rows by UID from the team-leaders read", () => {
+    const leader = { uid: "111", mentee_count: 2, mentee_uids: ["201", "202"] };
+    const teamLeaders = teamLeadersByUid([leader]);
+    expect(directoryTeamLeaderFor("111", teamLeaders)).toBe(leader);
+    expect(directoryTeamLeaderFor("201", teamLeaders)).toBeNull();
+    expect(directoryTeamLeaderFor(null, teamLeaders)).toBeNull();
   });
 });
