@@ -370,6 +370,8 @@ export function DirectoryDashboard({ canViewTeamLeaderForms = false, viewerId = 
   const [teamLeaders, setTeamLeaders] = useState<ReadonlyMap<string, DirectoryTeamLeader>>(() => new Map());
   const pins = useDirectoryPins(viewerId);
   const [onlyPinned, setOnlyPinned] = useState(false);
+  // "Pinned only" has nothing to show once the last pin is gone, so fall back to the full list.
+  if (onlyPinned && pins.pinned.length === 0) setOnlyPinned(false);
   const filters = { team: state.team, programRole: state.programRole, cohort: state.cohort };
   const effectiveState = { ...state, search: debouncedSearch };
 
@@ -532,18 +534,16 @@ export function DirectoryDashboard({ canViewTeamLeaderForms = false, viewerId = 
           </div>
       </div>
 
-      <section aria-labelledby="directory-pinned-heading" className="overflow-hidden rounded-lg border border-amber-500/30 bg-amber-500/5">
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3">
-          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-            <Pin className="size-4 fill-current text-amber-600 dark:text-amber-400" aria-hidden="true" />
-            <h2 id="directory-pinned-heading" className="text-xs font-semibold uppercase tracking-wider">Pinned</h2>
-            <span className="text-xs text-muted-foreground">{pins.pinned.length} · only you can see your pins</span>
+      {pins.pinned.length > 0 && (
+        <section aria-labelledby="directory-pinned-heading" className="overflow-hidden rounded-lg border border-amber-500/30 bg-amber-500/5">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+              <Pin className="size-4 fill-current text-amber-600 dark:text-amber-400" aria-hidden="true" />
+              <h2 id="directory-pinned-heading" className="text-xs font-semibold uppercase tracking-wider">Pinned</h2>
+              <span className="text-xs text-muted-foreground">{pins.pinned.length} · only you can see your pins</span>
+            </div>
+            <span className="text-xs text-muted-foreground">Pinned people stay here across filters, search, and visits on this device.</span>
           </div>
-          <span className="text-xs text-muted-foreground">Pinned people stay here across filters, search, and visits on this device.</span>
-        </div>
-        {pins.pinned.length === 0 ? (
-          <p className="border-t px-4 py-4 text-sm text-muted-foreground">No one pinned yet. Use the pin button on any row to keep someone here.</p>
-        ) : (
           <div className="overflow-x-auto border-t">
             <div className={DIRECTORY_MIN_WIDTH}>
               {sortPins(pins.pinned, state.sort).map((person) => (
@@ -551,8 +551,8 @@ export function DirectoryDashboard({ canViewTeamLeaderForms = false, viewerId = 
               ))}
             </div>
           </div>
-        )}
-      </section>
+        </section>
+      )}
 
       {error && <p className="rounded-md border border-destructive/50 p-3 text-sm text-destructive">{error}</p>}
       {!onlyPinned && loading && !response ? <p className="py-8 text-sm text-muted-foreground">Loading directory...</p> : null}

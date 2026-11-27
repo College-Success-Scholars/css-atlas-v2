@@ -43,11 +43,13 @@ describe("DirectoryDashboard pins", () => {
   });
 
   const pinnedSection = () => screen.getByRole("heading", { name: "Pinned" }).closest("section") as HTMLElement;
+  const pinnedHeading = () => screen.queryByRole("heading", { name: "Pinned" });
 
-  it("starts empty and explains how to pin", async () => {
+  it("shows no Pinned section until someone is pinned", async () => {
     render(<DirectoryDashboard viewerId="viewer-a" />);
     await screen.findByText("Sam Rivera");
-    expect(within(pinnedSection()).getByText(/No one pinned yet/)).toBeDefined();
+    expect(pinnedHeading()).toBeNull();
+    expect(screen.queryByText(/No one pinned yet/)).toBeNull();
   });
 
   it("pins a person into the Pinned section and keeps them for the next visit", async () => {
@@ -65,7 +67,7 @@ describe("DirectoryDashboard pins", () => {
     localStorage.setItem("directory:pins:viewer-a", JSON.stringify([directory.members[1]]));
     render(<DirectoryDashboard viewerId="viewer-b" />);
     await screen.findByText("Sam Rivera");
-    expect(within(pinnedSection()).queryByText("Sam Rivera")).toBeNull();
+    expect(pinnedHeading()).toBeNull();
   });
 
   it("hides everyone else when Pinned only is on", async () => {
@@ -83,9 +85,22 @@ describe("DirectoryDashboard pins", () => {
     render(<DirectoryDashboard viewerId="viewer-a" />);
     await waitFor(() => expect(within(pinnedSection()).getByText("Sam Rivera")).toBeDefined());
     fireEvent.click(within(pinnedSection()).getByRole("button", { name: "Unpin Sam Rivera" }));
-    expect(within(pinnedSection()).queryByText("Sam Rivera")).toBeNull();
+    expect(pinnedHeading()).toBeNull();
     expect(screen.queryByText(/Profile details are coming soon/)).toBeNull();
     expect(JSON.parse(localStorage.getItem("directory:pins:viewer-a") ?? "[]")).toEqual([]);
+  });
+
+  it("goes back to the full list when the last pin is removed under Pinned only", async () => {
+    localStorage.setItem("directory:pins:viewer-a", JSON.stringify([directory.members[1]]));
+    render(<DirectoryDashboard viewerId="viewer-a" />);
+    await screen.findByText("Jordan Ellis");
+    fireEvent.click(screen.getByRole("button", { name: /Pinned only/ }));
+    expect(screen.queryByText("Jordan Ellis")).toBeNull();
+    fireEvent.click(within(pinnedSection()).getByRole("button", { name: "Unpin Sam Rivera" }));
+    expect(pinnedHeading()).toBeNull();
+    expect(screen.getByText("Jordan Ellis")).toBeDefined();
+    expect(screen.getByText("All members")).toBeDefined();
+    expect(screen.getByRole("button", { name: /Pinned only/ }).getAttribute("aria-pressed")).toBe("false");
   });
 });
 
