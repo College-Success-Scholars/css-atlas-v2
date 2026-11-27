@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import { DirectoryDashboard } from "./directory-dashboard";
 
 const api = vi.hoisted(() => ({ backendGet: vi.fn(), backendPost: vi.fn() }));
@@ -52,6 +53,15 @@ describe("DirectoryDashboard pins", () => {
     expect(screen.queryByText(/No one pinned yet/)).toBeNull();
   });
 
+  it("waits for pins to load before showing the Pinned section or count", () => {
+    localStorage.setItem("directory:pins:viewer-a", JSON.stringify([directory.members[1]]));
+    // renderToString runs no effects, so this is the first render, before storage is read.
+    const page = document.createElement("div");
+    page.innerHTML = renderToString(<DirectoryDashboard viewerId="viewer-a" />);
+    expect(within(page).queryByRole("heading", { name: "Pinned" })).toBeNull();
+    expect(within(page).getByRole("button", { name: /Pinned only/ }).textContent).not.toMatch(/\d/);
+  });
+
   it("pins a person into the Pinned section and keeps them for the next visit", async () => {
     const { unmount } = render(<DirectoryDashboard viewerId="viewer-a" />);
     fireEvent.click(await screen.findByRole("button", { name: "Pin Sam Rivera" }));
@@ -74,6 +84,7 @@ describe("DirectoryDashboard pins", () => {
     localStorage.setItem("directory:pins:viewer-a", JSON.stringify([directory.members[1]]));
     render(<DirectoryDashboard viewerId="viewer-a" />);
     await screen.findByText("Jordan Ellis");
+    expect(screen.getByRole("button", { name: /Pinned only/ }).textContent).toContain("1");
     fireEvent.click(screen.getByRole("button", { name: /Pinned only/ }));
     expect(screen.queryByText("Jordan Ellis")).toBeNull();
     expect(screen.queryByText("All members")).toBeNull();

@@ -529,12 +529,12 @@ export function DirectoryDashboard({ canViewTeamLeaderForms = false, viewerId = 
               className={`h-11 shrink-0 cursor-pointer px-2 text-xs sm:px-3 sm:text-sm ${onlyPinned ? PINNED_ACCENT : ""}`}
             >
               <Pin className={onlyPinned ? "fill-current" : undefined} aria-hidden="true" />
-              <span className="sr-only sm:not-sr-only">Pinned only ·</span> {pins.pinned.length}
+              <span className="sr-only sm:not-sr-only">Pinned only ·</span> {pins.loaded ? pins.pinned.length : null}
             </Button>
           </div>
       </div>
 
-      {pins.pinned.length > 0 && (
+      {pins.loaded && pins.pinned.length > 0 && (
         <section aria-labelledby="directory-pinned-heading" className="overflow-hidden rounded-lg border border-amber-500/30 bg-amber-500/5">
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3">
             <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">

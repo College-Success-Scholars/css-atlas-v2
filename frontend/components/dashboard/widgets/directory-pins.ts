@@ -57,6 +57,10 @@ export function sortPins(pins: DirectoryPerson[], sort: DirectorySort): Director
   return sort === "desc" ? sorted.reverse() : sorted;
 }
 
+/**
+ * This viewer's pins. `loaded` stays false until storage has been read, so
+ * callers can wait for it instead of treating the first render as "no pins".
+ */
 export function useDirectoryPins(viewerId: string | null) {
   const [pins, setPins] = useState<{ loaded: boolean; people: DirectoryPerson[] }>({ loaded: false, people: [] });
 
@@ -82,5 +86,5 @@ export function useDirectoryPins(viewerId: string | null) {
 
   const pinnedIds = useMemo(() => new Set(pins.people.map((person) => person.id)), [pins.people]);
 
-  return { pinned: pins.people, pinnedIds, toggle, refresh };
+  return { pinned: pins.people, pinnedIds, loaded: pins.loaded, toggle, refresh };
 }
